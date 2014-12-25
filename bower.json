@@ -1,0 +1,18 @@
+{
+  "name": "skulpt_gl",
+  "version": "0.0.0",
+  "homepage": "https://github.com/poweif/graphics-fun",
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "polymer": "Polymer/polymer#~0.4.2",
+    "core-elements": "Polymer/core-elements#~0.4.2"
+  }
+}

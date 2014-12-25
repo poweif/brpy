@@ -1,0 +1,117 @@
+<link rel="import" href="/bower_components/core-icon-button/core-icon-button.html">
+<link rel="import" href="/bower_components/core-input/core-input.html">
+<link rel="import" href="/bower_components/core-ajax/core-ajax.html">
+<polymer-element name="code-input" attributes="inputFiles">
+  <template>
+    <style>
+      :host {
+        display: inline-block;
+        text-align: left;
+        border: 1px solid black;
+        font-family: sans-serif;
+        padding: 5px;
+        margin-left: 10px;
+      }
+      .run-button {
+        display: inline-block;
+        border: 1px rgb(155, 155, 155) solid;
+        margin-bottom: 15px;
+        margin-top: 5px;
+      }
+      .input-field {
+        display: inline-block;
+        width: 800px;
+        margin: 3px;
+        margin-bottom: 10px;
+        padding: 5px;
+        border: 1px rgb(155, 155, 155) solid;
+        font-family: monospace;
+        font-size: 11px;
+      }
+    </style>
+    <core-icon-button class="run-button" on-click="{{runProg}}" icon="forward">
+      Run
+    </core-icon-button>
+    <br />
+    <template repeat="{{file in inputFiles}}">
+      <div>{{file}}</div>
+      <core-input id="{{file}}"
+                  class="input-field"
+                  multiline rows="fit"
+                  placeholder="Input">
+      </core-input>
+    </template>
+  </template>
+  <script>
+    Polymer('code-input', {
+      inputFiles: [],
+      ready: function() {
+        var that = this;
+        setTimeout(function() {
+          that.runProg();
+        }, 500);
+        var onKeyPress = function(e) {
+          if (e.which == 9)
+              that.runProg();
+        };
+        document.addEventListener("keypress", onKeyPress, false);
+      },
+      handleResponse: function(fileName, e) {
+        console.log(e);
+        console.log(fileName);
+        if (e.target.status == 200) {
+          var res = e.target.response;
+          var lineCount = (res.match(/\n/g) || []).length + 1;
+          this.$[fileName].inputValue = e.target.response;
+          this.$[fileName].rows = Math.min(lineCount, 50);
+          this.$[fileName].commit();
+        }
+      },
+      readSrcFile: function(fileName) {
+        var that = this;
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', fileName);
+        xhr.responseType = 'text';
+        xhr.onloadend = function(e) {
+          that.handleResponse(fileName, e);
+        };
+        xhr.send();
+      },
+      inputFilesChanged: function(ov, newFiles) {
+        var newFilesLen = newFiles.length;
+        for (var i = 0; i < newFilesLen; i++) {
+          this.readSrcFile(newFiles[i]);
+        }
+      },
+      runProg: function(err) {
+        var prog = '';
+        var inputFilesLen = this.inputFiles.length;        
+        for (var i = 0; i < inputFilesLen; i++) {
+          prog += this.$[this.inputFiles[i]].inputValue;
+        }
+        var output = function(s) {
+          console.log(s);
+        };
+        var builtinRead = function(x) {
+          if (Sk.builtinFiles === undefined ||
+              Sk.builtinFiles["files"][x] === undefined) {
+            throw "File not found: '" + x + "'";
+          }
+          return Sk.builtinFiles["files"][x];
+        };
+
+        Sk.canvas = "threedDisplay";
+        Sk.configure({
+          "output": output,
+          "debugout": output,
+          "read": builtinRead
+        });
+        try {
+          eval(Sk.importMainWithBody("<stdin>", false, prog));
+        } catch(e) {
+          console.log(e.toString());
+        }
+      }
+    });
+  </script>
+</polymer-element>

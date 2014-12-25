@@ -1,0 +1,11 @@
+--- MatrixMarketIterator.old	2014-10-23 17:08:43.471465242 +0800
++++ MatrixMarketIterator.h	2014-10-23 17:08:56.295465067 +0800
+@@ -178,7 +178,7 @@
+         std::string curfile;
+         curfile = m_folder + "/" + m_curs_id->d_name;
+         // Discard if it is a folder
+-        if (m_curs_id->d_type == DT_DIR) continue; //FIXME This may not be available on non BSD systems
++//        if (m_curs_id->d_type == DT_DIR) continue; //FIXME This may not be available on non BSD systems
+ //         struct stat st_buf; 
+ //         stat (curfile.c_str(), &st_buf);
+ //         if (S_ISDIR(st_buf.st_mode)) continue;
