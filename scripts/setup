@@ -1,16 +1,5 @@
 #/bin/sh
 
-function cp_skulpt() {
-    cp -r ../../skulpt/dist ./skulpt
-}
-
-function update() {
-    # Nodejs packages
-    npm install
-    # Bower
-    bower update
-}
-
 function libigl_update() {
 cd nacl
 
@@ -40,6 +29,4 @@ fi
 cd ..
 }
 
-cp_skulpt
-update
 libigl_update
