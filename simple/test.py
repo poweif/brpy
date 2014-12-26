@@ -1,7 +1,7 @@
 import webgl
 from math import sin
 
-gl = webgl.Context("my-canvas")
+gl = webgl.Context("mainPanelCanvas")
 trianglesVerticeBuffer = gl.createBuffer()
 trianglesColorBuffer = gl.createBuffer()
 program = None
@@ -32,7 +32,7 @@ def setup():
 def draw(gl, elapsed):
   gl.clearColor(0.1, 0.5, 0.1, 1.0);  
   gl.clear(gl.COLOR_BUFFER_BIT);  
-  gl.viewport(0, 0, 400, 300);
+  gl.viewport(0, 0, 300, 300);
   translation = sin(elapsed * 2.0 * 3.14159 / 10000.0)/2.0;
   triangleVertices = [-0.5 + translation,  0.5, 0.0,
                        0.0 + translation,  0.0, 0.0,

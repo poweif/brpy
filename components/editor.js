@@ -16,7 +16,8 @@ var MainPanel = React.createClass({
 var SourceEditor = React.createClass({
     getInitialState: function() {
         return {
-            srcs: {}
+            srcs: {},
+            contentText: ''
         };
     },
     loadContent: function (url) {
@@ -27,14 +28,38 @@ var SourceEditor = React.createClass({
         if (url) {
             var contentReq = new XMLHttpRequest();
             contentReq.onload = function() {
-                that.refs.content.getDOMNode().value = this.responseText;
+                var prog = this.responseText;
+                that.refs.content.getDOMNode().value = prog;
+
+                var output = function(s) { console.log(s); };
+                var builtinRead = function(x) {
+                    if (Sk.builtinFiles === undefined ||
+                        Sk.builtinFiles["files"][x] === undefined) {
+                        throw "File not found: '" + x + "'";
+                    }
+                    return Sk.builtinFiles["files"][x];
+                };
+
+                Sk.canvas = that.props.canvasId;
+                Sk.configure({
+                    "output": output,
+                    "debugout": output,
+                    "read": builtinRead
+                });
+                try {
+                    eval(Sk.importMainWithBody("<stdin>", false, prog));
+                } catch(e) {
+                    console.log(e);
+                    console.log(e.stack);
+                }
             };
+
             contentReq.open('GET', url, true);
             contentReq.send();
         }
     },
     componentDidMount: function() {
-        this.loadContent('/simple/main.py');
+        this.loadContent('/simple/test.py');
     },
     render: function() {
         return (
