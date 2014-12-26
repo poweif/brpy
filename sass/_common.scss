@@ -1,0 +1,67 @@
+$prime-color: rgb(145, 195, 250) * .85;
+//$prime-color: rgb(198, 195, 250) * .8;
+$prime-inv-color: white;
+$standard-font-family: "source-sans-pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+$banner-height: 100px;
+$menu-height: 30px;
+
+$menu-margin: 25px;
+
+$nav-bar-height: $banner-height + $menu-height + $menu-margin;
+$nav-bar-height-m: 50px;
+
+$highlight-color: #fec440;
+$standard-text-shadow: 2px 2px 4px rgb(50,50,50);
+
+$picked-color: $highlight-color * .85;
+
+$color-fac: .78;
+$color-0: $prime-color * $color-fac; // blue
+$color-1: rgb(145, 250, 195) * $color-fac; // green
+$color-2: rgb(240, 175, 240) * $color-fac; // purple
+$color-3: rgb(250, 145, 160) * $color-fac; // red
+$color-4: $highlight-color * $color-fac;  // yellow
+
+$ahref-color: $prime-color;
+
+$content-frame-width: 790px;
+$content-quickpad-width: 150px;
+$content-quickpad-margin: 30px;
+$content-content-width: $content-frame-width - $content-quickpad-width - $content-quickpad-margin;
+
+.clickable {
+  cursor: pointer;
+}
+
+.unselectable {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+@mixin keyframes($animation-name) {
+  @-webkit-keyframes #{$animation-name} {
+    @content;
+  }
+  @-moz-keyframes #{$animation-name} {
+    @content;
+  }
+  @keyframes #{$animation-name} {
+    @content;
+  }
+}
+
+@mixin animation($str) {
+  -webkit-animation: #{$str};
+  -moz-animation: #{$str};
+  animation: #{$str};
+}
+
+@include keyframes(fade-in) {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

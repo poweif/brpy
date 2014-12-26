@@ -1,0 +1,22 @@
+@import 'common';
+@import 'flexbox';
+
+.no-show {
+  display: none;
+}
+
+a, .ahref {
+  @extend .clickable;
+  display: inline;
+  color: $ahref-color;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+body {
+  font-family: $standard-font-family;
+}
+
+a:hover, .ahref-highlighted, .ahref:hover {
+  color: $highlight-color;
+}

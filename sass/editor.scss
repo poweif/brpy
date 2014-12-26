@@ -1,0 +1,33 @@
+@import 'common';
+@import 'flexbox';
+
+$test-fac: 1.8;
+$canvas-size: 500px;
+
+.main-panel {
+  @extend %flexbox;
+  @include flex-direction(row);
+  padding: 15px;
+  border: 1px solid gray * $test-fac;
+
+  .canvas-wrapper {
+    @include flex(7, 1, auto);
+    @extend %flexbox;
+    @include align-items(center);
+    @include justify-content(center);
+    border: 1px solid gray * $test-fac;
+    margin-right: 10px;
+    canvas {
+      width: $canvas-size;
+      height: $canvas-size;
+      border: 1px solid gray * ($test-fac / 1.2);
+    }
+  }
+
+  textarea {
+    @include flex(1, 1, auto);
+    min-width: 0;
+    min-height: 0;
+    margin-left: 10px;
+  }
+}

@@ -1,0 +1,9 @@
+#!/bin/bash
+
+SASSP=sass
+if [[ $MACHTYPE == *"cygwin"* ]]
+then
+    SASSP=sass.bat
+fi
+
+$SASSP --watch sass:css
