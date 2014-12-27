@@ -1,0 +1,17 @@
+{
+    "name": "Simple",
+    "src": [
+        "prep.py",   
+        "mesh.py",
+        "main.py"
+    ],
+    "default_file": 2,
+    "layout": {
+        "center": [0, 1, 2],
+        "bottom": [],
+        "right": []
+    },
+    "layout_flags": {
+        "expand_center": false
+    }
+}
