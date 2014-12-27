@@ -1,5 +1,11 @@
-$prime-color: rgb(145, 195, 250) * .85;
-//$prime-color: rgb(198, 195, 250) * .8;
+$color-fac: .85;
+$color-0: rgb(145, 195, 250) * $color-fac; // blue
+$color-1: rgb(145, 250, 195) * $color-fac; // green
+$color-2: rgb(240, 175, 240) * $color-fac; // purple
+$color-3: rgb(250, 145, 160) * $color-fac; // red
+$color-4: #fec440 * $color-fac;  // yellow
+
+$prime-color: $color-0;
 $prime-inv-color: white;
 $standard-font-family: "source-sans-pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
 
@@ -11,17 +17,10 @@ $menu-margin: 25px;
 $nav-bar-height: $banner-height + $menu-height + $menu-margin;
 $nav-bar-height-m: 50px;
 
-$highlight-color: #fec440;
+$highlight-color: $color-4;
 $standard-text-shadow: 2px 2px 4px rgb(50,50,50);
 
 $picked-color: $highlight-color * .85;
-
-$color-fac: .78;
-$color-0: $prime-color * $color-fac; // blue
-$color-1: rgb(145, 250, 195) * $color-fac; // green
-$color-2: rgb(240, 175, 240) * $color-fac; // purple
-$color-3: rgb(250, 145, 160) * $color-fac; // red
-$color-4: $highlight-color * $color-fac;  // yellow
 
 $ahref-color: $prime-color;
 
