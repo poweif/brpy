@@ -1,7 +1,13 @@
 var skulptgl = {
     xhr: function(url, onLoad) {
+        console.log('making a request for ' + url);
         var contentReq = new XMLHttpRequest();
-        contentReq.onload = onLoad;
+        var readyStateChange = function() {
+            if (contentReq.readyState == 4) {
+                onLoad(contentReq.responseText);
+            }
+        }
+        contentReq.onreadystatechange = readyStateChange;
         contentReq.open('GET', url, true);
         contentReq.send();
     },

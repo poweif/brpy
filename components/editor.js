@@ -27,7 +27,17 @@ var MainPanel = React.createClass({
         );
     },
     componentDidMount: function() {
-        this.loadProjectReq('/simple/simple.proj');
+        console.log('mount');
+        skulptgl.xhr(
+            'll',
+            function(text) {
+                console.log('hello world');
+                console.log(text);
+                var everything = JSON.parse(text);
+                console.log(everything);
+            }
+        );
+//        this.loadProjectReq('/simple/simple.proj');
     },
     render: function() {
         var canvasId = "mainPanelCanvas";
