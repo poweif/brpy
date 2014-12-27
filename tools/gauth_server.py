@@ -133,20 +133,36 @@ SESSION_KEY = 'skulpt-gl-key'
 SKULPT_APP_DIR = 'skulptgl_app_data'
 g_session = {}
 
+
+
 def init_skulptgl_session(drive):
-    param = {"q": "title = '%s'" % SKULPT_APP_DIR}
-    app_dir_res = drive_service.children().list(
+    param = {"q": "title = '%s' and trashed = false" %SKULPT_APP_DIR}
+    about_res = drive.about().get().execute()
+    root_folder_id = about_res['rootFolderId']
+    app_dir_res = drive.children().list(
         folderId="root",
         **param).execute()
     if len(app_dir_res['items']) < 1:
+        print('Did not find skulpt-gl app folder.  Create.')
+        drive.files().insert(
+            body = {
+                'title': SKULPT_APP_DIR,
+                'parents': [{"id": root_folder_id}],
+                'mimeType': "application/vnd.google-apps.folder"
+            }).execute()
+        init_skulptgl_session(drive)
         return
+
+    app_folder_id = app_dir_res['items'][0]['id']
+    print '------------------------' + app_folder_id
+    print app_dir_res['items'][0]
 
 class GAuthServer(object):
     @cherrypy.expose
     def load(self):
-        
+
         return
-    
+
     @cherrypy.expose
     def logout(self):
         cookie = cherrypy.request.cookie
@@ -164,15 +180,17 @@ class GAuthServer(object):
         session_key = param['state']
         cred = get_credentials(
             param['code'], state=None, redirect_uri=POST_LOGIN_URI)
-        
+
         info = get_user_info(cred)
         drive_service = build_drive_service(cred)
+
+        init_skulptgl_session(drive_service)
 
         g_session[session_key] = {
             'cred' : cred,
             'drive': drive_service
-        };
-        
+        }
+
         cherrypy.response.cookie[SESSION_KEY] = session_key
         cherrypy.response.status = '301'
         cherrypy.response.headers["Location"] = SHOW_URI
