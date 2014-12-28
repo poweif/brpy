@@ -11,6 +11,12 @@ var skulptgl = {
         contentReq.open('GET', url, true);
         contentReq.send();
     },
+    readProject: function(onLoad) {
+        this.xhr('/run/?proj', onLoad);
+    },
+    readSrcFile: function(filename, onLoad) {
+        this.xhr('/run/?read='+filename, onLoad);
+    },
     util: null
 };
 

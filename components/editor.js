@@ -28,15 +28,20 @@ var MainPanel = React.createClass({
     },
     componentDidMount: function() {
         console.log('mount');
-        skulptgl.xhr(
-            'll',
+        var that = this;
+        skulptgl.readProject(
             function(text) {
                 console.log('hello world');
                 console.log(text);
-                var everything = JSON.parse(text);
-                console.log(everything);
+                var project = JSON.parse(text);
+                that.setState({
+                    name: project.name,
+                    srcFiles: project.src,
+                    defaultFileInd: project.default_file
+                });
             }
         );
+
 //        this.loadProjectReq('/simple/simple.proj');
     },
     render: function() {
@@ -142,15 +147,13 @@ var SourceEditor = React.createClass({
     loadFiles: function() {
         var that = this;
         this.props.srcFiles.map(
-            function (file) {
-                var url = that.props.srcRoot + file;
-                skulptgl.xhr(
-                    url,
-                    function() { that.loadSource(file, this.responseText); }
+            function(file) {
+                skulptgl.readSrcFile(
+                    file,
+                    function(text) { that.loadSource(file, text); }
                 );
             }
         );
-
         document.removeEventListener("keypress", this.onKeyPress, false);
         document.addEventListener("keypress", this.onKeyPress, false);
     },
