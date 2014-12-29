@@ -70,10 +70,11 @@ class SkulptglSolution():
         self.__files[self.__key(parent_id, folder_name)] = res['id']
         return res['id']
 
-    def __update_text_file(self, parent_id, file_name, mime, text):
+    def __update_text_file(self, parent_id, file_name, text):
         if type(text) is str:
             text = unicode(text)
         output = io.StringIO(text)
+        mime = TEXT_MIME
 
         file_id = self.__find_file(parent_id, file_name)
 
@@ -89,7 +90,6 @@ class SkulptglSolution():
             return dfile['id']
 
         self.__drive.files().update(
-            uploadType="media",
             fileId=file_id,
             media_body=MediaIoBaseUpload(output, mime)).execute()
         output.close()
@@ -98,6 +98,7 @@ class SkulptglSolution():
     def __read_text_file(self, file_id):
         tfile = self.__drive.files().get(fileId=file_id).execute()
         download_url = tfile['downloadUrl']
+        print(download_url)
         if download_url is None:
             return None
 
@@ -112,9 +113,9 @@ class SkulptglSolution():
     def __create_project(self, proj_name):
         proj_folder_id = self.__create_folder(self.__app(), proj_name)
 
-        main_py = open('./simple/test.py')
+        main_py = open('./simple/main.py')
         self.__update_text_file(
-            proj_folder_id, MAIN_PY, TEXT_MIME, main_py.read())
+            proj_folder_id, MAIN_PY, main_py.read())
         main_py.close()
 
         proj_json = {
@@ -122,7 +123,7 @@ class SkulptglSolution():
             'src' : [MAIN_PY],
             'default_file': 0}
         self.__update_text_file(
-            proj_folder_id, PROJ_JSON, JSON_MIME, json.dumps(proj_json))
+            proj_folder_id, PROJ_JSON, json.dumps(proj_json))
 
         return proj_folder_id
 
@@ -139,7 +140,7 @@ class SkulptglSolution():
         if solution_file_id is None:
             solution = {'project': DEFAULT_PROJ}
             self.__update_text_file(
-                self.__app(), SOLUTION_JSON, JSON_MIME, json.dumps(solution))
+                self.__app(), SOLUTION_JSON, json.dumps(solution))
         else:
             solution = json.loads(self.__read_text_file(solution_file_id))
         return solution
@@ -173,7 +174,7 @@ class SkulptglSolution():
         proj_id = self.__find_project(self.__project())
         if proj_id is None:
             return None
-        self.__update_text_file(proj_id, fname, TEXT_MIME, text)
+        self.__update_text_file(proj_id, fname, text)
         return True
 
     # TODO: need to implement delete file

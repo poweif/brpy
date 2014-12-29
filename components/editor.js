@@ -31,8 +31,6 @@ var MainPanel = React.createClass({
         var that = this;
         skulptgl.readProject(
             function(text) {
-                console.log('hello world');
-                console.log(text);
                 var project = JSON.parse(text);
                 that.setState({
                     name: project.name,
@@ -41,8 +39,6 @@ var MainPanel = React.createClass({
                 });
             }
         );
-
-//        this.loadProjectReq('/simple/simple.proj');
     },
     render: function() {
         var canvasId = "mainPanelCanvas";
@@ -124,8 +120,16 @@ var SourceEditor = React.createClass({
         if (oldInd >= 0) {
             var oldSrcs = this.state.srcs;
             var oldFile = this.props.srcFiles[oldInd];
-            oldSrcs[oldFile] = this.refs.content.getDOMNode().value;
+            var source = this.refs.content.getDOMNode().value;
+            oldSrcs[oldFile] = source;
             this.setState({srcs: oldSrcs});
+            skulptgl.writeSrcFile(
+                oldFile,
+                source,
+                function(text) {
+                    console.log("finished writing: " + text);
+                }
+            );
         }
     },
     onClickFileButton : function(ind) {

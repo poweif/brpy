@@ -138,7 +138,7 @@ class GAuthServer(object):
     def __result(self, redirect=None, content=None, session_key=None):
         if redirect is not None:
             if session_key is not None:
-                cherrypy.response.cookie[SESSION_KEY] = session_key            
+                cherrypy.response.cookie[SESSION_KEY] = session_key
 
             cherrypy.response.status = '301'
             cherrypy.response.headers["Location"] = redirect
@@ -150,15 +150,15 @@ class GAuthServer(object):
             return content
 
         cherrypy.response.status = '404'
-        return        
+        return
 
-    @cherrypy.expose    
+    @cherrypy.expose
     def run(self, **param):
         cookie = cherrypy.request.cookie
         if SESSION_KEY not in cookie or\
            cookie[SESSION_KEY].value not in g_session:
             return self.__result(redirect=HOME_URI, session_key='')
-            
+
         session = g_session[cookie[SESSION_KEY].value]
         if not 'solution' in session:
             return self.__result(redirect=HOME_URI, session_key='')
@@ -174,9 +174,15 @@ class GAuthServer(object):
                 return self.__result(content=res)
 
         if 'write' in param:
-            res = solution.write_file(param['write'])
+            fname = param['write']
+            res = solution.write_file(
+                fname,
+                cherrypy.request.body.read())
             if res is not None:
-                return self.__result(content='')
+                return self.__result(content='finished writing ' + fname)
+
+#            if res is not None:
+#                return self.__result(content='')
 
         return self.__result()
 

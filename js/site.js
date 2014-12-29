@@ -1,5 +1,5 @@
 var skulptgl = {
-    xhr: function(url, onLoad) {
+    xhrGet: function(url, onLoad) {
         console.log('making a request for ' + url);
         var contentReq = new XMLHttpRequest();
         var readyStateChange = function() {
@@ -11,11 +11,26 @@ var skulptgl = {
         contentReq.open('GET', url, true);
         contentReq.send();
     },
+    xhrPost: function(url, text, onLoad) {
+        console.log('making a request for ' + url);
+        var contentReq = new XMLHttpRequest();
+        var readyStateChange = function() {
+            if (contentReq.readyState == 4) {
+                onLoad(contentReq.responseText);
+            }
+        }
+        contentReq.onreadystatechange = readyStateChange;
+        contentReq.open('POST', url, true);
+        contentReq.send(text);
+    },
     readProject: function(onLoad) {
-        this.xhr('/run/?proj', onLoad);
+        this.xhrGet('/run/?proj', onLoad);
     },
     readSrcFile: function(filename, onLoad) {
-        this.xhr('/run/?read='+filename, onLoad);
+        this.xhrGet('/run/?read='+filename, onLoad);
+    },
+    writeSrcFile: function(filename, text, onFinished) {
+        this.xhrPost('/run/?write='+filename, text, onFinished);
     },
     util: null
 };

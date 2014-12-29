@@ -1,5 +1,11 @@
 from math import sin
 
+import webgl
+import webgl.glut
+
+gl = webgl.Context("mainPanelCanvas")
+glut = webgl.glut.Init(gl)
+
 trianglesVerticeBuffer = gl.createBuffer()
 trianglesColorBuffer = gl.createBuffer()
 program = None
@@ -43,7 +49,7 @@ def setup():
   gl.useProgram(program)
 
   triangleVerticeColors = [1.0, 0.0, 0.0,
-                           1.0, 1.0, 1.0,
+                           1.0, 0.0, 1.0,
                            1.0, 0.0, 0.0]
 
   gl.bindBuffer(gl.ARRAY_BUFFER, trianglesColorBuffer)
@@ -54,9 +60,9 @@ def render(gl):
   gl.clearColor(1.0, 1.0, 1.0, 1.0)
   gl.clear(gl.COLOR_BUFFER_BIT)
   gl.viewport(0, 0, 500, 500)
-  triangleVertices = [-0.5,  0.5, 0.0,
-                       0.0,  0.0, 0.0,
-                      -0.5, -0.5, 0.0]
+  triangleVertices = [-0.7,  -0.5, 0.0,
+                       0.0,  -.5, 0.0,
+                      -0.7, -0.95, 0.0]
   gl.bindBuffer(gl.ARRAY_BUFFER, trianglesVerticeBuffer)
   gl.bufferData(gl.ARRAY_BUFFER, webgl.Float32Array(triangleVertices),
                 gl.DYNAMIC_DRAW)

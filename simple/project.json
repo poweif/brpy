@@ -1,0 +1,9 @@
+{
+    "name": "Simple",
+    "src": [
+        "prep.py",   
+        "mesh.py",
+        "main.py"
+    ],
+    "default_file": 2
+}
