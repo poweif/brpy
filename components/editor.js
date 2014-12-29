@@ -60,6 +60,7 @@ var MainPanel = React.createClass({
 });
 
 var SourceEditor = React.createClass({
+    cdm: null,
     getInitialState: function() {
         return {
             srcs: {},
@@ -106,7 +107,19 @@ var SourceEditor = React.createClass({
     loadSource: function(file, text) {
         var fileInd = skulptgl.util.indexOf(this.props.srcFiles, file);
         if (this.state.selectedFileInd == fileInd && fileInd >= 0) {
-            this.refs.content.getDOMNode().value = text;
+            var code = text;
+            this.refs.content.getDOMNode().value = code;
+            var codearea = this.refs.content.getDOMNode();
+            this.cdm = CodeMirror.fromTextArea(codearea, {
+                value: text,
+                lineNumbers: true,
+                mode: "python",
+                keyMap: "emacs",
+                autoCloseBrackets: true,
+                matchBrackets: true,
+                showCursorWhenSelecting: true,
+                theme: "monokai"
+            });
         }
         var curSrcs = this.state.srcs;
         curSrcs[file] = text;
@@ -121,8 +134,13 @@ var SourceEditor = React.createClass({
             var oldSrcs = this.state.srcs;
             var oldFile = this.props.srcFiles[oldInd];
             var source = this.refs.content.getDOMNode().value;
+            if (this.cdm) {
+                source = this.cdm.getValue();
+            }
+
             oldSrcs[oldFile] = source;
             this.setState({srcs: oldSrcs});
+
             skulptgl.writeSrcFile(
                 oldFile,
                 source,
@@ -180,7 +198,6 @@ var SourceEditor = React.createClass({
         if (this.props.defaultFileInd) {
             this.setState({selectedFileInd: this.props.defaultFileInd});
         }
-        var that = this;
     },
     componentWillUnmount: function() {
         document.removeEventListener("keypress", this.onKeyPress, false);
@@ -208,7 +225,9 @@ var SourceEditor = React.createClass({
                 <div className="button-row">
                     {buttons}
                 </div>
-                <textarea ref="content" cols="79" rows="30"></textarea>
+                <div className="codearea">
+                  <textarea ref="content" cols="79" rows="30"></textarea>
+                </div>
             </div>
         );
     }
