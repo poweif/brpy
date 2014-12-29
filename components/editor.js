@@ -26,6 +26,21 @@ var MainPanel = React.createClass({
             function() { that.loadProject(projectUrl, this.responseText); }
         );
     },
+    handleScroll: function(ev) {
+        this.refs.context.getDOMNode().style.marginTop =
+            window.pageYOffset + 'px';
+    },
+    handleResize: function(ev) {
+        var width = Math.min(
+            this.refs.contextWrapper.getDOMNode().offsetWidth - 30,
+            window.innerHeight - 150
+        );
+
+        this.refs.context.getDOMNode().style.width = width + 'px';
+        this.refs.context.getDOMNode().style.height = width + 'px';
+        this.refs.context.getDOMNode().width = width;
+        this.refs.context.getDOMNode().height = width;
+    },
     componentDidMount: function() {
         console.log('mount');
         var that = this;
@@ -39,15 +54,23 @@ var MainPanel = React.createClass({
                 });
             }
         );
+        window.addEventListener('scroll', this.handleScroll);
+        window.addEventListener('resize', this.handleResize);
+        this.handleResize();
+    },
+    componentWillUnmount: function() {
+        window.removeEventListener('scroll', this.handleScroll);
+        window.removeEventListener('resize', this.handleResize);
     },
     render: function() {
         var canvasId = "mainPanelCanvas";
         return (
             <div className="main-panel">
+                <img className="setting-button" src="img/settings49.png"></img>
                 <div className="project-name">{this.state.name}</div>
                 <div className="bottom-panel">
-                    <div className="canvas-wrapper">
-                        <canvas id={canvasId}></canvas>
+                    <div ref="contextWrapper" className="canvas-wrapper">
+                        <canvas ref="context" id={canvasId}></canvas>
                     </div>
                     <SourceEditor canvasId={canvasId}
                          srcRoot={this.state.srcRoot}
@@ -123,10 +146,7 @@ var SourceEditor = React.createClass({
         }
         var curSrcs = this.state.srcs;
         curSrcs[file] = text;
-        this.setState({
-            srcs: curSrcs,
-            run: true
-        });
+        this.setState({srcs: curSrcs, run: true});
     },
     saveTextContent: function() {
         var oldInd = this.state.selectedFileInd;
@@ -159,12 +179,12 @@ var SourceEditor = React.createClass({
             this.setState({selectedFileInd: ind});
         }
     },
-    onKeyPress: function(e) {
-        // Ctrl + b
-        if (e.which == 2) {
-            this.saveTextContent();
-            this.runProg();
-        }
+    onRunPress: function(e) {
+        this.saveTextContent();
+        this.runProg();
+    },
+    onSavePress: function(e) {
+        this.saveTextContent();
     },
     loadFiles: function() {
         var that = this;
@@ -176,17 +196,43 @@ var SourceEditor = React.createClass({
                 );
             }
         );
-        document.removeEventListener("keypress", this.onKeyPress, false);
-        document.addEventListener("keypress", this.onKeyPress, false);
+        shortcut.remove('Ctrl+B');
+        shortcut.remove('Ctrl+S');
+        shortcut.remove('Ctrl+L');
+        shortcut.add(
+            'Ctrl+B',
+            this.onRunPress,
+            {
+                type: 'keydown',
+                propagate: false,
+                target: document
+            }
+        )
+        shortcut.add(
+            'Ctrl+S',
+            this.onSavePress,
+            {
+                type: 'keydown',
+                propagate: false,
+                target: document
+            }
+        )
+        shortcut.add(
+            'Ctrl+L',
+            function() {},
+            {
+                type: 'keydown',
+                propagate: false,
+                target: document
+            }
+        )
     },
     componentDidUpdate: function(prevProps, prevStates) {
-        if (prevProps.srcFiles != this.props.srcFiles) {
+        if (prevProps.srcFiles != this.props.srcFiles)
             this.loadFiles();
-        }
 
-        if (prevProps.defaultFileInd != this.props.defaultFileInd) {
+        if (prevProps.defaultFileInd != this.props.defaultFileInd)
             this.setState({selectedFileInd: this.props.defaultFileInd});
-        }
 
         if (this.state.run) {
             this.runProg();
@@ -195,9 +241,8 @@ var SourceEditor = React.createClass({
     },
     componentDidMount: function() {
         this.loadFiles();
-        if (this.props.defaultFileInd) {
+        if (this.props.defaultFileInd)
             this.setState({selectedFileInd: this.props.defaultFileInd});
-        }
     },
     componentWillUnmount: function() {
         document.removeEventListener("keypress", this.onKeyPress, false);
@@ -212,7 +257,7 @@ var SourceEditor = React.createClass({
                     };
                 })();
                 return (
-                    <div key={order} className="file-buttons"
+                    <div key={order} className="file-button"
                         onClick={click} >
                         <span>{file}</span>
                         <span className="file-order">{order}</span>

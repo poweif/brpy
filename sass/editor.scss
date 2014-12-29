@@ -1,6 +1,22 @@
 @import 'common';
 @import 'flexbox';
 
+.button {
+  @extend .clickable;
+  display: inline;
+  padding: 5px 8px;
+  margin: 3px 5px;
+  background-color: $prime-color;
+  color: $prime-inv-color;
+  border: 1px solid $prime-inv-color;
+  border-radius: 5px;
+}
+
+.button:hover {
+  background-color: $highlight-color;
+}
+
+
 $test-fac: 1.3;
 $canvas-size: 300px;
 
@@ -8,7 +24,6 @@ $canvas-size: 300px;
   @extend %flexbox;
   @include flex-direction(column);
   padding: 5px 10px;
-  border: 1px solid gray * $test-fac;
 
   .project-name {
     text-align: center;
@@ -19,12 +34,21 @@ $canvas-size: 300px;
     @extend %flexbox;
     @include flex-direction(row);
   }
+  .setting-button {
+    @extend .button;
+    position: absolute;
+    padding: 5px;
+    margin: 0;
+    right: 20px;
+    top: 20px;
+    max-height: 30px;
+    max-width: 30px;
+  }
   .canvas-wrapper {
     @include flex(1, 1, auto);
     @extend %flexbox;
-    @include align-items(center);
+    @include align-items(flex-start);
     @include justify-content(center);
-    border: 1px solid gray * $test-fac;
     margin: 5px;
     canvas {
       width: $canvas-size;
@@ -42,30 +66,21 @@ $canvas-size: 300px;
   .button-row {
     margin: 5px 0;
   }
-  .file-buttons {
-    @extend .clickable;
-    @extend %flexbox;
-    @include flex-direction(row);
-    @include justify-content(space-between);
-    display: inline;
-    padding: 5px 8px;
-    margin: 3px 5px;
-    background-color: $prime-color;
-    color: $prime-inv-color;
-  }
-  .file-buttons:hover {
-    background-color: $highlight-color;
+  .file-button {
+    @extend .button;
   }
   .file-order {
     display: inline-block;
     margin: 10px 0 0 5px;
-    font-size: 3px;
+    font-size: 10px;
     transform: translateX(5px) translateY(5px);
   }
   .codearea {
     @include flex(1, 1, auto);
-    min-width: 0;
-    min-height: 0;
-    margin: 5px;
+    margin: 10px 5px;
+    height: 100%;
+    .CodeMirror {
+      height: 100%;
+    }   
   }
 }
