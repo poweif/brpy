@@ -1,0 +1,94 @@
+@import 'common';
+@import 'flexbox';
+
+.dialog-wrapper {
+  @extend %flexbox;
+  @include flex-direction(column);
+  @include align-items(center);
+  @include justify-content(center);
+  min-height: 100%;
+  min-width: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+
+  .dialog-bg {
+    position: fixed;
+    background-color: gray;
+    opacity: .8;
+    min-height: 100%;
+    min-width: 100%;
+    top: 0;
+    left: 0;
+    .project-name {
+      @extend .button;
+    }
+  }
+
+  .dialog {
+    @extend %flexbox;
+    @include align-items(center);
+    @include justify-content(center);
+    @include flex-direction(column);
+    padding: 15px;
+    z-index: 0;
+    background-color: $prime-color;
+    .project-name {
+      @extend .button;
+      font-size: 30px;
+    }
+    .bottom {
+      @extend %flexbox;
+      @include align-items(center);
+      @include justify-content(center);
+    }
+
+    .prompt {
+      margin: 8px;
+      font-size: 20px;
+    }
+  }
+
+  .file-list {
+    width: 310px;
+    margin: 20px;    
+  }
+  .file-entry {
+    @extend %flexbox;
+    @include flex-direction(row);
+    @include justify-content(space-between);
+    @include align-items(center);
+    margin: 2px;
+    .name-button {
+      @extend .button;
+    }
+  }
+  .file-button {
+    @extend .button;
+    padding: 0;
+    max-height: 25px;
+    max-width: 25px;
+  }
+  .add-file-button {
+    @extend .file-button;
+    padding: 0;
+    max-height: 40px;
+    max-width: 40px;
+  }  
+}
+
+.dialog-wrapper-1 {
+  @extend .dialog-wrapper;
+  z-index: 1;
+  .dialog {
+    z-index: 2;
+
+    .text-input {
+      font-family: $standard-font-family;
+      border: 1px solid $prime-inv-color;
+      font-size: 16px;
+      margin: 8px;
+      padding: 4px;
+    }
+  }
+}

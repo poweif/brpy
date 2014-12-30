@@ -3,28 +3,10 @@ var MainPanel = React.createClass({
         return {
             name: '',
             srcFiles: [],
+            srcFileIds: [],
             srcRoot: '',
             defaultFileInd: -1
         };
-    },
-    loadProject: function(url, text) {
-        if (!text)
-            return;
-        var proj = JSON.parse(text);
-        var root = url.substring(0, url.lastIndexOf('/') + 1);
-        this.setState({
-            name: proj.name,
-            srcRoot: root,
-            srcFiles: proj.src,
-            defaultFileInd: proj.default_file
-        });
-    },
-    loadProjectReq: function (projectUrl) {
-        var that = this;
-        skulptgl.xhr(
-            projectUrl,
-            function() { that.loadProject(projectUrl, this.responseText); }
-        );
     },
     handleScroll: function(ev) {
         this.refs.context.getDOMNode().style.marginTop =
@@ -41,19 +23,34 @@ var MainPanel = React.createClass({
         this.refs.context.getDOMNode().width = width;
         this.refs.context.getDOMNode().height = width;
     },
+    onProjectNameClick: function() {
+        var proj = {
+            srcFileIds: this.state.srcFileIds,
+            name: this.state.name
+        };
+        skulptgl.openProjectDialog(proj);
+    },
+    onProjectDialogOK: function(proj) {
+        var oldProj = {
+            srcFileIds: this.state.srcFileIds,
+            name: this.state.name
+        };
+
+    },
+    onLoadProject: function(text) {
+        var project = JSON.parse(text);
+        var fileIds = project.src.map(
+            function(fname) {return [skulptgl.util.makeId(), fname];});
+        this.setState({
+            name: project.name,
+            srcFiles: project.src,
+            srcFileIds: fileIds,
+            defaultFileInd: project.default_file
+        });
+    },
     componentDidMount: function() {
-        console.log('mount');
         var that = this;
-        skulptgl.readProject(
-            function(text) {
-                var project = JSON.parse(text);
-                that.setState({
-                    name: project.name,
-                    srcFiles: project.src,
-                    defaultFileInd: project.default_file
-                });
-            }
-        );
+        skulptgl.readProject(this.onLoadProject);
         window.addEventListener('scroll', this.handleScroll);
         window.addEventListener('resize', this.handleResize);
         this.handleResize();
@@ -66,8 +63,11 @@ var MainPanel = React.createClass({
         var canvasId = "mainPanelCanvas";
         return (
             <div className="main-panel">
-                <img className="setting-button" src="img/settings49.png"></img>
-                <div className="project-name">{this.state.name}</div>
+                <div className="project-name-holder">
+                <span className="project-name" onClick={this.onProjectNameClick}>
+                        {this.state.name}
+                    </span>
+                </div>
                 <div className="bottom-panel">
                     <div ref="contextWrapper" className="canvas-wrapper">
                         <canvas ref="context" id={canvasId}></canvas>
@@ -179,12 +179,20 @@ var SourceEditor = React.createClass({
             this.setState({selectedFileInd: ind});
         }
     },
-    onRunPress: function(e) {
+    onRun: function() {
         this.saveTextContent();
         this.runProg();
     },
-    onSavePress: function(e) {
+    onSave: function() {
         this.saveTextContent();
+    },
+    onScrollTo: function() {
+        if (!this.cdm)
+            return;
+        var cursorPos = (this.cdm.cursorCoords().top +
+                         this.cdm.cursorCoords().bottom) / 2;
+        var winHeight = window.innerHeight;
+        window.scrollTo(0, cursorPos - (winHeight / 2));
     },
     loadFiles: function() {
         var that = this;
@@ -196,36 +204,23 @@ var SourceEditor = React.createClass({
                 );
             }
         );
+
+        var keyMapParams = {
+            type: 'keydown',
+            propagate: false,
+            target: document
+        };
+
         shortcut.remove('Ctrl+B');
         shortcut.remove('Ctrl+S');
         shortcut.remove('Ctrl+L');
-        shortcut.add(
-            'Ctrl+B',
-            this.onRunPress,
-            {
-                type: 'keydown',
-                propagate: false,
-                target: document
-            }
-        )
-        shortcut.add(
-            'Ctrl+S',
-            this.onSavePress,
-            {
-                type: 'keydown',
-                propagate: false,
-                target: document
-            }
-        )
-        shortcut.add(
-            'Ctrl+L',
-            function() {},
-            {
-                type: 'keydown',
-                propagate: false,
-                target: document
-            }
-        )
+        shortcut.remove('Ctrl+N');
+        shortcut.add('Ctrl+B', this.onRun, keyMapParams);
+        shortcut.add('Ctrl+S', this.onSave, keyMapParams);
+        // Technically this should be in codemirror's emacs keymap, but putting
+        // this here for now.
+        shortcut.add('Ctrl+L', this.onScrollTo, keyMapParams);
+        shortcut.add('Ctrl+N', function() {}, keyMapParams);
     },
     componentDidUpdate: function(prevProps, prevStates) {
         if (prevProps.srcFiles != this.props.srcFiles)
@@ -271,7 +266,7 @@ var SourceEditor = React.createClass({
                     {buttons}
                 </div>
                 <div className="codearea">
-                  <textarea ref="content" cols="79" rows="30"></textarea>
+                    <textarea ref="content" cols="79" rows="30"></textarea>
                 </div>
             </div>
         );

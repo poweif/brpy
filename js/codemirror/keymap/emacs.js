@@ -300,7 +300,7 @@
     "Ctrl-F": move(byChar, 1),
 //    "Ctrl-B": move(byChar, -1),
     "Right": move(byChar, 1), "Left": move(byChar, -1),
-//    "Ctrl-D": function(cm) { killTo(cm, byChar, 1); },
+      //    "Ctrl-D": function(cm) { killTo(cm, byChar, 1); },
     "Delete": function(cm) { killRegion(cm) || killTo(cm, byChar, 1); },
     "Ctrl-H": function(cm) { killTo(cm, byChar, -1); },
     "Backspace": function(cm) { killRegion(cm) || killTo(cm, byChar, -1); },
@@ -345,10 +345,7 @@
       cm.replaceRange(" ", Pos(pos.line, from), Pos(pos.line, to));
     },
     "Ctrl-O": repeated(function(cm) { cm.replaceSelection("\n", "start"); }),
-    "Ctrl-T": repeated(function(cm) {
-      cm.execCommand("transposeChars");
-    }),
-
+//    "Ctrl-T": repeated(function(cm) { cm.execCommand("transposeChars"); }),
     "Alt-C": repeated(function(cm) {
       operateOnWord(cm, function(w) {
         var letter = w.search(/\w/);

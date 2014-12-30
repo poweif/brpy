@@ -29,10 +29,6 @@ $content-quickpad-width: 150px;
 $content-quickpad-margin: 30px;
 $content-content-width: $content-frame-width - $content-quickpad-width - $content-quickpad-margin;
 
-.clickable {
-  cursor: pointer;
-}
-
 .unselectable {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
@@ -40,6 +36,27 @@ $content-content-width: $content-frame-width - $content-quickpad-width - $conten
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+}
+
+.clickable {
+  @extend .unselectable;
+  cursor: pointer;
+}
+$button-border-color: rgb(190, 190, 190) * 1.1;
+
+.button {
+  @extend .clickable;
+  display: inline;
+  padding: 5px 8px;
+  margin: 3px 5px;
+  background-color: $prime-color;
+  color: $prime-inv-color;
+  border: 2px solid transparent;
+  border-radius: 5px;
+}
+
+.button:hover {
+  border: 2px solid black;
 }
 
 @mixin keyframes($animation-name) {
