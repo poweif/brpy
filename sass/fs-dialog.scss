@@ -14,8 +14,8 @@
 
   .dialog-bg {
     position: fixed;
-    background-color: gray;
-    opacity: .8;
+    background-color: gray * .3;
+    opacity: .85;
     min-height: 100%;
     min-width: 100%;
     top: 0;

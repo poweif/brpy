@@ -25,7 +25,7 @@ var MainPanel = React.createClass({
     },
     onProjectNameClick: function() {
         var proj = {
-            srcFileIds: this.state.srcFileIds,
+            srcFileIds: skulptgl.util.deepCopy(this.state.srcFileIds),
             name: this.state.name
         };
         skulptgl.openProjectDialog(proj);

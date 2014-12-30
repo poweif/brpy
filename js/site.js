@@ -60,6 +60,25 @@ var skulptgl = {
                 text += possible.charAt(
                     Math.floor(Math.random() * possible.length));
             return text;
+        },
+        deepCopy: function(obj) {
+            if (typeof obj === "string" ||
+                typeof obj === "number" ||
+                typeof obj === "boolean")
+                return obj;
+
+            if (obj.length !== undefined) {
+                var ret = [];
+                for (var i = 0; i < obj.length; i++)
+                    ret.push(this.deepCopy(obj[i]));
+                return ret;
+            }
+
+            var ret = {};
+            for (var k in obj) {
+                ret[k] = this.deepCopy(obj[k]);
+            }
+            return ret;
         }
     }
 })();
