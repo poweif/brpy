@@ -70,6 +70,13 @@ var skulptgl = {
         var newProjStr = JSON.stringify(newProj);
         this.util.xhrPost('/run/?wproj', newProjStr, onLoad, onFailed);
     },
+    renameSrcFile: function(oldname, newname, onLoad, onFailed) {
+        this.util.xhrGet(
+            '/run/?rename=' + oldname + "," + newname, onLoad, onFailed);
+    },
+    deleteSrcFile: function(filename, onLoad, onFailed) {
+        this.util.xhrGet('/run/?delete=' + filename, onLoad, onFailed);
+    },
     readSrcFile: function(filename, onLoad, onFailed) {
         this.util.xhrGet('/run/?read=' + filename, onLoad, onFailed);
     },
@@ -79,11 +86,11 @@ var skulptgl = {
     openProjectDialog: function(project, onOK, onCancel) {
         React.render(
             <ProjectDialog proj={project} onOK={onOK} onCancel={onCancel} />,
-            document.getElementById('project-dialog'));
+            document.getElementById('dialog0'));
     },
     closeProjectDialog: function() {
         React.unmountComponentAtNode(
-            document.getElementById('project-dialog'));
+            document.getElementById('dialog0'));
     },
     project: null,
 };

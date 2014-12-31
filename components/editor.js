@@ -37,18 +37,61 @@ var MainPanel = React.createClass({
         this.setState({dialogOpen: false});
         skulptgl.closeProjectDialog();
     },
-    onProjectDialogOK: function(proj) {
-        if (this.state.name != proj.name) {
+    processProjectChanges: function(oldproj, proj) {
+        var that = this;
+
+        var oldIds = {};
+        var newIds = {};
+        oldproj.srcFileIds.map(function(idName) {
+            oldIds[idName[0]] = idName[1];
+        });
+        proj.srcFileIds.map(function(idName) {
+            newIds[idName[0]] = idName[1];
+        });
+
+        var toDelete = [];
+        // delete
+        for (var i = 0; i < oldproj.srcFileIds.length; i++) {
+            var fid = oldproj.srcFileIds[i][0];
+            if (newIds[fid] === undefined)
+                toDelete.push(fid);
+        }
+        if (toDelete.length > 0) {
+            var modproj = skulptgl.util.deepCopy(oldproj);
+            var delFunc = function(dels) {
+                var len = dels.length;
+                if (len == 0)
+                    func();
+                delFunc(dels.slice(1, len), func);
+            }
+
+        }
+
+        // create
+
+        // rename
+
+        // project metadata
+        if (oldproj.name != proj.name) {
             var newProj = {};
             newProj[skulptgl.project.NAME] = proj.name;
 
-            var load = function() {console.log('successfully wrote project');};
-            var failed = function() {console.log('failed writing project');};
+            var load = function() {
+                console.log('successfully wrote project');
+                this.setState({name: proj.name});
+                oldproj.name = proj.name;
+                that.processProjectChanges(
+            };
             skulptgl.writeProject(newProj, load, failed);
-            this.setState({name: proj.name});
         }
-        this.setState({dialogOpen: false});
-        skulptgl.closeProjectDialog();
+    },
+    onProjectDialogOK: function(oldproj) {
+        var that = this;
+        return function (proj) {
+            that.processProjectChanges(oldproj, proj);
+            that.setState({dialogOpen: false});
+            skulptgl.closeProjectDialog();
+        }
     },
     onLoadProject: function(text) {
         var project = JSON.parse(text);
@@ -229,13 +272,11 @@ var SourceEditor = React.createClass({
         shortcut.remove('Ctrl+B');
         shortcut.remove('Ctrl+S');
         shortcut.remove('Ctrl+L');
-        shortcut.remove('Ctrl+N');
         shortcut.add('Ctrl+B', this.onRun, keyMapParams);
         shortcut.add('Ctrl+S', this.onSave, keyMapParams);
         // Technically this should be in codemirror's emacs keymap, but putting
         // this here for now.
         shortcut.add('Ctrl+L', this.onScrollTo, keyMapParams);
-        shortcut.add('Ctrl+N', function() {}, keyMapParams);
     },
     componentDidUpdate: function(prevProps, prevStates) {
         if (prevProps.srcFiles != this.props.srcFiles)

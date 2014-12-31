@@ -48,7 +48,8 @@ class SkulptglSolution():
             app_id = self.__create_folder(self.__root(), self._SKULPT_APP_DIR)
         return app_id
 
-    # Find the first file (id) matching [title] in a folder.  Return None if not found.
+    # Find the first file (id) matching [title] in a folder.  Return None if
+    # not found.
     def __find_file(self, folder_id, title):
         key = self.__key(folder_id, title)
         if key in self.__files:
@@ -79,7 +80,6 @@ class SkulptglSolution():
             text = unicode(text)
         output = io.StringIO(text)
         mime = self._TEXT_MIME
-
         file_id = self.__find_file(parent_id, file_name)
 
         if file_id is None:
@@ -97,6 +97,20 @@ class SkulptglSolution():
             fileId=file_id,
             media_body=MediaIoBaseUpload(output, mime)).execute()
         output.close()
+        return file_id
+
+    def __rename_file(self, parent_id, old_name, new_name):
+        file_id = self.__find_file(parent_id, old_name)
+        if file_id is None:
+            return None
+        self.__drive.files().update(fileId=file_id, title=new_name).execute()
+        return file_id
+
+    def __delete_file(self, parent_id, file_name):
+        file_id = self.__find_file(parent_id, file_name)
+        if file_id is None:
+            return None
+        self.__drive.files().trash(fileId=file_id).execute()
         return file_id
 
     def __read_text_file(self, file_id):
@@ -201,6 +215,20 @@ class SkulptglSolution():
         self.__update_text_file(proj_id, fname, text)
         return True
 
-    # TODO: need to implement delete file
-    def delete_file(self, fname):
-        return
+    def rename_file(self, old_name, new_name):
+        proj_id = self.__find_project(self.__project())
+        if proj_id is None:
+            return None
+        res = self.__rename_file(proj_id, ofname, nfname)
+        if res is not None:
+            return True
+        return None
+
+    def delete_file(self, file_name):
+        proj_id = self.__find_project(self.__project())
+        if proj_id is None:
+            return None
+        res = self.__delete_file(proj_id, file_name)
+        if res is not None:
+            return True
+        return None
