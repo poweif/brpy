@@ -153,10 +153,16 @@ var ProjectDialog = React.createClass({
                      this.refs.subdialog.getDOMNode());
     },
     onCancel: function() {
-        skulptgl.closeProjectDialog();
+        if (this.props.onCancel)
+            this.props.onCancel();
     },
     onOK: function() {
-
+        if (this.props.onOK) {
+            var proj = {
+                name: this.state.name
+            }
+            this.props.onOK(proj);
+        }
     },
     componentDidMount: function() {
         this.setState({

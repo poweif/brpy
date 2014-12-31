@@ -4,14 +4,6 @@ import io
 import simplejson as json
 import httplib2
 
-SOLUTION_JSON = 'solution.json'
-DEFAULT_PROJ = 'default'
-PROJ_JSON = 'project.json'
-MAIN_PY = 'main.py'
-SKULPT_APP_DIR = 'skulptgl_app_data'
-JSON_MIME = "application/json"
-TEXT_MIME = "text/plain"
-
 def build_drive_service(credentials):
     return build(
         serviceName = 'drive', version='v2',
@@ -19,6 +11,18 @@ def build_drive_service(credentials):
 
 class SkulptglSolution():
     """Encapsulation of a Skulptgl Solution"""
+
+    _SOLUTION_JSON = 'solution.json'
+    _DEFAULT_PROJ = 'default'
+    _PROJ_JSON = 'project.json'
+    _MAIN_PY = 'main.py'
+    _SKULPT_APP_DIR = 'skulptgl_app_data'
+    _TEXT_MIME = "text/plain"
+
+    _PROJ_NAME = "name"
+    _PROJ_SRC = "src"
+    _PROJ_DEFAULT_FILE = "defaultFile"
+
     def __init__(self, cred):
         self.__cred = cred
         self.__drive = build_drive_service(cred)
@@ -39,9 +43,9 @@ class SkulptglSolution():
         return self.__files['root']
 
     def __app(self):
-        app_id = self.__find_file(self.__root(), SKULPT_APP_DIR)
+        app_id = self.__find_file(self.__root(), self._SKULPT_APP_DIR)
         if app_id is None:
-            app_id = self.__create_folder(self.__root(), SKULPT_APP_DIR)
+            app_id = self.__create_folder(self.__root(), self._SKULPT_APP_DIR)
         return app_id
 
     # Find the first file (id) matching [title] in a folder.  Return None if not found.
@@ -74,7 +78,7 @@ class SkulptglSolution():
         if type(text) is str:
             text = unicode(text)
         output = io.StringIO(text)
-        mime = TEXT_MIME
+        mime = self._TEXT_MIME
 
         file_id = self.__find_file(parent_id, file_name)
 
@@ -115,15 +119,17 @@ class SkulptglSolution():
 
         main_py = open('./simple/main.py')
         self.__update_text_file(
-            proj_folder_id, MAIN_PY, main_py.read())
+            proj_folder_id, self._MAIN_PY, main_py.read())
         main_py.close()
 
         proj_json = {
-            'name': proj_name,
-            'src' : [MAIN_PY],
-            'default_file': 0}
+            self._PROJ_NAME: proj_name,
+            self._PROJ_SRC : [self._MAIN_PY],
+            self._PROJ_DEFAULT_FILE: 0
+        }
+
         self.__update_text_file(
-            proj_folder_id, PROJ_JSON, json.dumps(proj_json))
+            proj_folder_id, self._PROJ_JSON, json.dumps(proj_json))
 
         return proj_folder_id
 
@@ -134,13 +140,13 @@ class SkulptglSolution():
         return proj_folder_id
 
     def __read_solution(self):
-        solution_file_id = self.__find_file(self.__app(), SOLUTION_JSON)
+        solution_file_id = self.__find_file(self.__app(), self._SOLUTION_JSON)
         solution = {}
 
         if solution_file_id is None:
-            solution = {'project': DEFAULT_PROJ}
+            solution = {'project': self._DEFAULT_PROJ}
             self.__update_text_file(
-                self.__app(), SOLUTION_JSON, json.dumps(solution))
+                self.__app(), self._SOLUTION_JSON, json.dumps(solution))
         else:
             solution = json.loads(self.__read_text_file(solution_file_id))
         return solution
@@ -151,12 +157,30 @@ class SkulptglSolution():
         self.__cached_project = self.__read_solution()['project']
         return self.__cached_project
 
+    def update_project(self, proj):
+        changed = False
+        oldproj = json.loads(self.project_metadata());
+
+        keys = [self._PROJ_NAME, self._PROJ_SRC, self._PROJ_DEFAULT_FILE]
+        for key in keys:
+            if key in proj and oldproj[key] != proj[key]:
+                oldproj[key] = proj[key]
+                changed = True
+
+        if changed:
+            proj_id = self.__find_project(self.__project(), create=False)
+            if proj_id is None:
+                return
+            self.__update_text_file(
+                proj_id, self._PROJ_JSON, json.dumps(oldproj))
+            return True
+
     def project_metadata(self, create_if_not_found=False):
         proj_id = self.__find_project(
             self.__project(), create=create_if_not_found)
         if proj_id is None:
             return None
-        proj_file_id = self.__find_file(proj_id, PROJ_JSON)
+        proj_file_id = self.__find_file(proj_id, self._PROJ_JSON)
         if proj_file_id is None:
             return None
         return self.__read_text_file(proj_file_id)
@@ -179,6 +203,4 @@ class SkulptglSolution():
 
     # TODO: need to implement delete file
     def delete_file(self, fname):
-        return 
-
-        
+        return

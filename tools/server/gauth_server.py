@@ -168,6 +168,12 @@ class GAuthServer(object):
         if 'proj' in param:
             return self.__result(content=solution.project_metadata())
 
+        if 'wproj' in param:
+            nproj = json.loads(cherrypy.request.body.read())
+            res = solution.update_project(nproj)
+            if res is not None:
+                return self.__result(content='finished updating project')
+
         if 'read' in param:
             res = solution.read_file(param['read'])
             if res is not None:
@@ -214,6 +220,8 @@ class GAuthServer(object):
         cookie = cherrypy.request.cookie
         if SESSION_KEY in cookie:
             session_key = cookie[SESSION_KEY].value
+            print session_key
+            print g_session
             if session_key in g_session:
                 return self.__result(redirect=SHOW_URI)
 

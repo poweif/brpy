@@ -51,12 +51,17 @@ $button-border-color: rgb(190, 190, 190) * 1.1;
   margin: 3px 5px;
   background-color: $prime-color;
   color: $prime-inv-color;
-  border: 2px solid transparent;
+  border: 1px solid transparent;
   border-radius: 5px;
 }
 
+.button-selected {
+  @extend .button;
+  border: 1px solid black;
+}
+
 .button:hover {
-  border: 2px solid black;
+  @extend .button-selected;
 }
 
 @mixin keyframes($animation-name) {

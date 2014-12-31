@@ -4,8 +4,8 @@ var MainPanel = React.createClass({
             name: '',
             srcFiles: [],
             srcFileIds: [],
-            srcRoot: '',
-            defaultFileInd: -1
+            defaultFileInd: -1,
+            dialogOpen: false
         };
     },
     handleScroll: function(ev) {
@@ -28,24 +28,37 @@ var MainPanel = React.createClass({
             srcFileIds: skulptgl.util.deepCopy(this.state.srcFileIds),
             name: this.state.name
         };
-        skulptgl.openProjectDialog(proj);
+
+        this.setState({dialogOpen: true});
+        skulptgl.openProjectDialog(
+            proj, this.onProjectDialogOK, this.onProjectDialogCancel);
+    },
+    onProjectDialogCancel: function() {
+        this.setState({dialogOpen: false});
+        skulptgl.closeProjectDialog();
     },
     onProjectDialogOK: function(proj) {
-        var oldProj = {
-            srcFileIds: this.state.srcFileIds,
-            name: this.state.name
-        };
+        if (this.state.name != proj.name) {
+            var newProj = {};
+            newProj[skulptgl.project.NAME] = proj.name;
 
+            var load = function() {console.log('successfully wrote project');};
+            var failed = function() {console.log('failed writing project');};
+            skulptgl.writeProject(newProj, load, failed);
+            this.setState({name: proj.name});
+        }
+        this.setState({dialogOpen: false});
+        skulptgl.closeProjectDialog();
     },
     onLoadProject: function(text) {
         var project = JSON.parse(text);
         var fileIds = project.src.map(
             function(fname) {return [skulptgl.util.makeId(), fname];});
         this.setState({
-            name: project.name,
-            srcFiles: project.src,
+            name: project[skulptgl.project.NAME],
+            srcFiles: project[skulptgl.project.SRC],
             srcFileIds: fileIds,
-            defaultFileInd: project.default_file
+            defaultFileInd: project[skulptgl.project.DEFAULT_FILE],
         });
     },
     componentDidMount: function() {
@@ -73,9 +86,9 @@ var MainPanel = React.createClass({
                         <canvas ref="context" id={canvasId}></canvas>
                     </div>
                     <SourceEditor canvasId={canvasId}
-                         srcRoot={this.state.srcRoot}
                          srcFiles={this.state.srcFiles}
-                         defaultFileInd={this.state.defaultFileInd}  />
+                         defaultFileInd={this.state.defaultFileInd}
+                         dialogOpen={this.state.dialogOpen} />
                 </div>
             </div>
         );
@@ -131,9 +144,9 @@ var SourceEditor = React.createClass({
         var fileInd = skulptgl.util.indexOf(this.props.srcFiles, file);
         if (this.state.selectedFileInd == fileInd && fileInd >= 0) {
             var code = text;
-            this.refs.content.getDOMNode().value = code;
-            var codearea = this.refs.content.getDOMNode();
-            this.cdm = CodeMirror.fromTextArea(codearea, {
+            this.refs.textarea.getDOMNode().value = code;
+            var textarea = this.refs.textarea.getDOMNode();
+            this.cdm = CodeMirror.fromTextArea(textarea, {
                 value: text,
                 lineNumbers: true,
                 mode: "python",
@@ -153,7 +166,8 @@ var SourceEditor = React.createClass({
         if (oldInd >= 0) {
             var oldSrcs = this.state.srcs;
             var oldFile = this.props.srcFiles[oldInd];
-            var source = this.refs.content.getDOMNode().value;
+            var oldSource = oldSrcs[oldFile];
+            var source = oldSource;
             if (this.cdm) {
                 source = this.cdm.getValue();
             }
@@ -175,7 +189,8 @@ var SourceEditor = React.createClass({
         if (oldInd != ind && ind >= 0) {
             this.saveTextContent();
             var file = this.props.srcFiles[ind];
-            this.refs.content.getDOMNode().value = this.state.srcs[file];
+            if (this.cdm)
+                this.cdm.setValue(this.state.srcs[file]);
             this.setState({selectedFileInd: ind});
         }
     },
@@ -226,8 +241,9 @@ var SourceEditor = React.createClass({
         if (prevProps.srcFiles != this.props.srcFiles)
             this.loadFiles();
 
-        if (prevProps.defaultFileInd != this.props.defaultFileInd)
+        if (prevProps.defaultFileInd != this.props.defaultFileInd) {
             this.setState({selectedFileInd: this.props.defaultFileInd});
+        }
 
         if (this.state.run) {
             this.runProg();
@@ -251,8 +267,11 @@ var SourceEditor = React.createClass({
                         that.onClickFileButton(order);
                     };
                 })();
+                var buttonClassName = "button";
+                if (order == that.state.selectedFileInd)
+                    buttonClassName += "-selected";
                 return (
-                    <div key={order} className="file-button"
+                    <div key={order} className={buttonClassName}
                         onClick={click} >
                         <span>{file}</span>
                         <span className="file-order">{order}</span>
@@ -265,8 +284,9 @@ var SourceEditor = React.createClass({
                 <div className="button-row">
                     {buttons}
                 </div>
-                <div className="codearea">
-                    <textarea ref="content" cols="79" rows="30"></textarea>
+                <div className=
+                    {this.props.dialogOpen ? "codearea-hidden" : "codearea"} >
+                    <textarea ref="textarea" cols="79" rows="30"></textarea>
                 </div>
             </div>
         );
