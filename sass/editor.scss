@@ -47,14 +47,10 @@ $canvas-size: 300px;
       border: 1px solid gray * ($test-fac / 1.2);
     }
   }
-}
-
-.editor {
-  @extend %flexbox;
-  @include flex-direction(column);
-  @include flex(1, 1, auto);
-
   .button-row {
+    @extend %flexbox;
+    @include align-items(center);
+    @include justify-content(space-between);
     margin: 5px 0;
   }
   .file-order {
@@ -62,6 +58,19 @@ $canvas-size: 300px;
     margin: 10px 0 0 5px;
     font-size: 10px;
   }
+  .options-button {
+    @extend .button;
+    padding: 0;
+    max-height: 25px;
+    max-width: 25px;
+  }
+}
+
+.editor {
+  @extend %flexbox;
+  @include flex-direction(column);
+  @include flex(1, 1, auto);
+
   .codearea {
     @include flex(1, 1, auto);
     margin: 10px 5px;

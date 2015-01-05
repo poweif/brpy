@@ -6,7 +6,7 @@ var InputDialog = React.createClass({
     },
     onTextChanged: function() {
         var newText = this.refs.input.getDOMNode().value;
-        if (newText.search(/[^a-z0-9\-\_]/ig) >= 0)
+        if (newText.search(/[^a-z0-9\-\_]/ig) >= 0 || newText.length == 0)
             return;
         this.setState({text: newText});
     },

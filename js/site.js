@@ -38,7 +38,8 @@ var skulptgl = {
             console.log('making a request for ' + url);
             var contentReq = new XMLHttpRequest();
             var readyStateChange = function() {
-                if (contentReq.readyState == 4 && contentReq.status == 200) {
+                if (contentReq.readyState == 4 && contentReq.status == 200 &&
+                    onLoad) {
                     onLoad(contentReq.responseText);
                 } else if (contentReq.readyState == 4 && onFailed) {
                     onFailed(contentReq.status);
@@ -52,7 +53,8 @@ var skulptgl = {
             console.log('making a request for ' + url);
             var contentReq = new XMLHttpRequest();
             var readyStateChange = function() {
-                if (contentReq.readyState == 4 && contentReq.status == 200) {
+                if (contentReq.readyState == 4 && contentReq.status == 200 &&
+                   onLoad) {
                     onLoad(contentReq.responseText);
                 } else if (contentReq.readyState == 4 && onFailed) {
                     onFailed(contentReq.status);
@@ -83,12 +85,13 @@ var skulptgl = {
     writeSrcFile: function(filename, text, onLoad, onFailed) {
         this.util.xhrPost('/run/?write=' + filename, text, onLoad, onFailed);
     },
-    openProjectDialog: function(project, onOK, onCancel) {
+    openDialog: function(text, prompt, onOK, onCancel) {
         React.render(
-            <ProjectDialog proj={project} onOK={onOK} onCancel={onCancel} />,
+            <InputDialog text={text} prompt={prompt} onOK={onOK}
+                onCancel={onCancel} />,
             document.getElementById('dialog0'));
     },
-    closeProjectDialog: function() {
+    closeDialog: function() {
         React.unmountComponentAtNode(
             document.getElementById('dialog0'));
     },

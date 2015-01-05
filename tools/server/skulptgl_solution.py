@@ -1,5 +1,6 @@
 from apiclient.discovery import build
 from apiclient.http import MediaIoBaseUpload
+from apiclient.http import MediaFileUpload
 import io
 import simplejson as json
 import httplib2
@@ -103,7 +104,9 @@ class SkulptglSolution():
         file_id = self.__find_file(parent_id, old_name)
         if file_id is None:
             return None
-        self.__drive.files().update(fileId=file_id, title=new_name).execute()
+        tbody = self.__drive.files().get(fileId=file_id).execute();
+        tbody['title'] = new_name
+        self.__drive.files().update(fileId=file_id, body=tbody).execute()
         return file_id
 
     def __delete_file(self, parent_id, file_name):
@@ -219,7 +222,7 @@ class SkulptglSolution():
         proj_id = self.__find_project(self.__project())
         if proj_id is None:
             return None
-        res = self.__rename_file(proj_id, ofname, nfname)
+        res = self.__rename_file(proj_id, old_name, new_name)
         if res is not None:
             return True
         return None
