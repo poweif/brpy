@@ -52,9 +52,10 @@ def get_stored_credentials(user_id):
     return new_cred
 
 def store_credentials(user_id, credentials):
-    ofile = open(FILES_DIR + str(user_id) + '.cred', 'wb')
-    ofile.write(credentials.to_json())
-    ofile.close()
+#    ofile = open(FILES_DIR + str(user_id) + '.cred', 'wb')
+#    ofile.write(credentials.to_json())
+#    ofile.close()
+    return
 
 def exchange_code(authorization_code, redirect_uri):
     flow = flow_from_clientsecrets(
@@ -103,13 +104,13 @@ def get_credentials(authorization_code, state, redirect_uri):
         user_info = get_user_info(credentials)
         email_address = user_info.get('email')
         user_id = user_info.get('id')
-        if credentials.refresh_token is not None:
-            store_credentials(user_id, credentials)
-            return credentials
-        else:
-            credentials = get_stored_credentials(user_id)
-            if credentials and credentials.refresh_token is not None:
-                return credentials
+#        if credentials.refresh_token is not None:
+#            store_credentials(user_id, credentials)
+        return credentials
+#        else:
+#            credentials = get_stored_credentials(user_id)
+#            if credentials and credentials.refresh_token is not None:
+#                return credentials
     except CodeExchangeException, error:
         logging.error('An error occurred during code exchange.')
         # Drive apps should try to retrieve the user and credentials for the current

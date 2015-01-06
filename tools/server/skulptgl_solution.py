@@ -45,6 +45,7 @@ class SkulptglSolution():
 
     def __app(self):
         app_id = self.__find_file(self.__root(), self._SKULPT_APP_DIR)
+        print "app: " + self._SKULPT_APP_DIR
         if app_id is None:
             app_id = self.__create_folder(self.__root(), self._SKULPT_APP_DIR)
         return app_id
@@ -53,13 +54,18 @@ class SkulptglSolution():
     # not found.
     def __find_file(self, folder_id, title):
         key = self.__key(folder_id, title)
+        print "find file: " + title
         if key in self.__files:
             return self.__files[key]
 
+        print "no early out: " + key
+
         param = {"q": "title = '%s' and trashed = false" % title}
-        items = self.__drive.children().list(
+        itemsp = self.__drive.children().list(
             folderId=folder_id,
-            **param).execute()['items']
+            **param).execute()
+        print itemsp
+        items = itemsp['items']
         if len(items) < 1:
             self.__files[key] = None
             return None
@@ -77,6 +83,8 @@ class SkulptglSolution():
         return res['id']
 
     def __update_text_file(self, parent_id, file_name, text):
+        print "updating: " + file_name
+
         if type(text) is str:
             text = unicode(text)
         output = io.StringIO(text)
@@ -104,7 +112,7 @@ class SkulptglSolution():
         file_id = self.__find_file(parent_id, old_name)
         if file_id is None:
             return None
-        tbody = self.__drive.files().get(fileId=file_id).execute();
+        tbody = self.__drive.files().get(fileId=file_id).execute()
         tbody['title'] = new_name
         self.__drive.files().update(fileId=file_id, body=tbody).execute()
         return file_id
@@ -117,15 +125,16 @@ class SkulptglSolution():
         return file_id
 
     def __read_text_file(self, file_id):
+        print "reading: " + file_id
         tfile = self.__drive.files().get(fileId=file_id).execute()
         download_url = tfile['downloadUrl']
-        print(download_url)
+        print("download!! " + file_id + " " + download_url)
         if download_url is None:
             return None
 
         resp, content = self.__drive._http.request(download_url)
         if resp.status == 200:
-            #print 'Status: %s' % resp
+            print 'Status: %s' % resp
             return content
 
         print 'An error occurred: %s' % resp
@@ -151,6 +160,7 @@ class SkulptglSolution():
         return proj_folder_id
 
     def __find_project(self, proj_name, create=False):
+        print "find project: " + proj_name
         proj_folder_id = self.__find_file(self.__app(), proj_name)
         if proj_folder_id is None and create:
             return self.__create_project(proj_name)
@@ -175,6 +185,8 @@ class SkulptglSolution():
         return self.__cached_project
 
     def update_project(self, proj):
+        print "updating project"
+        print proj
         changed = False
         oldproj = json.loads(self.project_metadata());
 
@@ -203,12 +215,17 @@ class SkulptglSolution():
         return self.__read_text_file(proj_file_id)
 
     def read_file(self, fname):
+        print "read file: " + fname
         proj_id = self.__find_project(self.__project())
         if proj_id is None:
             return None
+
+        print "read file 1: " + fname
         file_id = self.__find_file(proj_id, fname)
         if file_id is None:
             return None
+
+        print "read file 2: " + fname
         return self.__read_text_file(file_id)
 
     def write_file(self, fname, text):

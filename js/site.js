@@ -86,6 +86,7 @@ var skulptgl = {
         this.util.xhrPost('/run/?write=' + filename, text, onLoad, onFailed);
     },
     openDialog: function(text, prompt, onOK, onCancel) {
+        this.closeDialog();
         React.render(
             <InputDialog text={text} prompt={prompt} onOK={onOK}
                 onCancel={onCancel} />,

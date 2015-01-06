@@ -47,6 +47,9 @@ $canvas-size: 300px;
       border: 1px solid gray * ($test-fac / 1.2);
     }
   }
+  .file-row {
+    @extend %flexbox;
+  }
   .button-row {
     @extend %flexbox;
     @include align-items(center);
@@ -55,7 +58,7 @@ $canvas-size: 300px;
   }
   .file-order {
     display: inline-block;
-    margin: 10px 0 0 5px;
+    margin: 0 0 0 5px;
     font-size: 10px;
   }
   .options-button {
