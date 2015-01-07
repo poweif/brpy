@@ -25,22 +25,22 @@ var MainPanel = React.createClass({
         this.refs.context.getDOMNode().height = width;
     },
     openTextDialog: function(text, prompt, onOK) {
-        console.log("opening dialog");
         skulptgl.openDialog(text, prompt, onOK, this.closeDialog);
         this.setState({isDialogOpen: true});
     },
     openPromptDialog: function(prompt) {
-        console.log("opening dialog");
         skulptgl.openDialog(null, prompt, this.closeDialog, null);
         this.setState({isDialogOpen: true});
     },
+    openBinaryDialog: function(prompt, onOK) {
+        skulptgl.openDialog(null, prompt, onOK, this.closeDialog);
+        this.setState({isDialogOpen: true});
+    },
     openWorkingDialog: function() {
-        console.log("opening dialog");
         skulptgl.openDialog(null, "Working...", null, null);
         this.setState({isDialogOpen: true});
     },
     closeDialog: function() {
-        console.log("closing dialog");
         skulptgl.closeDialog();
         this.setState({isDialogOpen: false});
     },
@@ -115,9 +115,7 @@ var MainPanel = React.createClass({
         var ind = skulptgl.util.indexOf(this.state.srcFiles, oldFile + ".py");
 
         if (this.state.defaultFileInd != ind) {
-            this.setState({
-                defaultFileInd: ind
-            });
+            this.changeCurrentFile(ind);
             return;
         }
 
@@ -125,7 +123,7 @@ var MainPanel = React.createClass({
         var fnameOK = function(newFile) {
             that.onFileNameOK(oldFile, newFile);
         };
-        this.openTextDialog(oldFile, "New file name?", fnameOK);
+        this.openTextDialog(oldFile, "Change file name?", fnameOK);
     },
     onFileAddOK: function(fname) {
         var fnameExt = fname + ".py";
@@ -136,13 +134,15 @@ var MainPanel = React.createClass({
             return;
         }
 
+        this.openWorkingDialog();
+
         var that = this;
         var ofiles = this.state.srcFiles;
         var nfiles = skulptgl.util.deepCopy(ofiles);
         nfiles.push(fnameExt);
 
         var successFile = function() {
-            skulptgl.closeDialog();
+            that.closeDialog();
             that.state.srcs[fnameExt] = fileSrc;
             that.setState({
                 srcFiles: nfiles,
@@ -151,7 +151,7 @@ var MainPanel = React.createClass({
         };
 
         var failureFile = function() {
-            skulptgl.openPromptDialog("Failed to add file");
+            that.openPromptDialog("Failed to add file");
 
             // roll back project change
             console.log("hope we never get here :(");
@@ -166,7 +166,7 @@ var MainPanel = React.createClass({
         };
 
         var failureProj = function() {
-            skulptgl.openPromptDialog("Failed to change file name");
+            that.openPromptDialog("Failed to add file");
         };
 
         var proj = {};
@@ -175,6 +175,93 @@ var MainPanel = React.createClass({
     },
     onFileAddClick: function() {
         this.openTextDialog("new", "New file?", this.onFileAddOK);
+    },
+    onFileDeleteOK: function(fname) {
+        var fnameExt = fname + ".py";
+
+        if (this.state.srcFiles.length < 2) {
+            that.openPromptDialog(
+                "Cannot delete " + fnameExt +
+                    " since we need at least one source file.");
+            return;
+        }
+
+        var ind = skulptgl.util.indexOf(this.state.srcFiles, fnameExt);
+        if (ind < 0)
+            return;
+
+        this.openWorkingDialog();
+
+        var that = this;
+        var ofiles = this.state.srcFiles;
+        var nfiles = skulptgl.util.deepCopy(ofiles);
+        nfiles.splice(ind, 1);
+
+        var successFile = function() {
+            that.closeDialog();
+            that.setState({
+                srcFiles: nfiles,
+                defaultFileInd: 0
+            });
+        };
+
+        var failureFile = function() {
+            that.openPromptDialog("Failed to delete file");
+
+            // roll back project change
+            console.log("hope we never get here :(");
+            var oproj = {};
+            oproj[skulptgl.project.SRC] = ofiles;
+            skulptgl.writeProject(oproj);
+        };
+
+        var successProj = function() {
+            skulptgl.deleteSrcFile(fnameExt, successFile, failureFile);
+        };
+
+        var failureProj = function() {
+            that.openPromptDialog("Failed to change file name");
+        };
+
+        var proj = {};
+        proj[skulptgl.project.SRC] = nfiles;
+        skulptgl.writeProject(proj, successProj, failureProj);
+    },
+    onFileDeleteClick: function(fname) {
+        var that = this;
+        var del = function() { that.onFileDeleteOK(fname); };
+        this.openBinaryDialog(
+            "Are you sure you'd like to delete " + (fname + ".py") + "?", del);
+    },
+    onFileIndClick: function(origin, target) {
+        if (target < 0 || target >= this.state.srcFiles.length)
+            return;
+
+        this.openWorkingDialog();
+
+        var that = this;
+        var ofiles = this.state.srcFiles;
+        var nfiles = skulptgl.util.deepCopy(ofiles);
+
+        var tmp = nfiles[origin];
+        nfiles[origin] = nfiles[target];
+        nfiles[target] = tmp;
+
+        var successProj = function() {
+            that.closeDialog();
+            that.setState({
+                srcFiles: nfiles,
+                defaultFileInd: target
+            });
+        };
+
+        var failureProj = function() {
+            that.openPromptDialog("Failed to change file order");
+        };
+
+        var proj = {};
+        proj[skulptgl.project.SRC] = nfiles;
+        skulptgl.writeProject(proj, successProj, failureProj);
     },
     onLoadProject: function(text) {
         var project = JSON.parse(text);
@@ -185,7 +272,7 @@ var MainPanel = React.createClass({
         });
     },
     onLoadSource: function(file, text) {
-        console.log("source loaded? " + file);
+        console.log("source loaded " + file);
         var srcs = this.state.srcs;
         srcs[file] = text;
         this.setState({srcs: srcs});
@@ -198,13 +285,10 @@ var MainPanel = React.createClass({
                 return;
         }
 
-        var prog = '';
         var that = this;
-        this.state.srcFiles.map(
-            function(file) {
-                prog += that.state.srcs[file] + '\n';
-            }
-        );
+        var prog = this.state.srcFiles
+            .map(function(file) {return that.state.srcs[file];})
+            .join("\n");
 
         var output = function(s) { console.log(s); };
         var builtinRead = function(x) {
@@ -228,17 +312,43 @@ var MainPanel = React.createClass({
             console.log(e.stack);
         }
     },
-    onRun: function() {
-        this.onSave();
+    onRun: function(code) {
+        if (this.state.defaultFileInd < 0 ||
+            this.state.defaultFileInd >= this.state.srcFiles.length) {
+            return;
+        }
+
+        this.onSave(code);
         this.runProg();
     },
-    onSave: function() {
+    onSave: function(code) {
+        if (this.state.defaultFileInd < 0 ||
+            this.state.defaultFileInd >= this.state.srcFiles.length) {
+            return;
+        }
 
+        var fname = this.state.srcFiles[this.state.defaultFileInd];
+        this.state.srcs[fname] = code;
+
+        var success = function() {console.log("Successfully wrote " + fname);};
+        var fail = function() {console.log("Failed to write " + fname);};
+
+        skulptgl.writeSrcFile(fname, code, success, fail);
+    },
+    changeCurrentFile: function(ind) {
+        if (ind < 0 || ind >= this.state.srcFiles.length)
+            return;
+
+        if (this.refs.editor) {
+            this.onSave(this.refs.editor.getContent());
+            this.setState({
+                defaultFileInd: ind
+            });
+        }
     },
     componentDidUpdate: function(prevProps, prevState) {
         var that = this;
         if (prevState.srcFiles != this.state.srcFiles) {
-            console.log("update!!!");
             var toRead = [];
             for (var i = 0; i < this.state.srcFiles.length; i++) {
                 var file = this.state.srcFiles[i];
@@ -246,11 +356,13 @@ var MainPanel = React.createClass({
                     toRead.push(file);
             }
             var f = function(aRead) {
-                if (toRead.length == 0)
+                if (toRead.length == 0) {
+                    // Try running after the sources have been loaded.
+                    that.runProg();
                     return;
+                }
                 var read = aRead[0];
                 aRead.splice(0, 1);
-                console.log(aRead);
                 var g = function(text) {
                     if (!text) {
                         console.log("reading " + read + " failed");
@@ -270,10 +382,30 @@ var MainPanel = React.createClass({
         window.addEventListener('scroll', this.handleScroll);
         window.addEventListener('resize', this.handleResize);
         this.handleResize();
+
+        var that = this;
+
+        var keyMapParams = {
+            type: 'keydown',
+            propagate: false,
+            target: document
+        };
+        for (var i = 0; i < 10; i++) {
+            (function() {
+                var j = i;
+                var key = 'Alt+' + (j + 1);
+                shortcut.add(
+                    key, function() { that.changeCurrentFile(j); },
+                    keyMapParams);
+            })();
+        }
     },
     componentWillUnmount: function() {
         window.removeEventListener('scroll', this.handleScroll);
         window.removeEventListener('resize', this.handleResize);
+
+        for (var i = 0; i < 10; i++)
+            shortcut.remove('Alt+' + (i + 1));
     },
     render: function() {
         var that = this;
@@ -290,7 +422,7 @@ var MainPanel = React.createClass({
                     <div key={order} className={buttonClassName}
                         onClick={click} >
                         <span>{fileExt}</span>
-                        <span className="file-order">{order}</span>
+                        <span className="file-order">{order + 1}</span>
                     </div>
                 );
             }
@@ -306,17 +438,26 @@ var MainPanel = React.createClass({
         if (srcFile)
             src = this.state.srcs[srcFile];
 
+        var srcFileOnly = srcFile ? srcFile.substring(0, srcFile.indexOf('.')) : '';
         var optButtons = [];
+        var fileInd = this.state.defaultFileInd;
+        var delfunc = function() { that.onFileDeleteClick(srcFileOnly); };
+        var decfunc = function() { that.onFileIndClick(fileInd, fileInd - 1); };
+        var incfunc = function() { that.onFileIndClick(fileInd, fileInd + 1); };
+
         optButtons.push((function() { return (
-            <img src="/img/go10.png"  className="options-button" />
+            <img src="/img/go10.png" onClick={decfunc}
+                className="options-button" />
         );})());
 
         optButtons.push((function() { return (
-            <img src="/img/right244.png"  className="options-button" />
+            <img src="/img/right244.png" onClick={incfunc}
+                className="options-button" />
         );})());
 
         optButtons.push((function() { return (
-            <img src="/img/close47.png"  className="options-button" />
+            <img src="/img/close47.png" onClick={delfunc}
+                className="options-button" />
         );})());
 
         return (
@@ -336,7 +477,7 @@ var MainPanel = React.createClass({
                             <span className="file-row">{fileButtons}</span>
                             <span>{optButtons}</span>
                         </div>
-                        <SourceEditor src={src} onRun={this.onRun}
+                        <SourceEditor ref="editor" src={src} onRun={this.onRun}
                             onSave={this.onSave}
                             isDialogOpen={this.state.isDialogOpen} />
                     </div>
@@ -348,6 +489,11 @@ var MainPanel = React.createClass({
 
 var SourceEditor = React.createClass({
     cdm: null,
+    getContent: function() {
+        if (!this.cdm)
+            return null;
+        return this.cdm.getValue();
+    },
     onScrollTo: function() {
         if (!this.cdm)
             return;
@@ -374,7 +520,7 @@ var SourceEditor = React.createClass({
                         theme: "monokai"
                     }
                 );
-                this.cdm.setSize(600, null);
+                this.cdm.setSize(650, null);
             } else {
                 this.cdm.setValue(code);
             }
@@ -386,17 +532,31 @@ var SourceEditor = React.createClass({
             propagate: false,
             target: document
         };
+        var that = this;
 
-        shortcut.remove('Ctrl+B');
-        shortcut.remove('Ctrl+S');
-        shortcut.remove('Ctrl+L');
-        if (this.props.onRun)
-            shortcut.add('Ctrl+B', this.props.onRun, keyMapParams);
-        if (this.props.onSave)
-            shortcut.add('Ctrl+S', this.props.onSave, keyMapParams);
+        if (this.props.onRun) {
+            var run = function() {
+                if (that.cdm)
+                    that.props.onRun(that.cdm.getValue());
+            };
+            shortcut.add('Ctrl+B', run, keyMapParams);
+        }
+
+        if (this.props.onSave) {
+            var save = function() {
+                if (that.cdm)
+                    that.props.onSave(that.cdm.getValue());
+            };
+            shortcut.add('Ctrl+S', save, keyMapParams);
+        }
         // Technically this should be in codemirror's emacs keymap, but putting
         // this here for now.
         shortcut.add('Ctrl+L', this.onScrollTo, keyMapParams);
+    },
+    componentWillUnmount: function() {
+        shortcut.remove('Ctrl+B');
+        shortcut.remove('Ctrl+S');
+        shortcut.remove('Ctrl+L');
     },
     render: function() {
         return (
