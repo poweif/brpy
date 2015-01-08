@@ -290,7 +290,7 @@ var MainPanel = React.createClass({
             .map(function(file) {return that.state.srcs[file];})
             .join("\n");
 
-        var output = function(s) { console.log(s); };
+        var output = function(s) { if (s.trim().length > 0) console.log("python> " + s); };
         var builtinRead = function(x) {
             if (Sk.builtinFiles === undefined ||
                 Sk.builtinFiles["files"][x] === undefined) {
@@ -308,8 +308,9 @@ var MainPanel = React.createClass({
         try {
             eval(Sk.importMainWithBody("<stdin>", false, prog));
         } catch(e) {
-            console.log(e);
-            console.log(e.stack);
+            console.log("python[ERROR]> " + e.toString());
+            if (e.toSource)
+                console.log(e.toSource());
         }
     },
     onRun: function(code) {
@@ -318,10 +319,10 @@ var MainPanel = React.createClass({
             return;
         }
 
-        this.onSave(code);
+        this.onSave(code, true);
         this.runProg();
     },
-    onSave: function(code) {
+    onSave: function(code, dontForward) {
         if (this.state.defaultFileInd < 0 ||
             this.state.defaultFileInd >= this.state.srcFiles.length) {
             return;
@@ -333,7 +334,8 @@ var MainPanel = React.createClass({
         var success = function() {console.log("Successfully wrote " + fname);};
         var fail = function() {console.log("Failed to write " + fname);};
 
-        skulptgl.writeSrcFile(fname, code, success, fail);
+        if (!dontForward)
+            skulptgl.writeSrcFile(fname, code, success, fail);
     },
     changeCurrentFile: function(ind) {
         if (ind < 0 || ind >= this.state.srcFiles.length)
@@ -470,7 +472,8 @@ var MainPanel = React.createClass({
                 </div>
                 <div className="bottom-panel">
                     <div ref="contextWrapper" className="canvas-wrapper">
-                        <canvas ref="context" id={this.state.canvasId}></canvas>
+                        <canvas className="unselectable" ref="context"
+                            id={this.state.canvasId}></canvas>
                     </div>
                     <div>
                         <div className="button-row">
