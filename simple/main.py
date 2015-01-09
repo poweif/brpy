@@ -3,27 +3,31 @@ from math import sin
 import webgl
 import webgl.glut
 
+from webgl.three import mat4
+from webgl.three import vec3
+from webgl.three import arrayf
+
 gl = webgl.Context("mainPanelCanvas")
 glut = webgl.glut.Init(gl)
 
-trianglesVerticeBuffer = gl.createBuffer()
-trianglesColorBuffer = gl.createBuffer()
+vertex_buffer = gl.createBuffer()
+color_buffer = gl.createBuffer()
 program = None
 
 vs_src = """
-attribute vec3 aVertexPosition;
-attribute vec3 aVertexColor;
-varying highp vec4 vColor;
+attribute vec3 _vert_pos;
+attribute vec3 _vert_color;
+varying highp vec4 v_color;
 void main(void) {
-  gl_Position = vec4(aVertexPosition, 1.0);
-  vColor = vec4(aVertexColor, 1.0);
+  gl_Position = vec4(_vert_pos, 1.0);
+  v_color = vec4(_vert_color, 1.0);
 }
 """
 
 fs_src = """
-varying highp vec4 vColor;
+varying highp vec4 v_color;
 void main(void) {
-  gl_FragColor = vColor;
+  gl_FragColor = v_color;
 }
 """
 
@@ -48,33 +52,31 @@ def setup():
          str(gl.getProgramParameter(program, gl.LINK_STATUS)))
   gl.useProgram(program)
 
-  triangleVerticeColors = [1.0, 0.0, 0.0,
-                           1.0, 0.0, 1.0,
-                           1.0, 0.0, 0.0]
+  vertex_colors = arrayf([1.0, 0.0, 0.0,
+                         1.0, 0.0, 1.0,
+                         1.0, 0.0, 0.0]);
 
-  gl.bindBuffer(gl.ARRAY_BUFFER, trianglesColorBuffer)
-  gl.bufferData(gl.ARRAY_BUFFER, webgl.Float32Array(triangleVerticeColors),
-                gl.STATIC_DRAW)
+  gl.bindBuffer(gl.ARRAY_BUFFER, color_buffer)
+  gl.bufferData(gl.ARRAY_BUFFER, vertex_colors, gl.STATIC_DRAW)
 
 def render(gl):
-  gl.clearColor(1.0, 1.0, 1.0, 1.0)
+  gl.clearColor(1.0, 0.9, 1.0, 1.0)
   gl.clear(gl.COLOR_BUFFER_BIT)
   gl.viewport(0, 0, 500, 500)
-  triangleVertices = [-0.7,  -0.5, 0.0,
-                       0.0,  -.5, 0.0,
-                      -0.7, -0.95, 0.0]
-  gl.bindBuffer(gl.ARRAY_BUFFER, trianglesVerticeBuffer)
-  gl.bufferData(gl.ARRAY_BUFFER, webgl.Float32Array(triangleVertices),
-                gl.DYNAMIC_DRAW)
-  vertexPositionAttribute = gl.getAttribLocation(program, "aVertexPosition")
-  gl.enableVertexAttribArray(vertexPositionAttribute)
-  gl.bindBuffer(gl.ARRAY_BUFFER, trianglesVerticeBuffer)
-  gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, False, 0, 0)
+  vertices = arrayf([-0.7,  -0.5, 0.0,
+                     0.0,  -.5, 0.0,
+                     -0.7, -0.95, 0.0])
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer)
+  gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW)
+  vert_pos_attrib = gl.getAttribLocation(program, "_vert_pos")
+  gl.enableVertexAttribArray(vert_pos_attrib)
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer)
+  gl.vertexAttribPointer(vert_pos_attrib, 3, gl.FLOAT, False, 0, 0)
 
-  vertexColorAttribute = gl.getAttribLocation(program, "aVertexColor")
-  gl.enableVertexAttribArray(vertexColorAttribute)
-  gl.bindBuffer(gl.ARRAY_BUFFER, trianglesColorBuffer)
-  gl.vertexAttribPointer(vertexColorAttribute, 3, gl.FLOAT, False, 0, 0)
+  vert_color_attrib = gl.getAttribLocation(program, "_vert_color")
+  gl.enableVertexAttribArray(vert_color_attrib)
+  gl.bindBuffer(gl.ARRAY_BUFFER, color_buffer)
+  gl.vertexAttribPointer(vert_color_attrib, 3, gl.FLOAT, False, 0, 0)
 
   gl.drawArrays(gl.TRIANGLES, 0, 3)
 
@@ -91,6 +93,6 @@ def main():
   setup()
   glut.displayFunc(render)
   glut.mouseFunc(mouse)
-  glut.keyboardFunc(keyboard)
+#  glut.keyboardFunc(keyboard)
 
 main()

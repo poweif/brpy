@@ -309,8 +309,8 @@ var MainPanel = React.createClass({
             eval(Sk.importMainWithBody("<stdin>", false, prog));
         } catch(e) {
             console.log("python[ERROR]> " + e.toString());
-            if (e.toSource)
-                console.log(e.toSource());
+//            if (e.toSource)
+//                console.log(e.toSource());
         }
     },
     onRun: function(code) {

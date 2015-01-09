@@ -104,5 +104,11 @@ var skulptgl = {
         NAME: 'name',
         SRC: 'src',
         DEFAULT_FILE: 'defaultFile'
-    }
+    };
+
+    window.addEventListener("beforeunload", function (e) {
+        var confirmation = "Did you save? Are you sure you'd like to quit?"
+        (e || window.event).returnValue = confirmation;
+        return confirmation;
+    });
 })();
