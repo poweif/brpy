@@ -135,7 +135,13 @@ SHOW_URI = HOME_URI + '/show'
 SESSION_KEY = 'skulpt-gl-key'
 g_session = {}
 
+INDEX_HTML = open(CURRENT_DIR + '/index.html').read()
+
 class GAuthServer(object):
+    _cp_config = {
+        'tools.sessions.on' : True
+    }
+
     def __result(self, redirect=None, content=None, session_key=None):
         if redirect is not None:
             if session_key is not None:
@@ -155,14 +161,16 @@ class GAuthServer(object):
 
     @cherrypy.expose
     def run(self, **param):
-        cookie = cherrypy.request.cookie
-        if SESSION_KEY not in cookie or\
-           cookie[SESSION_KEY].value not in g_session:
-            return self.__result(redirect=HOME_URI, session_key='')
+        if not SESSION_KEY in cherrypy.session:
+            return self.__result()
 
-        session = g_session[cookie[SESSION_KEY].value]
+        login_id = cherrypy.session[SESSION_KEY]
+        if not login_id in g_session:
+            return self.__result()
+
+        session = g_session[login_id]
         if not 'solution' in session:
-            return self.__result(redirect=HOME_URI, session_key='')
+            return self.__result()
 
         solution = session['solution']
 
@@ -209,14 +217,6 @@ class GAuthServer(object):
         return self.__result()
 
     @cherrypy.expose
-    def logout(self):
-        cookie = cherrypy.request.cookie
-        if SESSION_KEY in cookie:
-            session_key = cookie[SESSION_KEY].value
-            del g_session[session_key]
-        return self.__result(redirect=HOME_URI, session_key='')
-
-    @cherrypy.expose
     def login(self, **param):
         if 'error' in param or 'code' not in param or 'state' not in param:
             return 'LOGIN ERROR'
@@ -224,25 +224,41 @@ class GAuthServer(object):
         cred = get_credentials(
             param['code'], state=None, redirect_uri=POST_LOGIN_URI)
 
-        g_session[session_key] = {
-            'info' : get_user_info(cred),
+        user_info = get_user_info(cred)
+        email_address = user_info.get('email')
+
+        login_id = get_random_state()
+        cherrypy.session[SESSION_KEY] = login_id
+        g_session[login_id] = {
+            'email': email_address,
             'solution': SkulptglSolution(cred)
         }
+        cherrypy.request.login = email_address
 
-        return self.__result(redirect=SHOW_URI, session_key=session_key)
+        return self.__result(redirect=SHOW_URI)
+
+    @cherrypy.expose
+    def logout(self):
+        if SESSION_KEY in cherrypy.session:
+            login_id = cherrypy.session[SESSION_KEY]
+            del g_session[login_id]
+            cherrypy.session[SESSION_KEY] = None
+
+        return self.__result(redirect=HOME_URI)
+
+    @cherrypy.expose
+    def show(self, **param):
+        if SESSION_KEY in cherrypy.session:
+            return INDEX_HTML
+        return self.__result(redirect=HOME_URI)
 
     @cherrypy.expose
     def index(self):
-        cookie = cherrypy.request.cookie
-        if SESSION_KEY in cookie:
-            session_key = cookie[SESSION_KEY].value
-            print session_key
-            print g_session
-            if session_key in g_session:
-                return self.__result(redirect=SHOW_URI)
+        if SESSION_KEY in cherrypy.session:
+            return self.__result(redirect=SHOW_URI)
 
         new_url = get_authorization_url(POST_LOGIN_URI, get_random_state())
-        return self.__result(redirect=new_url, session_key='')
+        return self.__result(redirect=new_url)
 
 cherrypy.config.update({'server.socket_port': PORT,
                         'tools.encode.on': True,
@@ -252,9 +268,6 @@ cherrypy.quickstart(
     GAuthServer(), '/',
     {'/':
      {'tools.staticdir.dir' : CURRENT_DIR,
-      'tools.staticdir.on' : True},
-     '/show':
-     {'tools.staticfile.on' : True,
-      'tools.staticfile.filename' : CURRENT_DIR + '/index.html'}
+      'tools.staticdir.on' : True}
     }
 )
