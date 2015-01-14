@@ -45,7 +45,6 @@ class SkulptglSolution():
 
     def __app(self):
         app_id = self.__find_file(self.__root(), self._SKULPT_APP_DIR)
-        print "app: " + self._SKULPT_APP_DIR
         if app_id is None:
             app_id = self.__create_folder(self.__root(), self._SKULPT_APP_DIR)
         return app_id
@@ -54,17 +53,13 @@ class SkulptglSolution():
     # not found.
     def __find_file(self, folder_id, title):
         key = self.__key(folder_id, title)
-        print "find file: " + title
         if key in self.__files:
             return self.__files[key]
-
-        print "no early out: " + key
 
         param = {"q": "title = '%s' and trashed = false" % title}
         itemsp = self.__drive.children().list(
             folderId=folder_id,
             **param).execute()
-        print itemsp
         items = itemsp['items']
         if len(items) < 1:
             self.__files[key] = None
@@ -125,16 +120,16 @@ class SkulptglSolution():
         return file_id
 
     def __read_text_file(self, file_id):
-        print "reading: " + file_id
         tfile = self.__drive.files().get(fileId=file_id).execute()
+        print "reading: " + tfile['title']
         download_url = tfile['downloadUrl']
-        print("download!! " + file_id + " " + download_url)
         if download_url is None:
+            print "Cannot download " + tfile['title']
             return None
 
         resp, content = self.__drive._http.request(download_url)
         if resp.status == 200:
-            print 'Status: %s' % resp
+            print 'Status: %s' % resp['status']
             return content
 
         print 'An error occurred: %s' % resp
@@ -160,7 +155,6 @@ class SkulptglSolution():
         return proj_folder_id
 
     def __find_project(self, proj_name, create=False):
-        print "find project: " + proj_name
         proj_folder_id = self.__find_file(self.__app(), proj_name)
         if proj_folder_id is None and create:
             return self.__create_project(proj_name)

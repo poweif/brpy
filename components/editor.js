@@ -1,4 +1,6 @@
 var MainPanel = React.createClass({
+    runCounts: {},
+    totalRunCounts: 0,
     getInitialState: function() {
         return {
             name: '',
@@ -319,30 +321,100 @@ var MainPanel = React.createClass({
             return;
         }
 
-        this.onSave(code, true);
+        var ind = this.state.defaultFileInd;
+
+        var fname = this.state.srcFiles[ind];
+        this.memSave(fname, code);
         this.runProg();
-    },
-    onSave: function(code, dontForward) {
-        if (this.state.defaultFileInd < 0 ||
-            this.state.defaultFileInd >= this.state.srcFiles.length) {
-            return;
+
+        if (this.runCounts[ind] == undefined)
+            this.runCounts[ind] = 0;
+
+        this.runCounts[ind] += 1;
+        this.totalRunCounts += 1;
+
+        var countLim = 10;
+        if (this.runCounts[ind] % countLim == countLim - 1) {
+            var that = this;
+            var successProj = function() {
+                console.log("Successfully updated project with default file ind");
+            };
+
+            var failureProj = function() {
+                console.log("Failed to update project with default file ind");
+            };
+
+            var proj = {};
+            proj[skulptgl.project.DEFAULT_FILE] = ind;
+            skulptgl.writeProject(proj, successProj, failureProj);
         }
 
-        var fname = this.state.srcFiles[this.state.defaultFileInd];
+        var totalCountLim = 30;
+        if (this.totalRunCounts % totalCountLim == totalCountLim) {
+            var that = this;
+            var fileAndCode = this.state.srcFiles.map(
+                function(fname) {
+                    return {
+                        name: fname,
+                        code: that.srcs[fname]
+                    };
+                }
+            );
+
+            var writeFiles = function(files) {
+                if (files.length) return;
+
+                var top = files[0];
+                files.splice(0, 1);
+
+                skulptgl.writeSrcFile(
+                    top.name,
+                    top.code,
+                    function() {
+                        console.log("Successfully wrote " + top.name);
+                        writeFiles(files);
+                    },
+                    function() {
+                        console.log("Failed to write " + top.name);
+                        writeFiles(files);
+                    }
+                );
+            }
+            writeFiles(fileAndCode);
+        }
+    },
+    memSave: function(fname, code) {
+        if (!fname)
+            return;
+
         this.state.srcs[fname] = code;
+    },
+    onSave: function(fname, code, onSuccess, onFail) {
+        if (!fname)
+            return;
 
-        var success = function() {console.log("Successfully wrote " + fname);};
-        var fail = function() {console.log("Failed to write " + fname);};
+        this.memSave(fname, code);
 
-        if (!dontForward)
-            skulptgl.writeSrcFile(fname, code, success, fail);
+        var success = function() {
+            console.log("Successfully wrote " + fname);
+            if (onSuccess)
+                onSuccess();
+        };
+        var fail = function() {
+            console.log("Failed to write " + fname);
+            if (onFail)
+                onFail();
+        };
+
+        skulptgl.writeSrcFile(fname, code, success, fail);
     },
     changeCurrentFile: function(ind) {
         if (ind < 0 || ind >= this.state.srcFiles.length)
             return;
 
         if (this.refs.editor) {
-            this.onSave(this.refs.editor.getContent());
+            var oldFile = this.state.srcFiles[this.state.defaultFileInd];
+            this.memSave(oldFile, this.refs.editor.getContent());
             this.setState({
                 defaultFileInd: ind
             });
@@ -462,6 +534,11 @@ var MainPanel = React.createClass({
                 className="options-button" />
         );})());
 
+        var save = function(code) {
+            var fname = that.state.srcFiles[that.state.defaultFileInd];
+            that.onSave(fname, code);
+        };
+
         return (
             <div className="main-panel">
                 <div className="project-name-holder">
@@ -481,7 +558,7 @@ var MainPanel = React.createClass({
                             <span>{optButtons}</span>
                         </div>
                         <SourceEditor ref="editor" src={src} onRun={this.onRun}
-                            onSave={this.onSave}
+                            onSave={save}
                             isDialogOpen={this.state.isDialogOpen} />
                     </div>
                 </div>
