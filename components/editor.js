@@ -311,8 +311,6 @@ var MainPanel = React.createClass({
             eval(Sk.importMainWithBody("<stdin>", false, prog));
         } catch(e) {
             console.log("python[ERROR]> " + e.toString());
-//            if (e.toSource)
-//                console.log(e.toSource());
         }
     },
     onRun: function(code) {
@@ -555,7 +553,7 @@ var MainPanel = React.createClass({
                     <div>
                         <div className="button-row">
                             <span className="file-row">{fileButtons}</span>
-                            <span>{optButtons}</span>
+                            <span className="option-row">{optButtons}</span>
                         </div>
                         <SourceEditor ref="editor" src={src} onRun={this.onRun}
                             onSave={save}

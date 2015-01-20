@@ -49,23 +49,31 @@ $canvas-size: 300px;
   }
   .file-row {
     @extend %flexbox;
+    @include flex-wrap(wrap);
   }
   .button-row {
     @extend %flexbox;
     @include align-items(center);
     @include justify-content(space-between);
     margin: 5px 0;
+    width: 650px;
   }
   .file-order {
     display: inline-block;
     margin: 0 0 0 5px;
     font-size: 10px;
   }
+  .option-row {
+    @extend %flexbox;
+    @include flex-wrap(nowrap);
+  }
   .options-button {
     @extend .button;
     padding: 0;
     max-height: 25px;
     max-width: 25px;
+    min-height: 25px;
+    min-width: 25px;
   }
 }
 
