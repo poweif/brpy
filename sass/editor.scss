@@ -35,11 +35,11 @@ $canvas-size: 300px;
     max-height: 30px;
     max-width: 30px;
   }
-  .canvas-wrapper {
+  .context-wrapper {
     @include flex(1, 1, auto);
     @extend %flexbox;
-    @include align-items(flex-start);
-    @include justify-content(center);
+    @include align-items(center);
+    @include flex-direction(column);
     margin: 5px;
     canvas {
       width: $canvas-size;

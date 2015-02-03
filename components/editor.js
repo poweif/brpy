@@ -8,23 +8,28 @@ var MainPanel = React.createClass({
             srcFiles: [],
             defaultFileInd: -1,
             isDialogOpen: false,
-            canvasId: "mainPanelCanvas"
+            panelDoms: null
         };
     },
-    handleScroll: function(ev) {
-        this.refs.context.getDOMNode().style.marginTop =
+    handleScroll: function() {
+        this.refs.contextWrapper.getDOMNode().style.marginTop =
             window.pageYOffset + 'px';
     },
-    handleResize: function(ev) {
+    handleResize: function() {
         var width = Math.min(
             this.refs.contextWrapper.getDOMNode().offsetWidth - 30,
             window.innerHeight - 150
         );
 
-        this.refs.context.getDOMNode().style.width = width + 'px';
-        this.refs.context.getDOMNode().style.height = width + 'px';
-        this.refs.context.getDOMNode().width = width;
-        this.refs.context.getDOMNode().height = width;
+        var panelDoms = this.state.panelDoms;
+        if (panelDoms) {
+            panelDoms.forEach(function(dom) {
+                dom.style.width = width + 'px';
+                dom.style.height = width + 'px';
+                dom.width = width;
+                dom.height = width;
+            });
+        }
     },
     openTextDialog: function(text, prompt, onOK) {
         skulptgl.openDialog(text, prompt, onOK, this.closeDialog);
@@ -292,6 +297,9 @@ var MainPanel = React.createClass({
             .map(function(file) {return that.state.srcs[file];})
             .join("\n");
 
+        var progs = this.state.srcFiles
+            .map(function(file) {return {name: file, body: that.state.srcs[file]};});
+
         var output = function(s) { if (s.trim().length > 0) console.log("python> " + s); };
         var builtinRead = function(x) {
             if (Sk.builtinFiles === undefined ||
@@ -301,14 +309,23 @@ var MainPanel = React.createClass({
             return Sk.builtinFiles["files"][x];
         };
 
-        Sk.canvas = this.state.canvasId;
         Sk.configure({
             "output": output,
             "debugout": output,
             "read": builtinRead
         });
         try {
-            eval(Sk.importMainWithBody("<stdin>", false, prog));
+            //Sk.importMainWithBody("<stdin>", false, prog);
+            Sk.importMainWithMultipleFiles(false, progs);
+
+            var wrapper = this.refs.contextWrapper.getDOMNode();
+            while(wrapper.hasChildNodes()) {
+                wrapper.removeChild(wrapper.firstChild);
+            }
+            Sk.progdomIds().forEach(function(elem) { wrapper.appendChild(elem.dom); });
+
+            var ndoms = Sk.progdomIds().map(function(elem) { return elem.dom; });
+            this.setState({panelDoms: ndoms});
         } catch(e) {
             console.log("python[ERROR]> " + e.toString());
         }
@@ -448,6 +465,7 @@ var MainPanel = React.createClass({
 
             f(toRead);
         }
+        this.handleResize();
     },
     componentDidMount: function() {
         skulptgl.readProject(this.onLoadProject);
@@ -546,9 +564,7 @@ var MainPanel = React.createClass({
                     </span>
                 </div>
                 <div className="bottom-panel">
-                    <div ref="contextWrapper" className="canvas-wrapper">
-                        <canvas className="unselectable" ref="context"
-                            id={this.state.canvasId}></canvas>
+                    <div ref="contextWrapper" className="context-wrapper">
                     </div>
                     <div>
                         <div className="button-row">
