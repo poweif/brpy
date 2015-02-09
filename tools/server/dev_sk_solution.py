@@ -1,17 +1,9 @@
-from apiclient.discovery import build
-from apiclient.http import MediaIoBaseUpload
-from apiclient.http import MediaFileUpload
 import io
 import simplejson as json
 import httplib2
 
-def _build_drive_service(credentials):
-    return build(
-        serviceName = 'drive', version='v2',
-        http = credentials.authorize(httplib2.Http()))
-
-class GdriveSkSolution():
-    """Encapsulation of a Skulptgl Solution on Google Drive"""
+class DevSkSolution():
+    """Encapsulation of a Skulptgl Solution for Developing"""
 
     _SOLUTION_JSON = 'solution.json'
     _DEFAULT_PROJ = 'default'
@@ -24,8 +16,7 @@ class GdriveSkSolution():
     _PROJ_SRC = "src"
     _PROJ_DEFAULT_FILE = "defaultFile"
 
-    def __init__(self, cred):
-        self.__cred = cred
+    def __init__(self, root_dir):
         self.__drive = _build_drive_service(cred)
         self.__files = {}
         self.__cached_project = None

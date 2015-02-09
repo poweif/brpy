@@ -231,7 +231,7 @@ class GAuthServer(object):
         cherrypy.session[SESSION_KEY] = login_id
         g_session[login_id] = {
             'email': email_address,
-            'solution': SkulptglSolution(cred)
+            'solution': GdriveSkSolution(cred)
         }
         cherrypy.request.login = email_address
 
