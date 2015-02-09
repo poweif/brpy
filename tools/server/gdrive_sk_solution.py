@@ -5,13 +5,13 @@ import io
 import simplejson as json
 import httplib2
 
-def build_drive_service(credentials):
+def _build_drive_service(credentials):
     return build(
         serviceName = 'drive', version='v2',
         http = credentials.authorize(httplib2.Http()))
 
-class SkulptglSolution():
-    """Encapsulation of a Skulptgl Solution"""
+class GdriveSkSolution():
+    """Encapsulation of a Skulptgl Solution on Google Drive"""
 
     _SOLUTION_JSON = 'solution.json'
     _DEFAULT_PROJ = 'default'
@@ -26,7 +26,7 @@ class SkulptglSolution():
 
     def __init__(self, cred):
         self.__cred = cred
-        self.__drive = build_drive_service(cred)
+        self.__drive = _build_drive_service(cred)
         self.__files = {}
         self.__cached_project = None
 
@@ -78,8 +78,6 @@ class SkulptglSolution():
         return res['id']
 
     def __update_text_file(self, parent_id, file_name, text):
-        print "updating: " + file_name
-
         if type(text) is str:
             text = unicode(text)
         output = io.StringIO(text)
@@ -138,10 +136,9 @@ class SkulptglSolution():
     def __create_project(self, proj_name):
         proj_folder_id = self.__create_folder(self.__app(), proj_name)
 
-        main_py = open('./simple/main.py')
-        self.__update_text_file(
-            proj_folder_id, self._MAIN_PY, main_py.read())
-        main_py.close()
+        with open('./simple/main.py') as main_py:
+            self.__update_text_file(proj_folder_id, self._MAIN_PY,
+                                    main_py.read())
 
         proj_json = {
             self._PROJ_NAME: proj_name,
@@ -149,8 +146,8 @@ class SkulptglSolution():
             self._PROJ_DEFAULT_FILE: 0
         }
 
-        self.__update_text_file(
-            proj_folder_id, self._PROJ_JSON, json.dumps(proj_json))
+        self.__update_text_file(proj_folder_id, self._PROJ_JSON,
+                                json.dumps(proj_json))
 
         return proj_folder_id
 
@@ -165,9 +162,10 @@ class SkulptglSolution():
         solution = {}
 
         if solution_file_id is None:
-            solution = {'project': self._DEFAULT_PROJ}
-            self.__update_text_file(
-                self.__app(), self._SOLUTION_JSON, json.dumps(solution))
+            with open('./sample/solution.json') as solution_json:
+                solution = solution_json.read()
+                self.__update_text_file(self.__app(), self._SOLUTION_JSON,
+                                        json.dumps(solution))
         else:
             solution = json.loads(self.__read_text_file(solution_file_id))
         return solution
@@ -214,12 +212,10 @@ class SkulptglSolution():
         if proj_id is None:
             return None
 
-        print "read file 1: " + fname
         file_id = self.__find_file(proj_id, fname)
         if file_id is None:
             return None
 
-        print "read file 2: " + fname
         return self.__read_text_file(file_id)
 
     def write_file(self, fname, text):

@@ -18,7 +18,7 @@ import httplib2
 
 import simplejson as json
 
-from skulptgl_solution import SkulptglSolution
+from gdrive_sk_solution import GdriveSkSolution
 
 CURRENT_DIR = os.getcwd()
 FILES_DIR = './tools/files/'
