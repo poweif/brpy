@@ -5,16 +5,17 @@ from oauth2client.client import FlowExchangeError
 from oauth2client.client import OAuth2Credentials
 from apiclient.discovery import build
 
+import cherrypy
+import httplib2
 import os
 import random
 import string
-import cherrypy
-import httplib2
+import sys
 
 import simplejson as json
 
 #from gdrive_sk_solution import GdriveSkSolution
-from sk_solution import GdriveSkSolution
+from sk_solution import GdriveSkSolution, DevSkSolution
 
 CURRENT_DIR = os.getcwd()
 FILES_DIR = './tools/files/'
@@ -129,6 +130,15 @@ g_session = {}
 
 INDEX_HTML = open(CURRENT_DIR + '/index.html').read()
 
+DEV_PATH = None
+if len(sys.argv) >= 2 and os.access(sys.argv[1], os.F_OK):
+    DEV_PATH = sys.argv[1]
+
+def create_solution(cred):
+    if DEV_PATH:
+        return DevSkSolution(DEV_PATH)
+    return GdriveSkSolution(cred)
+
 class GAuthServer(object):
     _cp_config = {
         'tools.sessions.on' : True
@@ -215,7 +225,7 @@ class GAuthServer(object):
         cherrypy.session[SESSION_KEY] = login_id
         g_session[login_id] = {
             'email': email_address,
-            'solution': GdriveSkSolution(cred)
+            'solution': create_solution(cred)
         }
         cherrypy.request.login = email_address
 

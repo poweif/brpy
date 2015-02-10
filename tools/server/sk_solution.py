@@ -4,6 +4,7 @@ from apiclient.http import MediaFileUpload
 import io
 import simplejson as json
 import httplib2
+import os
 
 from abc import ABCMeta, abstractmethod
 
@@ -55,7 +56,7 @@ class SkSolution():
     def _create_project(self, proj_name):
         proj_folder_id = self._create_folder(self._app(), proj_name)
 
-        with open('./simple/main.py') as main_py:
+        with open('./simple/' + self._MAIN_PY) as main_py:
             self._update_text_file_impl(proj_folder_id, self._MAIN_PY,
                                        main_py.read())
         proj_json = {
@@ -75,20 +76,19 @@ class SkSolution():
 
     def _read_solution(self):
         solution_file_id = self._find_file(self._app(), self._SOLUTION_JSON)
-        solution = {}
-
         if solution_file_id is None:
-            with open('./sample/solution.json') as solution_json:
-                solution = solution_json.read()
+            with open('./simple/' + self._SOLUTION_JSON, 'r') as solution_json:
+                solution = json.loads(solution_json.read())
+                print solution
                 self._update_text_file_impl(self._app(), self._SOLUTION_JSON,
-                                           json.dumps(solution))
-        else:
-            solution = json.loads(self._read_text_file_impl(solution_file_id))
-        return solution
+                                            json.dumps(solution))
+                return solution
+        return json.loads(self._read_text_file_impl(solution_file_id))
 
     def _project(self):
         if self._cached_project is not None:
             return self._cached_project
+        print self._read_solution()
         self._cached_project = self._read_solution()['project']
         return self._cached_project
 
@@ -97,7 +97,6 @@ class SkSolution():
         proj_id = self._find_project(self._project())
         if proj_id is None:
             return None
-
         file_id = self._find_file(proj_id, fname)
         if file_id is None:
             return None
@@ -192,6 +191,7 @@ class GdriveSkSolution(SkSolution):
         super(GdriveSkSolution, self).__init__()
         self.__cred = cred
         self.__drive = _build_drive_service(cred)
+        self.project_metadata(create_if_not_found=True)
 
     def _root_impl(self):
         self._files['root'] =\
@@ -275,3 +275,77 @@ class GdriveSkSolution(SkSolution):
 
         print 'An error occurred: %s' % resp
         return None
+
+class DevSkSolution(SkSolution):
+    """Encapsulation of a Skulptgl Solution for developers"""
+
+    def __init__(self, root_dir, read_only=False):
+        super(DevSkSolution, self).__init__()
+        self.__root_dir = root_dir
+        self.__read_only = read_only
+        # The root directory must exist
+        assert os.access(root_dir, os.F_OK)
+        self.project_metadata(create_if_not_found=True)
+
+    def _write_key(self, parent_path, file_name):
+        key = self._key(parent_path, file_name)
+        self._files[key] = parent_path + "/" + file_name
+        return self._files[key]
+
+    def _remove_key(self, parent_path, file_name):
+        self._files.pop(self._key(parent_path, file_name), None)
+
+    def _root_impl(self):
+        self._files['root'] = self.__root_dir
+        return self._files['root']
+
+    def _find_file_impl(self, parent_path, title):
+        if parent_path is None or not title in os.listdir(parent_path):
+            return None
+        return self._write_key(parent_path, title)
+
+    def _create_folder_impl(self, parent_path, folder_name):
+        if self.__read_only: return None
+
+        path = parent_path + "/" + folder_name
+        if os.access(path, os.F_OK):
+            return
+        os.mkdir(path)
+        return self._write_key(parent_path, folder_name)
+
+    def _update_text_file_impl(self, parent_path, file_name, text):
+        if self.__read_only: return None
+
+        path = parent_path + "/" + file_name
+        if not os.access(path, os.F_OK):
+            self._write_key(parent_path, file_name)
+        with open(path, "w") as fout:
+            fout.write(text)
+        return path
+
+    def _rename_file_impl(self, parent_path, old_name, new_name):
+        if self.__read_only: return None
+
+        old_path = self._find_file(parent_path, old_name)
+        if old_path is None:
+            return None
+        new_path = parent_path + "/" + new_name
+        os.rename(old_path, new_path)
+        self._remove_key(parent_path, old_name)
+        return self._write_key(parent_path, new_name)
+
+    def _delete_file_impl(self, parent_path, file_name):
+        if self.__read_only: return None
+
+        file_path = self._find_file(parent_path, file_name)
+        if file_path is None:
+            return False
+        os.remove(file_path)
+        self._remove_key(parent_path, file_name)
+        return True
+
+    def _read_text_file_impl(self, file_path):
+        if not os.access(file_path, os.F_OK):
+            return None
+        with open(file_path, "r") as f:
+            return f.read()
