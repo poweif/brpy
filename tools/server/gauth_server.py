@@ -1,24 +1,20 @@
-# -*- coding: utf-8 -*-
-#!/usr/bin/python
-
 import logging
+
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.client import FlowExchangeError
 from oauth2client.client import OAuth2Credentials
 from apiclient.discovery import build
 
-from os.path import join
 import os
-
 import random
 import string
 import cherrypy
-import pprint
 import httplib2
 
 import simplejson as json
 
-from gdrive_sk_solution import GdriveSkSolution
+#from gdrive_sk_solution import GdriveSkSolution
+from sk_solution import GdriveSkSolution
 
 CURRENT_DIR = os.getcwd()
 FILES_DIR = './tools/files/'
@@ -32,17 +28,22 @@ SCOPES = [
 ]
 
 class GetCredentialsException(Exception):
+    """Exception while getting credentials"""
     def __init__(self, authorization_url):
         """Construct a GetCredentialsException."""
+        super(GetCredentialsException, self).__init__()
         self.authorization_url = authorization_url
 
 class CodeExchangeException(GetCredentialsException):
+    """Exception while doing code exchange"""
     pass
 
 class NoRefreshTokenException(GetCredentialsException):
+    """Exception while refreshing token"""
     pass
 
 class NoUserIdException(Exception):
+    """Exception when user id invalid"""
     pass
 
 def get_stored_credentials(user_id):
@@ -51,16 +52,10 @@ def get_stored_credentials(user_id):
     ofile.close()
     return new_cred
 
-def store_credentials(user_id, credentials):
-#    ofile = open(FILES_DIR + str(user_id) + '.cred', 'wb')
-#    ofile.write(credentials.to_json())
-#    ofile.close()
-    return
-
 def exchange_code(authorization_code, redirect_uri):
     flow = flow_from_clientsecrets(
         CLIENTSECRETS_LOCATION, ' '.join(SCOPES),
-        redirect_uri = redirect_uri)
+        redirect_uri=redirect_uri)
     try:
         credentials = flow.step2_exchange(authorization_code)
         return credentials
@@ -70,13 +65,13 @@ def exchange_code(authorization_code, redirect_uri):
 
 def get_user_info(credentials):
     user_info_service = build(
-        serviceName = 'oauth2', version='v2',
-        http = credentials.authorize(httplib2.Http()))
+        serviceName='oauth2', version='v2',
+        http=credentials.authorize(httplib2.Http()))
     user_info = None
     try:
         user_info = user_info_service.userinfo().get().execute()
-    except errors.HttpError, e:
-        logging.error('An error occurred: %s', e)
+    except Error, er:
+        logging.error('An error occurred: %s', er)
     if user_info and user_info.get('id'):
         return user_info
     else:
@@ -84,14 +79,14 @@ def get_user_info(credentials):
 
 def build_drive_service(credentials):
     return build(
-        serviceName = 'drive', version='v2',
-        http = credentials.authorize(httplib2.Http()))
+        serviceName='drive', version='v2',
+        http=credentials.authorize(httplib2.Http()))
 
 def get_authorization_url(redirect, state):
     flow = flow_from_clientsecrets(
         CLIENTSECRETS_LOCATION,
-        scope = ' '.join(SCOPES),
-        redirect_uri = redirect)
+        scope=' '.join(SCOPES),
+        redirect_uri=redirect)
     flow.params['access_type'] = 'offline'
     flow.params['approval_prompt'] = 'auto'
     flow.params['state'] = state
@@ -103,9 +98,6 @@ def get_credentials(authorization_code, state, redirect_uri):
         credentials = exchange_code(authorization_code, redirect_uri)
         user_info = get_user_info(credentials)
         email_address = user_info.get('email')
-        user_id = user_info.get('id')
-#        if credentials.refresh_token is not None:
-#            store_credentials(user_id, credentials)
         return credentials
 #        else:
 #            credentials = get_stored_credentials(user_id)
@@ -157,7 +149,6 @@ class GAuthServer(object):
             return content
 
         cherrypy.response.status = '404'
-        return
 
     @cherrypy.expose
     def run(self, **param):
@@ -220,7 +211,6 @@ class GAuthServer(object):
     def login(self, **param):
         if 'error' in param or 'code' not in param or 'state' not in param:
             return 'LOGIN ERROR'
-        session_key = param['state']
         cred = get_credentials(
             param['code'], state=None, redirect_uri=POST_LOGIN_URI)
 
