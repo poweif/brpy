@@ -170,8 +170,7 @@ class GAuthServer(object):
 
         if 'wproj' in param:
             nproj = json.loads(cherrypy.request.body.read())
-            res = solution.update_project(nproj)
-            if res is not None:
+            if solution.update_project(nproj):
                 return self.__result(content='finished updating project')
             return self.__result()
 
@@ -182,26 +181,21 @@ class GAuthServer(object):
             return self.__result()
 
         if 'rename' in param:
-            files = param['rename'].split(',')
-            res = solution.rename_file(old_name=files[0], new_name=files[1])
-            if res is not None:
+            fs = param['rename'].split(',')
+            if solution.rename_file(old_name=fs[0], new_name=fs[1]):
                 return self.__result(
                     content="finished renaming " + files[0] + " to " + files[1])
             return self.__result()
 
         if 'delete' in param:
             fname = param['delete']
-            res = solution.delete_file(fname)
-            if res is not None:
+            if solution.delete_file(fname):
                 return self.__result(content="finished deleting " + fname)
             return self.__result()
 
         if 'write' in param:
             fname = param['write']
-            res = solution.write_file(
-                fname,
-                cherrypy.request.body.read())
-            if res is not None:
+            if solution.write_file(fname, cherrypy.request.body.read()):
                 return self.__result(content='finished writing ' + fname)
             return self.__result()
 
@@ -255,9 +249,12 @@ cherrypy.config.update({'server.socket_port': PORT,
                         'tools.encode.encoding': "utf-8"})
 
 cherrypy.quickstart(
-    GAuthServer(), '/',
-    {'/':
-     {'tools.staticdir.dir' : CURRENT_DIR,
-      'tools.staticdir.on' : True}
+    GAuthServer(),
+    '/',
+    {
+        '/': {
+            'tools.staticdir.dir' : CURRENT_DIR,
+            'tools.staticdir.on' : True
+        }
     }
 )

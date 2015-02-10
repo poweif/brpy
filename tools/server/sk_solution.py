@@ -92,7 +92,6 @@ class SkSolution():
         self._cached_project = self._read_solution()['project']
         return self._cached_project
 
-
     def read_file(self, fname):
         print "read file: " + fname
         proj_id = self._find_project(self._project())
@@ -128,7 +127,6 @@ class SkSolution():
         if res is not None:
             return True
         return False
-
 
     def update_project(self, proj):
         print "updating project"
