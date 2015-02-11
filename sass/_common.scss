@@ -29,6 +29,8 @@ $content-quickpad-width: 150px;
 $content-quickpad-margin: 30px;
 $content-content-width: $content-frame-width - $content-quickpad-width - $content-quickpad-margin;
 
+$all-border-radius: 5px;
+
 .unselectable {
   -webkit-touch-callout: none;
   -webkit-user-select: none;

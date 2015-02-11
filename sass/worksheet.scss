@@ -1,6 +1,57 @@
 @import 'common';
 @import 'flexbox';
 
+$output-console-width: 650px;;
+$console-button-size: 50px;
+
+.output-console {
+  @extend %flexbox;
+  @include flex-direction(row);
+  position: fixed;
+  height: 200px;
+  bottom: 20px;
+  background-color: rgba(200, 200, 200, .0);
+  @include align-items(flex-begin);
+  @include justify-content(flex-end);
+  width: $output-console-width;
+
+  textarea {
+    border-style: solid solid solid none;
+    border-width: 1px;
+    border-color: black;
+
+    width: $output-console-width - 65;
+    padding: 8px 8px 8px 15px;
+    resize: none;
+    z-index: 0;
+    border-radius: 0 $all-border-radius 0 0;
+  }
+
+  .vertical-button {
+    @include align-self(flex-end);
+    width: $console-button-size;
+    height: $console-button-size;
+    border-style: solid solid solid none;
+    border-color: black black black white;
+    border-width: 1px;
+    border-radius: 0 $all-border-radius $all-border-radius 0;
+    background-color: white;
+    margin-left: -1px;
+    z-index: 1;
+  }
+
+  left: 0px;
+  opacity: .75;
+  transition: left .8s, opacity .8s;
+  z-index: 4;
+}
+
+.output-console-hide {
+  left: -($output-console-width - $console-button-size + 2);
+  opacity: 1;
+  transition: left .8s, opacity .8s;
+}
+
 .main-panel {
   @extend %flexbox;
   @include flex-direction(column);

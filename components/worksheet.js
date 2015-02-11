@@ -1,3 +1,32 @@
+var OutputConsole =  React.createClass({
+    getInitialState: function() {
+        return {
+            hidden: false
+        };
+    },
+    toggleConsole: function() {
+        this.setState({hidden: !this.state.hidden});
+    },
+    render: function() {
+        var outputClassName = "output-console";
+        var buttonImg = "/img/keyboard54.png";
+        if (this.state.hidden) {
+            outputClassName += " output-console-hide";
+            buttonImg = "/img/sort52.png";
+        }
+
+        return (
+            <div className={outputClassName}>
+                <textarea readOnly>
+                    {this.props.input}
+                    </textarea>
+                <img src={buttonImg}
+                    className="vertical-button" onClick={this.toggleConsole} />
+            </div>
+        )
+    }
+});
+
 var MainPanel = React.createClass({
     runCounts: {},
     totalRunCounts: 0,
@@ -557,6 +586,7 @@ var MainPanel = React.createClass({
 
         return (
             <div className="main-panel">
+                <OutputConsole input="hello world" />
                 <div className="project-name-holder">
                     <span className="project-name"
                         onClick={this.onProjectNameClick}>
