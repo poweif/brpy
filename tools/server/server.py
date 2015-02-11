@@ -8,6 +8,8 @@ import sys
 
 import simplejson as json
 
+from apiclient.discovery import build
+
 from sk_solution import GdriveSkSolution, DevSkSolution
 from easy_oauth2 import EasyOAuth2
 

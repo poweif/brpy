@@ -51,8 +51,6 @@ class EasyOAuth2():
         email_address = ''
         try:
             credentials = self.__exchange_code(authorization_code, redirect_uri)
-            user_info = get_user_info(credentials)
-            email_address = user_info.get('email')
             return credentials
         except CodeExchangeException, error:
             logging.error('An error occurred during code exchange.')
