@@ -56,7 +56,7 @@ class SkSolution():
     def _create_project(self, proj_name):
         proj_folder_id = self._create_folder(self._app(), proj_name)
 
-        with open('./simple/' + self._MAIN_PY) as main_py:
+        with open('./sample/default/' + self._MAIN_PY) as main_py:
             self._update_text_file_impl(proj_folder_id, self._MAIN_PY,
                                        main_py.read())
         proj_json = {
@@ -77,7 +77,7 @@ class SkSolution():
     def _read_solution(self):
         solution_file_id = self._find_file(self._app(), self._SOLUTION_JSON)
         if solution_file_id is None:
-            with open('./simple/' + self._SOLUTION_JSON, 'r') as solution_json:
+            with open('./sample/' + self._SOLUTION_JSON, 'r') as solution_json:
                 solution = json.loads(solution_json.read())
                 print solution
                 self._update_text_file_impl(self._app(), self._SOLUTION_JSON,
