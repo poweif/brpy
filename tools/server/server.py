@@ -1,10 +1,4 @@
 import logging
-
-from oauth2client.client import flow_from_clientsecrets
-from oauth2client.client import FlowExchangeError
-from oauth2client.client import OAuth2Credentials
-from apiclient.discovery import build
-
 import cherrypy
 import httplib2
 import os
@@ -14,55 +8,8 @@ import sys
 
 import simplejson as json
 
-#from gdrive_sk_solution import GdriveSkSolution
 from sk_solution import GdriveSkSolution, DevSkSolution
-
-CURRENT_DIR = os.getcwd()
-FILES_DIR = './tools/files/'
-CLIENTSECRETS_LOCATION = FILES_DIR + 'client_secret.json'
-
-SCOPES = [
-    'https://www.googleapis.com/auth/userinfo.email',
-    'https://www.googleapis.com/auth/userinfo.profile',
-    'https://www.googleapis.com/auth/drive'
-    # Add other requested scopes.
-]
-
-class GetCredentialsException(Exception):
-    """Exception while getting credentials"""
-    def __init__(self, authorization_url):
-        """Construct a GetCredentialsException."""
-        super(GetCredentialsException, self).__init__()
-        self.authorization_url = authorization_url
-
-class CodeExchangeException(GetCredentialsException):
-    """Exception while doing code exchange"""
-    pass
-
-class NoRefreshTokenException(GetCredentialsException):
-    """Exception while refreshing token"""
-    pass
-
-class NoUserIdException(Exception):
-    """Exception when user id invalid"""
-    pass
-
-def get_stored_credentials(user_id):
-    ofile = open(FILES_DIR + str(user_id) + '.cred', 'r')
-    new_cred = OAuth2Credentials.from_json(ofile.read())
-    ofile.close()
-    return new_cred
-
-def exchange_code(authorization_code, redirect_uri):
-    flow = flow_from_clientsecrets(
-        CLIENTSECRETS_LOCATION, ' '.join(SCOPES),
-        redirect_uri=redirect_uri)
-    try:
-        credentials = flow.step2_exchange(authorization_code)
-        return credentials
-    except FlowExchangeError, error:
-        print 'An error occurred: %s' % (error)
-        raise CodeExchangeException(None)
+from easy_oauth2 import EasyOAuth2
 
 def get_user_info(credentials):
     user_info_service = build(
@@ -78,49 +25,18 @@ def get_user_info(credentials):
     else:
         raise NoUserIdException()
 
-def build_drive_service(credentials):
-    return build(
-        serviceName='drive', version='v2',
-        http=credentials.authorize(httplib2.Http()))
-
-def get_authorization_url(redirect, state):
-    flow = flow_from_clientsecrets(
-        CLIENTSECRETS_LOCATION,
-        scope=' '.join(SCOPES),
-        redirect_uri=redirect)
-    flow.params['access_type'] = 'offline'
-    flow.params['approval_prompt'] = 'auto'
-    flow.params['state'] = state
-    return flow.step1_get_authorize_url()
-
-def get_credentials(authorization_code, state, redirect_uri):
-    email_address = ''
-    try:
-        credentials = exchange_code(authorization_code, redirect_uri)
-        user_info = get_user_info(credentials)
-        email_address = user_info.get('email')
-        return credentials
-#        else:
-#            credentials = get_stored_credentials(user_id)
-#            if credentials and credentials.refresh_token is not None:
-#                return credentials
-    except CodeExchangeException, error:
-        logging.error('An error occurred during code exchange.')
-        # Drive apps should try to retrieve the user and credentials for the current
-        # session.
-        # If none is available, redirect the user to the authorization URL.
-        error.authorization_url = get_authorization_url(email_address, None)
-        raise error
-    except NoUserIdException:
-        logging.error('No user ID could be retrieved.')
-    # No refresh token has been retrieved.
-    authorization_url = get_authorization_url(email_address, None)
-    raise NoRefreshTokenException(authorization_url)
-
 def get_random_state():
     return ''.join(random.choice(string.ascii_uppercase + string.digits)
                    for x in xrange(32))
 
+CURRENT_DIR = os.getcwd()
+CLIENTSECRETS_LOCATION = './tools/files/client_secret.json'
+SCOPES = [
+    'https://www.googleapis.com/auth/userinfo.email',
+    'https://www.googleapis.com/auth/userinfo.profile',
+    'https://www.googleapis.com/auth/drive'
+    # Add other requested scopes.
+]
 PORT = 8124
 HOME_URI = 'http://localhost:' + str(PORT)
 POST_LOGIN_URI = HOME_URI + '/login'
@@ -129,17 +45,18 @@ SESSION_KEY = 'skulpt-gl-key'
 g_session = {}
 
 INDEX_HTML = open(CURRENT_DIR + '/index.html').read()
-
 DEV_PATH = None
 if len(sys.argv) >= 2 and os.access(sys.argv[1], os.F_OK):
     DEV_PATH = sys.argv[1]
+
+g_auth = EasyOAuth2(CLIENTSECRETS_LOCATION, SCOPES)
 
 def create_solution(cred):
     if DEV_PATH:
         return DevSkSolution(DEV_PATH)
     return GdriveSkSolution(cred)
 
-class GAuthServer(object):
+class CherrypyServer(object):
     _cp_config = {
         'tools.sessions.on' : True
     }
@@ -194,7 +111,7 @@ class GAuthServer(object):
             fs = param['rename'].split(',')
             if solution.rename_file(old_name=fs[0], new_name=fs[1]):
                 return self.__result(
-                    content="finished renaming " + files[0] + " to " + files[1])
+                    content="finished renaming " + fs[0] + " to " + fs[1])
             return self.__result()
 
         if 'delete' in param:
@@ -215,7 +132,7 @@ class GAuthServer(object):
     def login(self, **param):
         if 'error' in param or 'code' not in param or 'state' not in param:
             return 'LOGIN ERROR'
-        cred = get_credentials(
+        cred = g_auth.get_credentials(
             param['code'], state=None, redirect_uri=POST_LOGIN_URI)
 
         user_info = get_user_info(cred)
@@ -251,20 +168,20 @@ class GAuthServer(object):
         if SESSION_KEY in cherrypy.session:
             return self.__result(redirect=SHOW_URI)
 
-        new_url = get_authorization_url(POST_LOGIN_URI, get_random_state())
+        new_url = g_auth.get_authorization_url(POST_LOGIN_URI, get_random_state())
         return self.__result(redirect=new_url)
 
-cherrypy.config.update({'server.socket_port': PORT,
-                        'tools.encode.on': True,
-                        'tools.encode.encoding': "utf-8"})
+def serve_cherrypy():
+    cherrypy.config.update({'server.socket_port': PORT,
+                            'tools.encode.on': True,
+                            'tools.encode.encoding': "utf-8"})
+    cherrypy.quickstart(CherrypyServer(), '/', {
+            '/': {
+                'tools.staticdir.dir' : CURRENT_DIR,
+                'tools.staticdir.on' : True
+                }
+            }
+        )
 
-cherrypy.quickstart(
-    GAuthServer(),
-    '/',
-    {
-        '/': {
-            'tools.staticdir.dir' : CURRENT_DIR,
-            'tools.staticdir.on' : True
-        }
-    }
-)
+if __name__ == "__main__":
+    serve_cherrypy()
