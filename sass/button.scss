@@ -1,0 +1,7 @@
+@import 'common';
+@import 'flexbox';
+
+.button-wrapper {
+  @extend %flexbox;
+  @include flex-direction(row);
+}

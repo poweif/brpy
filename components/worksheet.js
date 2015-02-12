@@ -70,6 +70,7 @@ var HeaderBar = React.createClass({
                     onClick={this.onProjectNameClick}>
                     {this.props.projectName}
                 </span>
+                <Button icon="tack" />
             </div>
         );
     }
