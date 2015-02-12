@@ -25,6 +25,16 @@
     }
   }
 
+  .text-input {
+    font-family: $std-font-family;
+    border: 1px solid $prime-inv-color;
+    font-size: 16px;
+    margin: 8px;
+    padding: 4px;
+    height: 22px;
+    border-radius: $std-border-radius;
+  }
+
   .dialog {
     @extend %flexbox;
     @include align-items(center);
@@ -42,39 +52,11 @@
       @include align-items(center);
       @include justify-content(center);
     }
-
     .prompt {
       margin: 8px;
       font-size: 20px;
     }
   }
-
-  .file-list {
-    width: 310px;
-    margin: 20px;    
-  }
-  .file-entry {
-    @extend %flexbox;
-    @include flex-direction(row);
-    @include justify-content(space-between);
-    @include align-items(center);
-    margin: 2px;
-    .name-button {
-      @extend .button;
-    }
-  }
-  .file-button {
-    @extend .button;
-    padding: 0;
-    max-height: 25px;
-    max-width: 25px;
-  }
-  .add-file-button {
-    @extend .file-button;
-    padding: 0;
-    max-height: 40px;
-    max-width: 40px;
-  }  
 }
 
 .dialog-wrapper-1 {
@@ -82,13 +64,5 @@
   z-index: 1;
   .dialog {
     z-index: 2;
-
-    .text-input {
-      font-family: $std-font-family;
-      border: 1px solid $prime-inv-color;
-      font-size: 16px;
-      margin: 8px;
-      padding: 4px;
-    }
   }
 }

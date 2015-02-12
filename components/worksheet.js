@@ -1,7 +1,7 @@
 var OutputConsole =  React.createClass({
     getInitialState: function() {
         return {
-            hidden: false,
+            hidden: true,
         };
     },
     toggleConsole: function() {
@@ -22,7 +22,6 @@ var OutputConsole =  React.createClass({
             buttonImg = "/img/sort52.png";
             verticalButtonClassName += " vertical-button-hide";
         }
-
         return (
             <div className={outputClassName}>
                 <textarea ref="tarea" readOnly></textarea>
@@ -34,9 +33,53 @@ var OutputConsole =  React.createClass({
     }
 });
 
+var HeaderBar = React.createClass({
+    mixins: [DialogMixins(function(v) {
+        if (this.props.main) {
+            this.props.main.setState({isDialogOpen: v});
+        }
+    })],
+    getInitialState: function() {
+        return {};
+    },
+    onProjectNameOK: function(text) {
+        var that = this;
+        var success = function() {
+            that.closeDialog();
+            if (that.props.main)
+                that.props.main.changeProjectName(text);
+        };
+        var failure = function() {
+            that.openPromptDialog("Failed to change project name");
+        };
+
+        this.openWorkingDialog();
+
+        var proj = {};
+        proj[skulptgl.project.NAME] = text;
+        skulptgl.writeProject(proj, success, failure);
+    },
+    onProjectNameClick: function() {
+        this.openTextDialog(
+            this.props.projectName, "New project name?", this.onProjectNameOK);
+    },
+    render: function(){
+        return (
+            <div className="project-name-holder">
+                <span className="project-name"
+                    onClick={this.onProjectNameClick}>
+                    {this.props.projectName}
+                </span>
+            </div>
+        );
+    }
+});
+
 var MainPanel = React.createClass({
-    runCounts: {},
-    totalRunCounts: 0,
+    mixins: [DialogMixins(function(v) {
+        console.log(v);
+        this.setState({isDialogOpen: v})
+    })],
     getInitialState: function() {
         return {
             name: '',
@@ -67,47 +110,6 @@ var MainPanel = React.createClass({
                 dom.height = width;
             });
         }
-    },
-    openTextDialog: function(text, prompt, onOK) {
-        skulptgl.openDialog(text, prompt, onOK, this.closeDialog);
-        this.setState({isDialogOpen: true});
-    },
-    openPromptDialog: function(prompt) {
-        skulptgl.openDialog(null, prompt, this.closeDialog, null);
-        this.setState({isDialogOpen: true});
-    },
-    openBinaryDialog: function(prompt, onOK) {
-        skulptgl.openDialog(null, prompt, onOK, this.closeDialog);
-        this.setState({isDialogOpen: true});
-    },
-    openWorkingDialog: function() {
-        skulptgl.openDialog(null, "Working...", null, null);
-        this.setState({isDialogOpen: true});
-    },
-    closeDialog: function() {
-        skulptgl.closeDialog();
-        this.setState({isDialogOpen: false});
-    },
-    onProjectNameOK: function(text) {
-        var that = this;
-        var success = function() {
-            that.closeDialog();
-            that.setState({name: text});
-        };
-
-        var failure = function() {
-            that.openPromptDialog("Failed to change project name");
-        };
-
-        this.openWorkingDialog();
-
-        var proj = {};
-        proj[skulptgl.project.NAME] = text;
-        skulptgl.writeProject(proj, success, failure);
-    },
-    onProjectNameClick: function() {
-        this.openTextDialog(
-            this.state.name, "New project name?", this.onProjectNameOK);
     },
     onFileNameOK: function(oldFile, newFile) {
         if (newFile === oldFile)
@@ -330,12 +332,9 @@ var MainPanel = React.createClass({
         }
 
         var that = this;
-        var prog = this.state.srcFiles
-            .map(function(file) {return that.state.srcs[file];})
-            .join("\n");
-
-        var progs = this.state.srcFiles
-            .map(function(file) {return {name: file, body: that.state.srcs[file]};});
+        var progs = this.state.srcFiles.map(function(file) {
+            return {name: file, body: that.state.srcs[file]};
+        });
 
         var output = function(s) {
             if (s.trim().length > 0) {
@@ -356,7 +355,6 @@ var MainPanel = React.createClass({
             "read": builtinRead
         });
         try {
-            //Sk.importMainWithBody("<stdin>", false, prog);
             Sk.importMainWithMultipleFiles(false, progs);
 
             var wrapper = this.refs.contextWrapper.getDOMNode();
@@ -377,67 +375,9 @@ var MainPanel = React.createClass({
             return;
         }
 
-        var ind = this.state.defaultFileInd;
-
-        var fname = this.state.srcFiles[ind];
+        var fname = this.state.srcFiles[this.state.defaultFileInd];
         this.memSave(fname, code);
         this.runProg();
-
-        if (this.runCounts[ind] == undefined)
-            this.runCounts[ind] = 0;
-
-        this.runCounts[ind] += 1;
-        this.totalRunCounts += 1;
-
-        var countLim = 10;
-        if (this.runCounts[ind] % countLim == countLim - 1) {
-            var that = this;
-            var successProj = function() {
-                console.log("Successfully updated project with default file ind");
-            };
-
-            var failureProj = function() {
-                console.log("Failed to update project with default file ind");
-            };
-
-            var proj = {};
-            proj[skulptgl.project.DEFAULT_FILE] = ind;
-            skulptgl.writeProject(proj, successProj, failureProj);
-        }
-
-        var totalCountLim = 30;
-        if (this.totalRunCounts % totalCountLim == totalCountLim) {
-            var that = this;
-            var fileAndCode = this.state.srcFiles.map(
-                function(fname) {
-                    return {
-                        name: fname,
-                        code: that.srcs[fname]
-                    };
-                }
-            );
-
-            var writeFiles = function(files) {
-                if (files.length) return;
-
-                var top = files[0];
-                files.splice(0, 1);
-
-                skulptgl.writeSrcFile(
-                    top.name,
-                    top.code,
-                    function() {
-                        console.log("Successfully wrote " + top.name);
-                        writeFiles(files);
-                    },
-                    function() {
-                        console.log("Failed to write " + top.name);
-                        writeFiles(files);
-                    }
-                );
-            }
-            writeFiles(fileAndCode);
-        }
     },
     memSave: function(fname, code) {
         if (!fname)
@@ -461,7 +401,6 @@ var MainPanel = React.createClass({
             if (onFail)
                 onFail();
         };
-
         skulptgl.writeSrcFile(fname, code, success, fail);
     },
     changeCurrentFile: function(ind) {
@@ -475,6 +414,9 @@ var MainPanel = React.createClass({
                 defaultFileInd: ind
             });
         }
+    },
+    changeProjectName: function(name) {
+        this.setState({name: name});
     },
     componentDidUpdate: function(prevProps, prevState) {
         var that = this;
@@ -513,30 +455,10 @@ var MainPanel = React.createClass({
         window.addEventListener('scroll', this.handleScroll);
         window.addEventListener('resize', this.handleResize);
         this.handleResize();
-
-        var that = this;
-
-        var keyMapParams = {
-            type: 'keydown',
-            propagate: false,
-            target: document
-        };
-        for (var i = 0; i < 10; i++) {
-            (function() {
-                var j = i;
-                var key = 'Alt+' + (j + 1);
-                shortcut.add(
-                    key, function() { that.changeCurrentFile(j); },
-                    keyMapParams);
-            })();
-        }
     },
     componentWillUnmount: function() {
         window.removeEventListener('scroll', this.handleScroll);
         window.removeEventListener('resize', this.handleResize);
-
-        for (var i = 0; i < 10; i++)
-            shortcut.remove('Alt+' + (i + 1));
     },
     render: function() {
         var that = this;
@@ -597,14 +519,9 @@ var MainPanel = React.createClass({
         };
 
         return (
-            <div className="main-panel">
+           <div className="main-panel">
+                <HeaderBar main={this} projectName={this.state.name} />
                 <OutputConsole ref="outputConsole" />
-                <div className="project-name-holder">
-                    <span className="project-name"
-                        onClick={this.onProjectNameClick}>
-                        {this.state.name}
-                    </span>
-                </div>
                 <div className="bottom-panel">
                     <div ref="contextWrapper" className="context-wrapper">
                     </div>
