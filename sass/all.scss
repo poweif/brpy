@@ -1,6 +1,8 @@
 @import 'common';
 @import 'flexbox';
 
+$ahref-color: $prime-color;
+
 .no-show {
   display: none;
 }
@@ -14,7 +16,7 @@ a, .ahref {
 }
 
 body {
-  font-family: $standard-font-family;
+  font-family: $std-font-family;
 }
 
 a:hover, .ahref-highlighted, .ahref:hover {

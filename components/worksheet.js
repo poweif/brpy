@@ -1,27 +1,34 @@
 var OutputConsole =  React.createClass({
     getInitialState: function() {
         return {
-            hidden: false
+            hidden: false,
         };
     },
     toggleConsole: function() {
         this.setState({hidden: !this.state.hidden});
     },
+    write: function(s) {
+        var textarea = this.refs.tarea.getDOMNode();
+        textarea.value += (s + '\n');
+        textarea.scrollTop = textarea.scrollHeight;
+    },
     render: function() {
         var outputClassName = "output-console";
+        var verticalButtonClassName = "vertical-button";
         var buttonImg = "/img/keyboard54.png";
+
         if (this.state.hidden) {
             outputClassName += " output-console-hide";
             buttonImg = "/img/sort52.png";
+            verticalButtonClassName += " vertical-button-hide";
         }
 
         return (
             <div className={outputClassName}>
-                <textarea readOnly>
-                    {this.props.input}
-                    </textarea>
+                <textarea ref="tarea" readOnly></textarea>
                 <img src={buttonImg}
-                    className="vertical-button" onClick={this.toggleConsole} />
+                     className={verticalButtonClassName}
+                     onClick={this.toggleConsole} />
             </div>
         )
     }
@@ -37,7 +44,8 @@ var MainPanel = React.createClass({
             srcFiles: [],
             defaultFileInd: -1,
             isDialogOpen: false,
-            panelDoms: null
+            panelDoms: null,
+            consoleOutput: ''
         };
     },
     handleScroll: function() {
@@ -329,7 +337,11 @@ var MainPanel = React.createClass({
         var progs = this.state.srcFiles
             .map(function(file) {return {name: file, body: that.state.srcs[file]};});
 
-        var output = function(s) { if (s.trim().length > 0) console.log("python> " + s); };
+        var output = function(s) {
+            if (s.trim().length > 0) {
+                that.refs.outputConsole.write(s);
+            };
+        }
         var builtinRead = function(x) {
             if (Sk.builtinFiles === undefined ||
                 Sk.builtinFiles["files"][x] === undefined) {
@@ -586,7 +598,7 @@ var MainPanel = React.createClass({
 
         return (
             <div className="main-panel">
-                <OutputConsole input="hello world" />
+                <OutputConsole ref="outputConsole" />
                 <div className="project-name-holder">
                     <span className="project-name"
                         onClick={this.onProjectNameClick}>

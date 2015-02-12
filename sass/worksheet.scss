@@ -1,7 +1,7 @@
 @import 'common';
 @import 'flexbox';
 
-$output-console-width: 650px;;
+$output-console-width: 500px;;
 $console-button-size: 50px;
 
 .output-console {
@@ -18,13 +18,13 @@ $console-button-size: 50px;
   textarea {
     border-style: solid solid solid none;
     border-width: 1px;
-    border-color: black;
+    border-color: $prime-inv-color;
 
     width: $output-console-width - 65;
     padding: 8px 8px 8px 15px;
     resize: none;
     z-index: 0;
-    border-radius: 0 $all-border-radius 0 0;
+    border-radius: 0 $std-border-radius 0 0;
   }
 
   .vertical-button {
@@ -32,24 +32,34 @@ $console-button-size: 50px;
     width: $console-button-size;
     height: $console-button-size;
     border-style: solid solid solid none;
-    border-color: black black black white;
+    border-color: $prime-inv-color $prime-inv-color $prime-inv-color $prime-color;
     border-width: 1px;
-    border-radius: 0 $all-border-radius $all-border-radius 0;
-    background-color: white;
+    border-radius: 0 $std-border-radius $std-border-radius 0;
+    background-color: $prime-color;
     margin-left: -1px;
     z-index: 1;
   }
 
+  .vertical-button-hide {
+    border-color: transparent transparent transparent $prime-color;
+    transition: border-color $std-fast-duration;
+  }
+
+  .vertical-button-hide:hover {
+    border-color: $prime-inv-color $prime-inv-color $prime-inv-color $prime-color;
+    transition: border-color 0;
+  }
+
   left: 0px;
   opacity: .75;
-  transition: left .8s, opacity .8s;
+  transition: left $std-duration, opacity $std-duration;
   z-index: 4;
 }
 
 .output-console-hide {
   left: -($output-console-width - $console-button-size + 2);
   opacity: 1;
-  transition: left .8s, opacity .8s;
+  transition: left $std-duration, opacity $std-duration;
 }
 
 .main-panel {

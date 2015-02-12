@@ -7,29 +7,14 @@ $color-4: #fec440 * $color-fac;  // yellow
 
 $prime-color: white;
 $prime-inv-color: black;
-$standard-font-family: "source-sans-pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
-
-$banner-height: 100px;
-$menu-height: 30px;
-
-$menu-margin: 25px;
-
-$nav-bar-height: $banner-height + $menu-height + $menu-margin;
-$nav-bar-height-m: 50px;
+$std-font-family: "source-sans-pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
 
 $highlight-color: $color-4;
-$standard-text-shadow: 2px 2px 4px rgb(50,50,50);
-
 $picked-color: $highlight-color * .85;
 
-$ahref-color: $prime-color;
-
-$content-frame-width: 790px;
-$content-quickpad-width: 150px;
-$content-quickpad-margin: 30px;
-$content-content-width: $content-frame-width - $content-quickpad-width - $content-quickpad-margin;
-
-$all-border-radius: 5px;
+$std-border-radius: 5px;
+$std-duration: .6s;
+$std-fast-duration: .2s;
 
 .unselectable {
   -webkit-touch-callout: none;
@@ -44,7 +29,6 @@ $all-border-radius: 5px;
   @extend .unselectable;
   cursor: pointer;
 }
-$button-border-color: rgb(190, 190, 190) * 1.1;
 
 .button {
   @extend .clickable;
@@ -54,16 +38,18 @@ $button-border-color: rgb(190, 190, 190) * 1.1;
   background-color: $prime-color;
   color: $prime-inv-color;
   border: 1px solid transparent;
-  border-radius: 5px;
+  border-radius: $std-border-radius;
+  transition: border-color $std-fast-duration;
 }
 
 .button-selected {
   @extend .button;
-  border: 1px solid black;
+  border: 1px solid $prime-inv-color;
 }
 
 .button:hover {
   @extend .button-selected;
+  transition: border-color 0;
 }
 
 @mixin keyframes($animation-name) {
