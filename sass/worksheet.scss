@@ -62,26 +62,38 @@ $console-button-size: 50px;
   transition: left $std-duration, opacity $std-duration;
 }
 
-.main-panel {
+.project-name-holder {
   @extend %flexbox;
-  @include flex-direction(column);
-  padding: 5px 10px;
+  @include align-items(center);
+  @include justify-content(center);
+  @include flex-direction(row);
 
-  .project-name-holder {
-    @extend %flexbox;
-    @include align-items(center);
-    @include justify-content(center);
-  }
   .project-name {
     @extend .button;
     text-align: center;
     font-size: 40px;
     margin: 10px 0;
   }
+
+  .options {
+    @include align-self(flex-end);
+  }
+}
+
+
+.main-panel {
+  @extend %flexbox;
+  @include flex-direction(column);
+  @include align-items(center);
+
+  padding: 5px 10px;
+  width: 100%;
+
   .bottom-panel {
     @extend %flexbox;
     @include flex-direction(row);
     margin-top: 10px;
+    @include align-self(stretch);
   }
   .setting-button {
     @extend .button;

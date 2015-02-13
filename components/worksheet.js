@@ -64,15 +64,30 @@ var HeaderBar = React.createClass({
             this.props.projectName, "New project name?", this.onProjectNameOK);
     },
     render: function(){
+        var func = function() {
+            console.log("clicking!");
+        };
+        var buttons = [
+            {text: "button", click: func, icon: 'tack'},
+            {text: "hello", click: func},
+            {text: "world", click: func}
+        ];
+
+        return (
+            <ButtonMenu large center text={this.props.projectName}
+               items={buttons}/>
+        );
+        /*
         return (
             <div className="project-name-holder">
                 <span className="project-name"
                     onClick={this.onProjectNameClick}>
                     {this.props.projectName}
                 </span>
-                <Button icon="tack" />
+                <Button icon="tack" small />
             </div>
         );
+*/
     }
 });
 

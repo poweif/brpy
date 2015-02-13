@@ -2,6 +2,43 @@
 @import 'flexbox';
 
 .button-wrapper {
+  @extend .button;
   @extend %flexbox;
   @include flex-direction(row);
+  @include align-items(center);
+  .button-text {
+    margin: 1px 6px;
+  }
+}
+
+.button-menu {
+  @extend %flexbox;
+  @include flex-direction(column);
+
+  .main-button {
+    border-radius: $std-border-radius $std-border-radius 0 0;
+  }
+
+  .items {
+    @extend .button;
+    @extend .button-selected;
+    @extend %flexbox;
+    @include flex-direction(column);
+    @include align-items(flex-start);
+    position: absolute;
+    z-index: 5;
+    background-color: $prime-color;
+    border-color: $prime-color $prime-inv-color $prime-inv-color $prime-inv-color;
+    border-radius: 0 0 $std-border-radius $std-border-radius;
+    margin-top: -1px;
+    @include animation('fade-in ' + $std-duration);
+  }
+}
+
+.button-menu-center {
+  @include align-items(center);
+}
+
+.button-menu-right {
+  @include align-items(flex-end);
 }
