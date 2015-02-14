@@ -24,9 +24,9 @@ var InputDialog = React.createClass({
     },
     render: function() {
         var that = this;
-        var dialogWrapperClassName = "dialog-wrapper";
+        var dialogWrapperCn = "dialog-wrapper";
         if (this.props.level)
-            dialogWrapperClassName += "-" + this.props.level;
+            dialogWrapperCn += "-" + this.props.level;
 
         var textInput = null;
         if (this.props.text) {
@@ -66,7 +66,7 @@ var InputDialog = React.createClass({
             this.props.onCancel : this.props.onOK;
 
         return (
-            <div className={dialogWrapperClassName}>
+            <div className={dialogWrapperCn}>
                 <div className="dialog-bg" onClick={defaultAction}></div>
                 <div className="dialog">
                     <div className="prompt">{this.props.prompt}</div>

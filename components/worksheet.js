@@ -13,20 +13,20 @@ var OutputConsole =  React.createClass({
         textarea.scrollTop = textarea.scrollHeight;
     },
     render: function() {
-        var outputClassName = "output-console";
-        var verticalButtonClassName = "vertical-button";
+        var outputCn = "output-console";
+        var verticalButtonCn = "vertical-button";
         var buttonImg = "/img/keyboard54.png";
 
         if (this.state.hidden) {
-            outputClassName += " output-console-hide";
+            outputCn += " output-console-hide";
             buttonImg = "/img/sort52.png";
-            verticalButtonClassName += " vertical-button-hide";
+            verticalButtonCn += " vertical-button-hide";
         }
         return (
-            <div className={outputClassName}>
+            <div className={outputCn}>
                 <textarea ref="tarea" readOnly></textarea>
                 <img src={buttonImg}
-                     className={verticalButtonClassName}
+                     className={verticalButtonCn}
                      onClick={this.toggleConsole} />
             </div>
         )
@@ -34,66 +34,30 @@ var OutputConsole =  React.createClass({
 });
 
 var HeaderBar = React.createClass({
-    mixins: [DialogMixins(function(v) {
-        if (this.props.main) {
-            this.props.main.setState({isDialogOpen: v});
-        }
-    })],
-    getInitialState: function() {
-        return {};
-    },
-    onProjectNameOK: function(text) {
-        var that = this;
-        var success = function() {
-            that.closeDialog();
-            if (that.props.main)
-                that.props.main.changeProjectName(text);
-        };
-        var failure = function() {
-            that.openPromptDialog("Failed to change project name");
-        };
-
-        this.openWorkingDialog();
-
-        var proj = {};
-        proj[skulptgl.project.NAME] = text;
-        skulptgl.writeProject(proj, success, failure);
-    },
-    onProjectNameClick: function() {
-        this.openTextDialog(
-            this.props.projectName, "New project name?", this.onProjectNameOK);
-    },
     render: function(){
         var func = function() {
             console.log("clicking!");
         };
         var buttons = [
-            {text: "button", click: func, icon: 'tack'},
+            {text: "Other Projects", hr: true},
+            {text: "button", click: func},
             {text: "hello", click: func},
-            {text: "world", click: func}
+            {text: "world", click: func},
+            {text: "Options", hr: true},
+            {text: "rename", click: func, icon: "rotate11",
+             click: this.props.onProjectRenameClick},
+            {text: "delete", click: func, icon: "close47"},
         ];
 
         return (
-            <ButtonMenu large center text={this.props.projectName}
+            <ButtonMenu large text={this.props.projectName}
                items={buttons}/>
         );
-        /*
-        return (
-            <div className="project-name-holder">
-                <span className="project-name"
-                    onClick={this.onProjectNameClick}>
-                    {this.props.projectName}
-                </span>
-                <Button icon="tack" small />
-            </div>
-        );
-*/
     }
 });
 
 var MainPanel = React.createClass({
     mixins: [DialogMixins(function(v) {
-        console.log(v);
         this.setState({isDialogOpen: v})
     })],
     getInitialState: function() {
@@ -106,6 +70,23 @@ var MainPanel = React.createClass({
             panelDoms: null,
             consoleOutput: ''
         };
+    },
+    onProjectRenameOk: function(text) {
+        var that = this;
+        var success = function() {
+            that.closeDialog();
+            that.setState({name: text});
+        };
+        var failure = function() {
+            that.openPromptDialog("Failed to change project name");
+        };
+        this.openWorkingDialog();
+
+        skulptgl.writeProject({SKULPTGL_PROJECT_NAME: text}, success, failure);
+    },
+    onProjectRenameClick: function() {
+        this.openTextDialog(
+            this.state.name, "New project name?", this.onProjectNameOK);
     },
     handleScroll: function() {
         this.refs.contextWrapper.getDOMNode().style.marginTop =
@@ -155,14 +136,12 @@ var MainPanel = React.createClass({
 
             // roll back project change
             console.log("hope we never get here :(");
-            var oproj = {};
-            oproj[skulptgl.project.SRC] = ofiles;
-            skulptgl.writeProject(oproj);
+            skulptgl.writeProject({SKULPTGL_PROJECT_SRC: ofiles});
         };
 
         var successProj = function() {
             skulptgl.renameSrcFile(oldFileExt, newFileExt, successFile,
-                failureFile);
+                                   failureFile);
         };
 
         var failureProj = function() {
@@ -170,8 +149,9 @@ var MainPanel = React.createClass({
         };
 
         var proj = {};
-        proj[skulptgl.project.SRC] = nfiles;
-        skulptgl.writeProject(proj, successProj, failureProj);
+        proj[SKULPTGL_PROJECT_SRC] = nfiles;
+        skulptgl.writeProject({SKULPTGL_PROJECT_SRC: nfiles}, successProj,
+                              failureProj);
     },
     onFileNameClick: function(oldFile) {
         var ind = skulptgl.util.indexOf(this.state.srcFiles, oldFile + ".py");
@@ -180,12 +160,6 @@ var MainPanel = React.createClass({
             this.changeCurrentFile(ind);
             return;
         }
-
-        var that = this;
-        var fnameOK = function(newFile) {
-            that.onFileNameOK(oldFile, newFile);
-        };
-        this.openTextDialog(oldFile, "Change file name?", fnameOK);
     },
     onFileAddOK: function(fname) {
         var fnameExt = fname + ".py";
@@ -217,9 +191,7 @@ var MainPanel = React.createClass({
 
             // roll back project change
             console.log("hope we never get here :(");
-            var oproj = {};
-            oproj[skulptgl.project.SRC] = ofiles;
-            skulptgl.writeProject(oproj);
+            skulptgl.writeProject({SKULPTGL_PROJECT_SRC: ofiles});
         };
 
         var successProj = function() {
@@ -231,9 +203,8 @@ var MainPanel = React.createClass({
             that.openPromptDialog("Failed to add file");
         };
 
-        var proj = {};
-        proj[skulptgl.project.SRC] = nfiles;
-        skulptgl.writeProject(proj, successProj, failureProj);
+        skulptgl.writeProject({SKULPTGL_PROJECT_SRC: nfiles}, successProj,
+                              failureProj);
     },
     onFileAddClick: function() {
         this.openTextDialog("new", "New file?", this.onFileAddOK);
@@ -272,9 +243,7 @@ var MainPanel = React.createClass({
 
             // roll back project change
             console.log("hope we never get here :(");
-            var oproj = {};
-            oproj[skulptgl.project.SRC] = ofiles;
-            skulptgl.writeProject(oproj);
+            skulptgl.writeProject({SKULPTGL_PROJECT_SRC: ofiles});
         };
 
         var successProj = function() {
@@ -284,14 +253,11 @@ var MainPanel = React.createClass({
         var failureProj = function() {
             that.openPromptDialog("Failed to change file name");
         };
-
-        var proj = {};
-        proj[skulptgl.project.SRC] = nfiles;
-        skulptgl.writeProject(proj, successProj, failureProj);
+        skulptgl.writeProject({SKULPTGL_PROJECT_SRC: nfiles}, successProj,
+                              failureProj);
     },
     onFileDeleteClick: function(fname) {
-        var that = this;
-        var del = function() { that.onFileDeleteOK(fname); };
+        var del = function() { this.onFileDeleteOK(fname); }.bind(this);
         this.openBinaryDialog(
             "Are you sure you'd like to delete " + (fname + ".py") + "?", del);
     },
@@ -320,17 +286,15 @@ var MainPanel = React.createClass({
         var failureProj = function() {
             that.openPromptDialog("Failed to change file order");
         };
-
-        var proj = {};
-        proj[skulptgl.project.SRC] = nfiles;
-        skulptgl.writeProject(proj, successProj, failureProj);
+        skulptgl.writeProject({SKULPTGL_PROJECT_SRC: nfiles}, successProj,
+                              failureProj);
     },
     onLoadProject: function(text) {
         var project = JSON.parse(text);
         this.setState({
-            name: project[skulptgl.project.NAME],
-            srcFiles: project[skulptgl.project.SRC],
-            defaultFileInd: project[skulptgl.project.DEFAULT_FILE]
+            name: project[SKULPTGL_PROJECT_NAME],
+            srcFiles: project[SKULPTGL_PROJECT_SRC],
+            defaultFileInd: project[SKULPTGL_PROJECT_DEFAULT_FILE]
         });
     },
     onLoadSource: function(file, text) {
@@ -353,10 +317,9 @@ var MainPanel = React.createClass({
         });
 
         var output = function(s) {
-            if (s.trim().length > 0) {
-                that.refs.outputConsole.write(s);
-            };
-        }
+            if (s.trim().length > 0)
+                that.refs.outputConsxole.write(s);
+        };
         var builtinRead = function(x) {
             if (Sk.builtinFiles === undefined ||
                 Sk.builtinFiles["files"][x] === undefined) {
@@ -377,9 +340,12 @@ var MainPanel = React.createClass({
             while(wrapper.hasChildNodes()) {
                 wrapper.removeChild(wrapper.firstChild);
             }
-            Sk.progdomIds().forEach(function(elem) { wrapper.appendChild(elem.dom); });
-
-            var ndoms = Sk.progdomIds().map(function(elem) { return elem.dom; });
+            Sk.progdomIds().forEach(function(elem) {
+                wrapper.appendChild(elem.dom);
+            });
+            var ndoms = Sk.progdomIds().map(function(elem) {
+                return elem.dom;
+            });
             this.setState({panelDoms: ndoms});
         } catch(e) {
             console.log("python[ERROR]> " + e.toString());
@@ -390,15 +356,12 @@ var MainPanel = React.createClass({
             this.state.defaultFileInd >= this.state.srcFiles.length) {
             return;
         }
-
-        var fname = this.state.srcFiles[this.state.defaultFileInd];
-        this.memSave(fname, code);
+        this.memSave(this.state.srcFiles[this.state.defaultFileInd], code);
         this.runProg();
     },
     memSave: function(fname, code) {
         if (!fname)
             return;
-
         this.state.srcs[fname] = code;
     },
     onSave: function(fname, code, onSuccess, onFail) {
@@ -431,9 +394,6 @@ var MainPanel = React.createClass({
             });
         }
     },
-    changeProjectName: function(name) {
-        this.setState({name: name});
-    },
     componentDidUpdate: function(prevProps, prevState) {
         var that = this;
         if (prevState.srcFiles != this.state.srcFiles) {
@@ -461,7 +421,6 @@ var MainPanel = React.createClass({
                 };
                 skulptgl.readSrcFile(read, g, g);
             }
-
             f(toRead);
         }
         this.handleResize();
@@ -480,63 +439,41 @@ var MainPanel = React.createClass({
         var that = this;
         var fileButtons = this.state.srcFiles.map(
             function(fileExt, order) {
-                var file = fileExt.substring(0, fileExt.indexOf('.'));
                 var click = function() {
-                    that.onFileNameClick(file);
+                    that.onFileNameClick(skulptgl.util.getFileName(fileExt));
                 };
-                var buttonClassName = "button";
-                if (order == that.state.defaultFileInd)
-                    buttonClassName += "-selected";
-                return (
-                    <div key={order} className={buttonClassName}
-                        onClick={click} >
-                        <span>{fileExt}</span>
-                        <span className="file-order">{order + 1}</span>
-                    </div>
-                );
+                var selected = order == that.state.defaultFileInd;
+                if (!selected) {
+                    return <Button click={click} selected={selected}
+                               key={order} text={fileExt} />;
+                }
+                var buttons = [
+                    {text: "move left", icon: "go10"},
+                    {text: "move right", icon: "right244"},
+                    {text: "rename", icon: "rotate11"},
+                    {text: "delete", icon: "close47"}
+                ];
+                return <ButtonMenu text={fileExt} items={buttons}
+                    selected="true" />
             }
         );
-        fileButtons.push((function() { return (
-            <img src="/img/add186.png"  onClick={that.onFileAddClick}
-                className="options-button" />
-        );})());
-
+        fileButtons.push(function() {
+            return <Button icon="add186" click={that.onFileAddClick} />;
+        }());
 
         var srcFile = this.state.srcFiles[this.state.defaultFileInd];
         var src = null;
         if (srcFile)
             src = this.state.srcs[srcFile];
 
-        var srcFileOnly = srcFile ? srcFile.substring(0, srcFile.indexOf('.')) : '';
-        var optButtons = [];
-        var fileInd = this.state.defaultFileInd;
-        var delfunc = function() { that.onFileDeleteClick(srcFileOnly); };
-        var decfunc = function() { that.onFileIndClick(fileInd, fileInd - 1); };
-        var incfunc = function() { that.onFileIndClick(fileInd, fileInd + 1); };
-
-        optButtons.push((function() { return (
-            <img src="/img/go10.png" onClick={decfunc}
-                className="options-button" />
-        );})());
-
-        optButtons.push((function() { return (
-            <img src="/img/right244.png" onClick={incfunc}
-                className="options-button" />
-        );})());
-
-        optButtons.push((function() { return (
-            <img src="/img/close47.png" onClick={delfunc}
-                className="options-button" />
-        );})());
-
         var save = function(code) {
-            var fname = that.state.srcFiles[that.state.defaultFileInd];
-            that.onSave(fname, code);
+            that.onSave(that.state.srcFiles[that.state.defaultFileInd], code);
         };
 
         return (
            <div className="main-panel">
-                <HeaderBar main={this} projectName={this.state.name} />
+                <HeaderBar projectName={this.state.name}
+                    onProjectRenameClick={this.onProjectRenameClick} />
                 <OutputConsole ref="outputConsole" />
                 <div className="bottom-panel">
                     <div ref="contextWrapper" className="context-wrapper">
@@ -544,7 +481,6 @@ var MainPanel = React.createClass({
                     <div>
                         <div className="button-row">
                             <span className="file-row">{fileButtons}</span>
-                            <span className="option-row">{optButtons}</span>
                         </div>
                         <SourceEditor ref="editor" src={src} onRun={this.onRun}
                             onSave={save}

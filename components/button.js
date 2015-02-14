@@ -1,35 +1,35 @@
 var Button =  React.createClass({
     render: function() {
         var that = this;
-        var imgClassName = ""
-        var textClassName = "button-text";
+        var imgCn = ""
+        var textCn = "button-text";
 
         if (this.props.large) {
-            imgClassName += " button-large";
-            textClassName += " font-large";
+            imgCn += " button-large";
+            textCn += " font-large";
         } else if (this.props.mid) {
-            imgClassName += " button-mid";
-            textClassName += " font-mid";
+            imgCn += " button-mid";
+            textCn += " font-mid";
         } else {
-            imgClassName += " button-small";
-            textClassName += " font-small";
+            imgCn += " button-small";
+            textCn += " font-small";
         }
 
         if (this.props.selected) {
-            imgClassName += " button-selected";
+            imgCn += " button-selected";
         }
 
 
         var buttonText = !that.props.text ? null : function() {
             return (
-                <div className={textClassName}>{that.props.text}</div>
+                <div className={textCn}>{that.props.text}</div>
             );
         }();
 
         var img = !this.props.icon ? null : function() {
             var imgSrc = "/img/" + that.props.icon + ".png";
             var click = that.props.click;
-            var nclassName = imgClassName;
+            var nclassName = imgCn;
             if (!buttonText) {
                 nclassName = "button" + nclassName;
                 if (that.props.selected)
@@ -47,15 +47,15 @@ var Button =  React.createClass({
         if (img && !buttonText)
             return img;
 
-        var wrapperClassName = "button-wrapper";
+        var wrapperCn = "button-wrapper";
         if (this.props.selected)
-            wrapperClassName += " button-selected";
+            wrapperCn += " button-selected";
 
         if (this.props.addClass)
-            wrapperClassName += " " + that.props.addClass;
+            wrapperCn += " " + that.props.addClass;
 
         return (
-                <div className={wrapperClassName} onClick={this.props.click}>
+                <div className={wrapperCn} onClick={this.props.click}>
                 {this.props.rev ? buttonText : img}
                 {this.props.rev ? img : buttonText}
             </div>
@@ -63,7 +63,18 @@ var Button =  React.createClass({
     }
 });
 
+var MenuHr = React.createClass({
+    render: function() {
+        return (
+            <div className="hr">
+              {this.props.text}
+            </div>
+        );
+    }
+});
+
 var ButtonMenu =  React.createClass({
+    click: null,
     getInitialState: function() {
         return {
             hidden: true,
@@ -72,12 +83,49 @@ var ButtonMenu =  React.createClass({
     onClickMain: function () {
         this.setState({hidden: !this.state.hidden});
     },
+    windowMouseClick: function(obj, e) {
+        var rect = obj.refs.items.getDOMNode().getBoundingClientRect();
+        if (e.clientX > rect.right || e.clientX < rect.left ||
+            e.clientY < rect.top || e.clientY > rect.bottom) {
+            obj.setState({hidden: true});
+        }
+    },
+    componentDidUpdate: function() {
+        if (this.refs.items && !this.state.hidden) {
+            var main = this.refs.main.getDOMNode();
+            var items = this.refs.items.getDOMNode();
+            var itemsWidth = items.clientWidth;
+            var mainWidth = main.clientWidth;
+            if (itemsWidth > mainWidth) {
+                main.classList.remove("main-button-larger");
+                main.classList.add("main-button-smaller");
+                items.classList.add("items-larger");
+            } else if (itemsWidth < mainWidth) {
+                main.classList.remove("main-button-smaller");
+                items.classList.remove("items-larger");
+                main.classList.add("main-button-larger");
+            }
+        }
+
+        if (this.refs.items && !this.click) {
+            var obj = this;
+            this.click = function(e) {
+                return obj.windowMouseClick(obj, e);
+            }
+            window.document.body.addEventListener('click', this.click);
+        }
+
+        if (this.click && !this.refs.items) {
+            window.document.body.removeEventListener('click', this.click);
+            this.click = null;
+        }
+    },
     render: function() {
         var that = this;
         var mainButton = function() {
             return (
-                <Button rev large={that.props.large}
-                    selected={!that.state.hidden}
+                <Button ref="main" rev large={that.props.large}
+                    selected={!that.state.hidden || that.props.selected}
                     mid={that.props.mid}
                     small={that.props.small}
                     addClass="main-button"
@@ -86,30 +134,47 @@ var ButtonMenu =  React.createClass({
             );
         }();
 
-        var buttonMenuClassName = "button-menu";
+        var buttonMenuCn = "button-menu";
 
         if (this.state.hidden)
             return mainButton;
 
         if (this.props.center) {
-            buttonMenuClassName += " button-menu-center";
+            buttonMenuCn += " button-menu-center";
         } else if (this.props.right) {
-            buttonMenuClassName += " button-menu-right";
+            buttonMenuCn += " button-menu-right";
         }
 
+        var onClickWrapper = function(callback) {
+            return function() {
+                that.setState({hidden: true});
+                callback();
+            };
+        };
+
         var items = !this.props.items ?
-            null :
-            this.props.items.map(function(item) {
+            [] :
+            this.props.items.map(function(item, ind) {
+                if (item.hr) {
+                    return (
+                        <span className="vspace"> 
+                            <MenuHr text={item.text} key={ind}/>
+                        </span>
+                    );
+                }
+                var click = onClickWrapper(item.click);
                 return (
-                    <Button text={item.text} click={item.click}
-                        icon={item.icon} />
+                    <span className="vspace">
+                        <Button text={item.text} click={click} key={ind}
+                            icon={item.icon} />
+                    </span>
                 );
             });
 
         return (
-            <div className={buttonMenuClassName}>
+            <div className={buttonMenuCn}>
                 {mainButton}
-                <div className="items">
+                <div ref="items" className="items">
                     {items}
                 </div>
             </div>

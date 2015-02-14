@@ -8,6 +8,7 @@ $color-4: #fec440 * $color-fac;  // yellow
 $prime-color: white;
 $prime-inv-color: black;
 $std-font-family: "source-sans-pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+$alt-font-family: monospace;
 
 $highlight-color: $color-4;
 $picked-color: $highlight-color * .85;
@@ -33,7 +34,7 @@ $std-fast-duration: .2s;
 .button {
   @extend .clickable;
   display: inline;
-  padding: 5px 5px;
+  padding: 2px 5px;
   background-color: $prime-color;
   color: $prime-inv-color;
   border: 1px solid transparent;
@@ -41,7 +42,7 @@ $std-fast-duration: .2s;
   transition: border-color $std-fast-duration;
 }
 
-$button-size-small: 20px;
+$button-size-small: 18px;
 $button-size-mid: 35px;
 $button-size-large: 50px;
 

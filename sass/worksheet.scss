@@ -85,9 +85,7 @@ $console-button-size: 50px;
   @extend %flexbox;
   @include flex-direction(column);
   @include align-items(center);
-
   padding: 5px 10px;
-  width: 100%;
 
   .bottom-panel {
     @extend %flexbox;

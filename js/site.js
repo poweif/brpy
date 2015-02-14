@@ -63,6 +63,11 @@ var skulptgl = {
             contentReq.onreadystatechange = readyStateChange;
             contentReq.open('POST', url, true);
             contentReq.send(text);
+        },
+        getFileName: function(fname) {
+            if (fname.indexOf('.') < 0)
+                return null;
+            return fname.substring(0, fname.indexOf('.'));
         }
     },
     readProject: function(onLoad, onFailed) {
@@ -100,11 +105,10 @@ var skulptgl = {
 };
 
 (function() {
-    skulptgl.project = {
-        NAME: 'name',
-        SRC: 'src',
-        DEFAULT_FILE: 'defaultFile'
-    };
+    // Site-wide constants
+    SKULPTGL_PROJECT_NAME = 'name';
+    SKULPTGL_PROJECT_SRC = 'src';
+    SKULPTGL_PROJECT_DEFAULT_FILE = 'defaultFile';
 
     window.addEventListener("beforeunload", function (e) {
         var confirmation = "Did you save? Are you sure you'd like to quit?"

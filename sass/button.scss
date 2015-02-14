@@ -19,12 +19,22 @@
     border-radius: $std-border-radius $std-border-radius 0 0;
   }
 
+  .main-button-larger {
+    border-radius: $std-border-radius $std-border-radius $std-border-radius 0;
+  }
+
+  .main-button-smaller {
+    border-radius: $std-border-radius $std-border-radius 0 0;
+    border-color: $prime-inv-color $prime-inv-color $prime-color $prime-inv-color;
+    z-index: 6;
+  }
+
   .items {
     @extend .button;
     @extend .button-selected;
     @extend %flexbox;
     @include flex-direction(column);
-    @include align-items(flex-start);
+    @include align-items(flex-stretch);
     position: absolute;
     z-index: 5;
     background-color: $prime-color;
@@ -32,6 +42,26 @@
     border-radius: 0 0 $std-border-radius $std-border-radius;
     margin-top: -1px;
     @include animation('fade-in ' + $std-duration);
+    cursor: default;
+    padding: 10px 5px 5px 5px;
+  }
+
+  .items-larger {
+    border-color: $prime-inv-color $prime-inv-color $prime-inv-color $prime-inv-color;
+    border-radius: 0 $std-border-radius $std-border-radius $std-border-radius;
+  }
+
+  .hr {
+    @include align-self(stretch);
+    height: $button-size-small;
+    margin: 0 11px;
+    font-family: $alt-font-family;
+    font-size: $button-size-small - 8;
+    text-align: right;
+    border-bottom: 1px solid $prime-inv-color;
+  }
+  .vspace {
+    margin: 4px 0;
   }
 }
 
