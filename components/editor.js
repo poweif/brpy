@@ -63,16 +63,26 @@ var SourceEditor = React.createClass({
         // Technically this should be in codemirror's emacs keymap, but putting
         // this here for now.
         shortcut.add('Ctrl+L', this.onScrollTo, keyMapParams);
+
+        if (this.props.height) {
+            this.refs.editorWrapper.getDOMNode().style.height =
+                this.props.height + 'px';
+        }
     },
     componentWillUnmount: function() {
         shortcut.remove('Ctrl+B');
         shortcut.remove('Ctrl+S');
         shortcut.remove('Ctrl+L');
     },
+    maxHeight: function() {
+        if (!this.refs.editorInner)
+            return 0;
+        return this.refs.editorInner.getDOMNode().getBoundingClientRect().height;
+    },
     render: function() {
         return (
-            <div className="editor">
-                <div className=
+            <div ref="editorWrapper" className="editor">
+                <div ref="editorInner" className=
                     {this.props.isDialogOpen ? "codearea-hidden" : "codearea"} >
                     <textarea ref="textarea" cols="79" rows="30"></textarea>
                 </div>

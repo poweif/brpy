@@ -1,4 +1,4 @@
-var OutputConsole =  React.createClass({
+var StdoutConsole =  React.createClass({
     getInitialState: function() {
         return {
             hidden: true,
@@ -13,17 +13,17 @@ var OutputConsole =  React.createClass({
         textarea.scrollTop = textarea.scrollHeight;
     },
     render: function() {
-        var outputCn = "output-console";
+        var stdoutCn = "stdout-console";
         var verticalButtonCn = "vertical-button";
         var buttonImg = "/img/keyboard54.png";
 
         if (this.state.hidden) {
-            outputCn += " output-console-hide";
+            stdoutCn += " stdout-console-hide";
             buttonImg = "/img/sort52.png";
             verticalButtonCn += " vertical-button-hide";
         }
         return (
-            <div className={outputCn}>
+            <div className={stdoutCn}>
                 <textarea ref="tarea" readOnly></textarea>
                 <img src={buttonImg}
                      className={verticalButtonCn}
@@ -39,11 +39,9 @@ var HeaderBar = React.createClass({
             console.log("clicking!");
         };
         var buttons = [
-            {text: "Other Projects", hr: true},
-            {text: "button", click: func},
-            {text: "hello", click: func},
-            {text: "world", click: func},
+            {text: "Projects", hr: true},
             {text: "Options", hr: true},
+            {text: "new...", click: func, icon: "add186"},
             {text: "rename", click: func, icon: "rotate11",
              click: this.props.onProjectRenameClick},
             {text: "delete", click: func, icon: "close47"},
@@ -52,6 +50,22 @@ var HeaderBar = React.createClass({
         return (
             <ButtonMenu large text={this.props.projectName}
                items={buttons}/>
+        );
+    }
+});
+
+//var OutputPane
+
+var WorksheetBlock = React.createClass({
+    render: function() {
+        return (
+            <div className="worksheet-block">
+                <div className="separator">
+                    <div className="separator-line"></div>
+                    <Button text="test-block" />                    
+                    <Button icon="" />                    
+                </div>
+            </div>
         );
     }
 });
@@ -67,8 +81,7 @@ var MainPanel = React.createClass({
             srcFiles: [],
             defaultFileInd: -1,
             isDialogOpen: false,
-            panelDoms: null,
-            consoleOutput: ''
+            panelDoms: null
         };
     },
     onProjectRenameOk: function(text) {
@@ -318,7 +331,7 @@ var MainPanel = React.createClass({
 
         var output = function(s) {
             if (s.trim().length > 0)
-                that.refs.outputConsxole.write(s);
+                that.refs.stdoutConsole.write(s);
         };
         var builtinRead = function(x) {
             if (Sk.builtinFiles === undefined ||
@@ -474,7 +487,7 @@ var MainPanel = React.createClass({
            <div className="main-panel">
                 <HeaderBar projectName={this.state.name}
                     onProjectRenameClick={this.onProjectRenameClick} />
-                <OutputConsole ref="outputConsole" />
+                <StdoutConsole ref="stdoutConsole" />
                 <div className="bottom-panel">
                     <div ref="contextWrapper" className="context-wrapper">
                     </div>

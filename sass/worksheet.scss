@@ -1,10 +1,10 @@
 @import 'common';
 @import 'flexbox';
 
-$output-console-width: 500px;;
+$stdout-console-width: 500px;;
 $console-button-size: 50px;
 
-.output-console {
+.stdout-console {
   @extend %flexbox;
   @include flex-direction(row);
   position: fixed;
@@ -13,14 +13,14 @@ $console-button-size: 50px;
   background-color: rgba(200, 200, 200, .0);
   @include align-items(flex-begin);
   @include justify-content(flex-end);
-  width: $output-console-width;
+  width: $stdout-console-width;
 
   textarea {
     border-style: solid solid solid none;
     border-width: 1px;
     border-color: $prime-inv-color;
 
-    width: $output-console-width - 65;
+    width: $stdout-console-width - 65;
     padding: 8px 8px 8px 15px;
     resize: none;
     z-index: 0;
@@ -56,8 +56,8 @@ $console-button-size: 50px;
   z-index: 4;
 }
 
-.output-console-hide {
-  left: -($output-console-width - $console-button-size + 2);
+.stdout-console-hide {
+  left: -($stdout-console-width - $console-button-size + 2);
   opacity: 1;
   transition: left $std-duration, opacity $std-duration;
 }
