@@ -80,6 +80,50 @@ $console-button-size: 50px;
   }
 }
 
+.worksheet-block {
+  @extend %flexbox;
+  @include flex-direction(column);
+  @include align-items(stretch);
+  @include align-self(stretch);
+
+  .separator {
+    @extend %flexbox;
+    @include flex-direction(row);
+    @include align-items(center);
+    height: $button-size-small * 2;
+
+    .separator-line {
+      display: inline;
+      @include align-items(stretch);
+      @include flex-grow(1);
+      margin: 5px 10px;
+      border-style: dashed none none none;
+      border-width: 1px 0 0 0;
+      height: 0;
+      border-color: $prime-inv-color;
+    }
+  }
+
+  .block-content {
+    @extend %flexbox;
+    @include flex-direction(row);
+    @include align-items(stretch);
+
+    min-height: 50px;
+
+    .content {
+      @include flex-grow(1);
+    }
+
+    .divide-line {
+      width: 0;
+      border-style: none none none dashed;
+      border-width: 0 0 0 1px;
+      border-color: $prime-inv-color;
+      margin: 5px 5px;
+    }
+  }
+}
 
 .main-panel {
   @extend %flexbox;

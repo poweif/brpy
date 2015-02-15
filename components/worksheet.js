@@ -62,8 +62,18 @@ var WorksheetBlock = React.createClass({
             <div className="worksheet-block">
                 <div className="separator">
                     <div className="separator-line"></div>
-                    <Button text="test-block" />                    
-                    <Button icon="" />                    
+                    <Button text="test" />
+                    <Button icon="drop25" />
+                </div>
+                <div className="block-content">
+                    <span className="content"></span>
+                    <div className="divide-line"></div>
+                    <span className="content"></span>
+                </div>
+                <div className="separator">
+                    <div className="separator-line"></div>
+                    <Button text="test" />
+                    <Button icon="drop27" />
                 </div>
             </div>
         );
@@ -488,6 +498,7 @@ var MainPanel = React.createClass({
                 <HeaderBar projectName={this.state.name}
                     onProjectRenameClick={this.onProjectRenameClick} />
                 <StdoutConsole ref="stdoutConsole" />
+                <WorksheetBlock />
                 <div className="bottom-panel">
                     <div ref="contextWrapper" className="context-wrapper">
                     </div>
