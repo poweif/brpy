@@ -34,7 +34,7 @@ $std-fast-duration: .2s;
 .button {
   @extend .clickable;
   display: inline;
-  padding: 2px 5px;
+  padding: 3px;
   background-color: $prime-color;
   color: $prime-inv-color;
   border: 1px solid transparent;
@@ -42,7 +42,7 @@ $std-fast-duration: .2s;
   transition: border-color $std-fast-duration;
 }
 
-$button-size-small: 18px;
+$button-size-small: 15px;
 $button-size-mid: 35px;
 $button-size-large: 50px;
 

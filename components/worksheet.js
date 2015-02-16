@@ -54,9 +54,96 @@ var HeaderBar = React.createClass({
     }
 });
 
-//var OutputPane
+var ContentPane = React.createClass({
+    mountContentDoms: function() {
+        if (!this.props.contentDoms)
+            return;
+
+        var wrapper = this.refs.main.getDOMNode();
+        while(wrapper.hasChildNodes()) {
+            wrapper.removeChild(wrapper.firstChild);
+        }
+        this.props.contentDoms.forEach(function(elem) {
+            wrapper.appendChild(elem);
+        });
+    },
+    componentDidUpdate: function() {
+        this.mountContentDoms();
+    },
+    componentDidMount: function() {
+        this.mountContentDoms();
+    },
+    render: function() {
+        return (
+            <div ref="main" className="content-pane">
+            </div>
+        );
+    }
+});
+
+var EditorFileRow = React.createClass({
+    render: function() {
+        var that = this;
+        var fileButtons = this.props.srcFiles.map(
+            function(fileExt, order) {
+                var click = function() {
+                    that.props.onFileNameClick(
+                        skulptgl.util.getFileName(fileExt));
+                };
+                var selected = order == that.props.currentFileInd;
+                if (!selected) {
+                    return <Button click={click} selected={selected}
+                               key={order} text={fileExt} />;
+                }
+                var buttons = [
+                    {text: "move left", icon: "go10"},
+                    {text: "move right", icon: "right244"},
+                    {text: "rename", icon: "rotate11"},
+                    {text: "delete", icon: "close47"}
+                ];
+                return <ButtonMenu text={fileExt} items={buttons}
+                     selected="true" />
+            }
+        );
+        return (
+            <div className="editor-file-row">
+                <div className="files">{fileButtons}</div>
+                <Button icon="add186" />
+            </div>
+        );
+    }
+});
+
+var EditorPane = React.createClass({
+    render: function() {
+        var src = null;
+        if (this.props.currentFileInd >= 0) {
+            var srcFileName = this.props.srcFiles[this.props.currentFileInd];
+            src = this.props.srcTexts[srcFileName];
+        }
+
+        return (
+            <div className="editor-pane">
+                <EditorFileRow onFileNameClick={this.props.onFileNameClick}
+                    currentFileInd={this.props.currentFileInd}
+                    srcFiles={this.props.srcFiles} />
+                <div className="editor-wrapper">
+                    <SourceEditor ref="editor" src={src}
+                        height={this.props.height}
+                        onRun={this.props.onRun} onSave={this.props.onSave}
+                        isDialogOpen={this.props.isDialogOpen} />
+                </div>
+            </div>
+        );
+    }
+});
 
 var WorksheetBlock = React.createClass({
+    componentDidMount: function() {
+        var defaultBlockHeight = window.innerHeight - 100;
+        console.log(defaultBlockHeight);
+        this.getDOMNode().style.height = defaultBlockHeight + "px";
+    },
     render: function() {
         return (
             <div className="worksheet-block">
@@ -66,9 +153,18 @@ var WorksheetBlock = React.createClass({
                     <Button icon="drop25" />
                 </div>
                 <div className="block-content">
-                    <span className="content"></span>
-                    <div className="divide-line"></div>
-                    <span className="content"></span>
+                    <ContentPane contentDoms={this.props.contentDoms}
+                        ref="contentPane" />
+                    <div className="divide-line-wrapper">
+                        <div className="divide-line"></div>
+                    </div>
+                    <EditorPane ref="editor" onRun={this.props.onRun}
+                        onSave={this.props.onSave} height="500"
+                        onFileNameClick={this.props.onFileNameClick}
+                        isDialogOpen={this.props.isDialogOpen}
+                        srcTexts={this.props.srcTexts}
+                        srcFiles={this.props.srcFiles}
+                        currentFileInd={this.props.currentFileInd} />
                 </div>
                 <div className="separator">
                     <div className="separator-line"></div>
@@ -89,7 +185,7 @@ var MainPanel = React.createClass({
             name: '',
             srcs: {},
             srcFiles: [],
-            defaultFileInd: -1,
+            currentFileInd: -1,
             isDialogOpen: false,
             panelDoms: null
         };
@@ -110,26 +206,6 @@ var MainPanel = React.createClass({
     onProjectRenameClick: function() {
         this.openTextDialog(
             this.state.name, "New project name?", this.onProjectNameOK);
-    },
-    handleScroll: function() {
-        this.refs.contextWrapper.getDOMNode().style.marginTop =
-            window.pageYOffset + 'px';
-    },
-    handleResize: function() {
-        var width = Math.min(
-            this.refs.contextWrapper.getDOMNode().offsetWidth - 30,
-            window.innerHeight - 150
-        );
-
-        var panelDoms = this.state.panelDoms;
-        if (panelDoms) {
-            panelDoms.forEach(function(dom) {
-                dom.style.width = width + 'px';
-                dom.style.height = width + 'px';
-                dom.width = width;
-                dom.height = width;
-            });
-        }
     },
     onFileNameOK: function(oldFile, newFile) {
         if (newFile === oldFile)
@@ -179,7 +255,7 @@ var MainPanel = React.createClass({
     onFileNameClick: function(oldFile) {
         var ind = skulptgl.util.indexOf(this.state.srcFiles, oldFile + ".py");
 
-        if (this.state.defaultFileInd != ind) {
+        if (this.state.currentFileInd != ind) {
             this.changeCurrentFile(ind);
             return;
         }
@@ -205,7 +281,7 @@ var MainPanel = React.createClass({
             that.state.srcs[fnameExt] = fileSrc;
             that.setState({
                 srcFiles: nfiles,
-                defaultFileInd: nfiles.length - 1
+                currentFileInd: nfiles.length - 1
             });
         };
 
@@ -257,7 +333,7 @@ var MainPanel = React.createClass({
             that.closeDialog();
             that.setState({
                 srcFiles: nfiles,
-                defaultFileInd: 0
+                currentFileInd: 0
             });
         };
 
@@ -302,7 +378,7 @@ var MainPanel = React.createClass({
             that.closeDialog();
             that.setState({
                 srcFiles: nfiles,
-                defaultFileInd: target
+                currentFileInd: target
             });
         };
 
@@ -317,7 +393,7 @@ var MainPanel = React.createClass({
         this.setState({
             name: project[SKULPTGL_PROJECT_NAME],
             srcFiles: project[SKULPTGL_PROJECT_SRC],
-            defaultFileInd: project[SKULPTGL_PROJECT_DEFAULT_FILE]
+            currentFileInd: project[SKULPTGL_PROJECT_DEFAULT_FILE]
         });
     },
     onLoadSource: function(file, text) {
@@ -358,28 +434,21 @@ var MainPanel = React.createClass({
         });
         try {
             Sk.importMainWithMultipleFiles(false, progs);
-
-            var wrapper = this.refs.contextWrapper.getDOMNode();
-            while(wrapper.hasChildNodes()) {
-                wrapper.removeChild(wrapper.firstChild);
-            }
-            Sk.progdomIds().forEach(function(elem) {
-                wrapper.appendChild(elem.dom);
-            });
             var ndoms = Sk.progdomIds().map(function(elem) {
                 return elem.dom;
             });
             this.setState({panelDoms: ndoms});
-        } catch(e) {
+        } catch (e) {
+//            console.log(e.stack);
             console.log("python[ERROR]> " + e.toString());
         }
     },
     onRun: function(code) {
-        if (this.state.defaultFileInd < 0 ||
-            this.state.defaultFileInd >= this.state.srcFiles.length) {
+        if (this.state.currentFileInd < 0 ||
+            this.state.currentFileInd >= this.state.srcFiles.length) {
             return;
         }
-        this.memSave(this.state.srcFiles[this.state.defaultFileInd], code);
+        this.memSave(this.state.srcFiles[this.state.currentFileInd], code);
         this.runProg();
     },
     memSave: function(fname, code) {
@@ -410,10 +479,10 @@ var MainPanel = React.createClass({
             return;
 
         if (this.refs.editor) {
-            var oldFile = this.state.srcFiles[this.state.defaultFileInd];
+            var oldFile = this.state.srcFiles[this.state.currentFileInd];
             this.memSave(oldFile, this.refs.editor.getContent());
             this.setState({
-                defaultFileInd: ind
+                currentFileInd: ind
             });
         }
     },
@@ -446,71 +515,28 @@ var MainPanel = React.createClass({
             }
             f(toRead);
         }
-        this.handleResize();
     },
     componentDidMount: function() {
         skulptgl.readProject(this.onLoadProject);
-        window.addEventListener('scroll', this.handleScroll);
-        window.addEventListener('resize', this.handleResize);
-        this.handleResize();
-    },
-    componentWillUnmount: function() {
-        window.removeEventListener('scroll', this.handleScroll);
-        window.removeEventListener('resize', this.handleResize);
     },
     render: function() {
         var that = this;
-        var fileButtons = this.state.srcFiles.map(
-            function(fileExt, order) {
-                var click = function() {
-                    that.onFileNameClick(skulptgl.util.getFileName(fileExt));
-                };
-                var selected = order == that.state.defaultFileInd;
-                if (!selected) {
-                    return <Button click={click} selected={selected}
-                               key={order} text={fileExt} />;
-                }
-                var buttons = [
-                    {text: "move left", icon: "go10"},
-                    {text: "move right", icon: "right244"},
-                    {text: "rename", icon: "rotate11"},
-                    {text: "delete", icon: "close47"}
-                ];
-                return <ButtonMenu text={fileExt} items={buttons}
-                    selected="true" />
-            }
-        );
-        fileButtons.push(function() {
-            return <Button icon="add186" click={that.onFileAddClick} />;
-        }());
-
-        var srcFile = this.state.srcFiles[this.state.defaultFileInd];
-        var src = null;
-        if (srcFile)
-            src = this.state.srcs[srcFile];
-
         var save = function(code) {
-            that.onSave(that.state.srcFiles[that.state.defaultFileInd], code);
+            that.onSave(that.state.srcFiles[that.state.currentFileInd], code);
         };
+        var run = this.onRun;
 
         return (
            <div className="main-panel">
                 <HeaderBar projectName={this.state.name}
                     onProjectRenameClick={this.onProjectRenameClick} />
                 <StdoutConsole ref="stdoutConsole" />
-                <WorksheetBlock />
-                <div className="bottom-panel">
-                    <div ref="contextWrapper" className="context-wrapper">
-                    </div>
-                    <div>
-                        <div className="button-row">
-                            <span className="file-row">{fileButtons}</span>
-                        </div>
-                        <SourceEditor ref="editor" src={src} onRun={this.onRun}
-                            onSave={save}
-                            isDialogOpen={this.state.isDialogOpen} />
-                    </div>
-                </div>
+                <WorksheetBlock srcFiles={this.state.srcFiles}
+                    onFileNameClick={this.onFileNameClick}
+                    srcTexts={this.state.srcs} onSave={save} onRun={run}
+                    currentFileInd={this.state.currentFileInd}
+                    contentDoms={this.state.panelDoms}
+                    isDialogOpen={this.state.isDialogOpen} />
             </div>
         );
     }

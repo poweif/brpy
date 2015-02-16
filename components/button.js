@@ -55,7 +55,7 @@ var Button =  React.createClass({
             wrapperCn += " " + that.props.addClass;
 
         return (
-                <div className={wrapperCn} onClick={this.props.click}>
+            <div className={wrapperCn} onClick={this.props.click}>
                 {this.props.rev ? buttonText : img}
                 {this.props.rev ? img : buttonText}
             </div>

@@ -91,6 +91,7 @@ $console-button-size: 50px;
     @include flex-direction(row);
     @include align-items(center);
     height: $button-size-small * 2;
+    margin: 10px 0;
 
     .separator-line {
       display: inline;
@@ -108,11 +109,17 @@ $console-button-size: 50px;
     @extend %flexbox;
     @include flex-direction(row);
     @include align-items(stretch);
+    @include justify-content(center);
 
     min-height: 50px;
 
-    .content {
-      @include flex-grow(1);
+    .divide-line-wrapper {
+      @include flex-grow(0);
+      @include flex-shrink(0);
+      @extend %flexbox;
+      @include flex-direction(row);
+      @include align-items(stretch);
+      cursor: ew-resize;
     }
 
     .divide-line {
@@ -120,71 +127,54 @@ $console-button-size: 50px;
       border-style: none none none dashed;
       border-width: 0 0 0 1px;
       border-color: $prime-inv-color;
-      margin: 5px 5px;
+      margin: 5px 10px;
+    }
+    .content-pane {
+      @extend %flexbox;
+      @include flex-direction(column);
+      @include align-items(stretch);
+      @include flex-grow(1);
     }
   }
 }
+
+.editor-pane {
+  @extend %flexbox;
+  @include flex-direction(column);
+  @include align-items(stretch);
+  @include flex-grow(0);
+  @include flex-shrink(0);
+  .editor-wrapper {
+    padding: 0 20px 0 0;
+    overflow: auto;
+  }
+
+  .editor-file-row {
+    @extend %flexbox;
+    @include flex-direction(row);
+    @include align-items(center);
+    @include flex-wrap(nowrap);
+    @include justify-content(space-between);
+    @include flex-grow(0);
+    @include flex-shrink(0);
+    height: $button-size-small * 2;
+    margin: 5px 0;
+
+    .files {
+      @extend %flexbox;
+      @include flex-direction(row);
+      @include align-items(center);
+      @include flex-wrap(nowrap);
+      @include justify-content(flex-start);
+      @include flex-grow(1);
+    }
+  }
+}
+
 
 .main-panel {
   @extend %flexbox;
   @include flex-direction(column);
   @include align-items(center);
   padding: 5px 10px;
-
-  .bottom-panel {
-    @extend %flexbox;
-    @include flex-direction(row);
-    margin-top: 10px;
-    @include align-self(stretch);
-  }
-  .setting-button {
-    @extend .button;
-    position: absolute;
-    padding: 5px;
-    margin: 0;
-    right: 20px;
-    top: 20px;
-    max-height: 30px;
-    max-width: 30px;
-  }
-  .context-wrapper {
-    @include flex(1, 1, auto);
-    @extend %flexbox;
-    @include align-items(center);
-    @include flex-direction(column);
-    margin: 5px;
-    canvas {
-      width: 100px;
-      height: 100px;
-      border: 1px solid gray * 1.1;
-    }
-  }
-  .file-row {
-    @extend %flexbox;
-    @include flex-wrap(wrap);
-  }
-  .button-row {
-    @extend %flexbox;
-    @include align-items(center);
-    @include justify-content(space-between);
-    margin: 5px 0;
-    width: 650px;
-  }
-  .file-order {
-    display: inline-block;
-    margin: 0 0 0 5px;
-    font-size: 10px;
-  }
-  .option-row {
-    @extend %flexbox;
-    @include flex-wrap(nowrap);
-  }
-  .options-button {
-    @extend .button;
-    padding: 0;
-    max-height: 25px;
-    max-width: 25px;
-    min-height: 25px;
-    min-width: 25px;
-  }
 }

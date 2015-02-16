@@ -4,18 +4,11 @@
 .editor {
   @extend %flexbox;
   @include flex-direction(column);
-  @include flex(1, 1, auto);
 
-  .codearea {
-    @include flex(1, 1, auto);
-    margin: 10px 5px;
-    height: 100%;
-  }
   .CodeMirror {
     height: 100%;
   }
   .codearea-hidden {
-    @extend .codearea;
     z-index: -1;
   }
 }

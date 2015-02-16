@@ -28,10 +28,12 @@ var SourceEditor = React.createClass({
                         autoCloseBrackets: true,
                         matchBrackets: true,
                         showCursorWhenSelecting: true,
-                        theme: "monokai"
+                        theme: "monokai",
+                        height: "auto",
+                        viewportMargin: Infinity
                     }
                 );
-                this.cdm.setSize(650, null);
+                this.cdm.setSize(650, "100%");
             } else {
                 this.cdm.setValue(code);
             }
@@ -63,11 +65,6 @@ var SourceEditor = React.createClass({
         // Technically this should be in codemirror's emacs keymap, but putting
         // this here for now.
         shortcut.add('Ctrl+L', this.onScrollTo, keyMapParams);
-
-        if (this.props.height) {
-            this.refs.editorWrapper.getDOMNode().style.height =
-                this.props.height + 'px';
-        }
     },
     componentWillUnmount: function() {
         shortcut.remove('Ctrl+B');
@@ -81,11 +78,9 @@ var SourceEditor = React.createClass({
     },
     render: function() {
         return (
-            <div ref="editorWrapper" className="editor">
-                <div ref="editorInner" className=
-                    {this.props.isDialogOpen ? "codearea-hidden" : "codearea"} >
-                    <textarea ref="textarea" cols="79" rows="30"></textarea>
-                </div>
+            <div ref="editorInner" className=
+                {this.props.isDialogOpen ? "codearea-hidden" : "codearea"} >
+                <textarea ref="textarea"></textarea>
             </div>
         );
     }
