@@ -28,9 +28,10 @@ var Button =  React.createClass({
 
         var img = !this.props.icon ? null : function() {
             var imgSrc = "/img/" + that.props.icon + ".png";
-            var click = that.props.click;
+            var click = null;
             var nclassName = imgCn;
             if (!buttonText) {
+                click = that.props.click;
                 nclassName = "button" + nclassName;
                 if (that.props.selected)
                     nclassName += " button-selected";

@@ -93,6 +93,14 @@ $console-button-size: 50px;
     height: $button-size-small * 2;
     margin: 10px 0;
 
+    .separator-line-wrapper {
+      @include flex(auto);
+      @extend %flexbox;
+      @include flex-direction(column);
+      @include align-items(stretch);
+      cursor: ns-resize;
+    }
+
     .separator-line {
       display: inline;
       @include align-items(stretch);
@@ -109,7 +117,7 @@ $console-button-size: 50px;
     @extend %flexbox;
     @include flex-direction(row);
     @include align-items(stretch);
-    @include justify-content(center);
+    @include justify-content(flex-start);
 
     min-height: 50px;
 
@@ -133,7 +141,7 @@ $console-button-size: 50px;
       @extend %flexbox;
       @include flex-direction(column);
       @include align-items(stretch);
-      @include flex-grow(1);
+      @include flex(auto);
     }
   }
 }
@@ -142,8 +150,6 @@ $console-button-size: 50px;
   @extend %flexbox;
   @include flex-direction(column);
   @include align-items(stretch);
-  @include flex-grow(0);
-  @include flex-shrink(0);
   .editor-wrapper {
     padding: 0 20px 0 0;
     overflow: auto;

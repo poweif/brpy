@@ -75,8 +75,7 @@ var ContentPane = React.createClass({
     },
     render: function() {
         return (
-            <div ref="main" className="content-pane">
-            </div>
+            <div ref="main" className="content-pane"></div>
         );
     }
 });
@@ -122,8 +121,12 @@ var EditorPane = React.createClass({
             src = this.props.srcTexts[srcFileName];
         }
 
+        var editorPaneCn = "editor-pane";
+        if (!this.props.highlightable)
+            editorPaneCn += " unselectable";
+
         return (
-            <div className="editor-pane">
+            <div className={editorPaneCn}>
                 <EditorFileRow onFileNameClick={this.props.onFileNameClick}
                     currentFileInd={this.props.currentFileInd}
                     srcFiles={this.props.srcFiles} />
@@ -139,26 +142,112 @@ var EditorPane = React.createClass({
 });
 
 var WorksheetBlock = React.createClass({
+    verticalDrag: null,
+    separatorDrag: null,
+    getInitialState: function() {
+        return {
+            editorHighlightable: true,
+            defaultHeight: 200,
+            collapsed: false
+        };
+    },
+    verticalDivideMouseDown: function(e) {
+        if (this.verticalDrag) {
+            window.removeEventListener("mousemove", this.verticalDrag);
+            this.verticalDrag = null;
+        }
+
+        var srcX = e.clientX;
+        var srcWidth = this.refs.contentPane.getDOMNode()
+            .getBoundingClientRect().width;
+        this.verticalDrag = function(f) {
+            var finalWidth = srcWidth - (srcX - f.clientX);
+            this.refs.contentPane.getDOMNode().style.flex = "none";
+            this.refs.contentPane.getDOMNode().style.width = finalWidth + "px";
+        }.bind(this);
+        window.addEventListener("mousemove", this.verticalDrag);
+        this.setState({editorHighlightable: false});
+    },
+    separatorMouseDown: function(upper, e) {
+        if (this.separatorDrag) {
+            window.removeEventListener("mousemove", this.separatorDrag);
+            this.separatorDrag= null;
+        }
+
+        var srcY = e.clientY;
+        var srcHeight = this.height();
+        this.separatorDrag = function(f) {
+            this.setHeight(srcHeight - (srcY - f.clientY) * (upper ? -1 : 1));
+        }.bind(this);
+        window.addEventListener("mousemove", this.separatorDrag);
+        this.setState({editorHighlightable: false});
+    },
+    mouseUp: function() {
+        if (this.verticalDrag) {
+            window.removeEventListener("mousemove", this.verticalDrag);
+            this.verticalDrag = null;
+        }
+
+        if (this.separatorDrag) {
+            window.removeEventListener("mousemove", this.separatorDrag);
+            this.separatorDrag = null;
+        }
+        this.setState({editorHighlightable: true});
+    },
     componentDidMount: function() {
-        var defaultBlockHeight = window.innerHeight - 100;
-        console.log(defaultBlockHeight);
-        this.getDOMNode().style.height = defaultBlockHeight + "px";
+        this.setHeight(window.innerHeight - 100);
+        this.setState({defaultHeight: window.innerHeight - 100});
+        window.addEventListener("mouseup", this.mouseUp);
+    },
+    height: function() {
+        return this.getDOMNode().getBoundingClientRect().height;
+    },
+    setHeight: function(h, trans) {
+        if (trans) {
+            this.getDOMNode().style.transition = "height .3s";
+        } else {
+            this.getDOMNode().style.transition = null;
+        }
+        this.getDOMNode().style.height = h + "px";
+    },
+    blockExpand: function() {
+        console.log(this.height());
+        console.log(this.state.defaultHeight);
+        if (this.height() < this.state.defaultHeight) {
+            this.setHeight(this.state.defaultHeight, true);
+            return;
+        }
+    },
+    blockCollapse: function() {
+        if (this.height() > this.state.defaultHeight) {
+            this.setHeight(this.state.defaultHeight, true);
+            return;
+        }
     },
     render: function() {
+        var sepUpper =
+            function(e) { this.separatorMouseDown(true, e); }.bind(this);
+        var sepLower =
+            function(e) { this.separatorMouseDown(false, e); }.bind(this);
         return (
             <div className="worksheet-block">
                 <div className="separator">
-                    <div className="separator-line"></div>
+                    <div className="separator-line-wrapper" onMouseDown={sepUpper}>
+                        <div className="separator-line"></div>
+                    </div>
                     <Button text="test" />
-                    <Button icon="drop25" />
+                    <Button icon="show4" click={this.blockCollapse} />
+                    <Button icon="show7" click={this.blockExpand} />
                 </div>
                 <div className="block-content">
                     <ContentPane contentDoms={this.props.contentDoms}
                         ref="contentPane" />
-                    <div className="divide-line-wrapper">
+                    <div className="divide-line-wrapper"
+                        onMouseDown={this.verticalDivideMouseDown}>
                         <div className="divide-line"></div>
                     </div>
                     <EditorPane ref="editor" onRun={this.props.onRun}
+                        highlightable={this.state.editorHighlightable}
                         onSave={this.props.onSave} height="500"
                         onFileNameClick={this.props.onFileNameClick}
                         isDialogOpen={this.props.isDialogOpen}
@@ -167,9 +256,12 @@ var WorksheetBlock = React.createClass({
                         currentFileInd={this.props.currentFileInd} />
                 </div>
                 <div className="separator">
-                    <div className="separator-line"></div>
+                    <div className="separator-line-wrapper" onMouseDown={sepLower}>
+                        <div className="separator-line"></div>
+                    </div>
                     <Button text="test" />
-                    <Button icon="drop27" />
+                    <Button icon="show4" click={this.blockCollapse} />
+                    <Button icon="show7" click={this.blockExpand} />
                 </div>
             </div>
         );

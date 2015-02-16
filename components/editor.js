@@ -77,9 +77,9 @@ var SourceEditor = React.createClass({
         return this.refs.editorInner.getDOMNode().getBoundingClientRect().height;
     },
     render: function() {
+        var editorInnerCn = this.props.isDialogOpen ? "codearea-hidden" : "codearea";
         return (
-            <div ref="editorInner" className=
-                {this.props.isDialogOpen ? "codearea-hidden" : "codearea"} >
+            <div ref="editorInner" className={editorInnerCn}>
                 <textarea ref="textarea"></textarea>
             </div>
         );
