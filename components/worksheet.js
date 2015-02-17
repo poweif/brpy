@@ -340,12 +340,105 @@ var MainPanel = React.createClass({
     })],
     getInitialState: function() {
         return {
-            name: '',
-            srcs: {},
-            srcFiles: [],
-            currentFileInd: -1,
+            projectName: '',
+            blocks: [],
+            srcFiles: {},
+            srcContent: {},
+            selectedFile: {},
             isDialogOpen: false,
-            panelDoms: null
+            contentPanelDoms: {}
+        };
+    },
+    onLoadProject: function(text) {
+        var projectBlocks = JSON.parse(text);
+        var blocks = [];
+        var srcFiles = {};
+        var selectedFile = {};
+
+        projectBlocks.forEach(function(block) {
+            blocks.push(block.name);
+            srcFiles[block.name] = block.src;
+            selectedFile[block.name] = block.defaultFile;
+        });
+
+        var files = blocks.map(function(block) {
+            return srcFiles[block];
+        }).join();
+
+        var readFiles = function(left) {
+            if (left.length < 1) return;
+
+            var file = left.splice(0, 1)[0];
+            skulptgl.readSrcFile(
+                file,
+                function(text) {
+                    that.onLoadSource(file, text);
+                    readFiles(left);},
+                function() { console.log("failed to read " + file); });
+        }
+        readFiles(files);
+
+
+        this.setState({projectName: "rough"});
+        this.setState({
+            blocks: blocks,
+            srcFiles: srcFiles,
+            selectedFile: selectedFile
+        });
+    },
+    onLoadSource: function(file, text) {
+        console.log("source loaded " + file);
+        var content = this.state.srcContent[file];
+        content[file] = text;
+        this.setState({srcContent: content});
+    },
+    changeCurrentFile: function(ind) {
+        if (ind < 0 || ind >= this.state.srcFiles.length)
+            return;
+
+        if (this.refs.editor) {
+            var oldFile = this.state.srcFiles[this.state.currentFileInd];
+            this.memSave(oldFile, this.refs.editor.getContent());
+            this.setState({
+                currentFileInd: ind
+            });
+        }
+    },
+    componentDidUpdate: function(prevProps, prevState) {
+        var that = this;
+    },
+    componentDidMount: function() {
+        skulptgl.readProject(this.onLoadProject);
+    },
+    render: function() {
+        return (
+           <div className="main-panel">
+                <HeaderBar projectName={this.state.projectName}
+                    onProjectRenameClick={this.onProjectRenameClick} />
+                <StdoutConsole ref="stdoutConsole" />
+                <WorksheetBlock srcFiles={this.state.srcFiles}
+                    onFileNameClick={this.onFileNameClick}
+                    srcTexts={this.state.srcs} onSave={save} onRun={run}
+                    currentFileInd={this.state.currentFileInd}
+                    contentDoms={this.state.panelDoms}
+                    isDialogOpen={this.state.isDialogOpen} />
+            </div>
+        );
+    }
+});
+
+var MainPanel2 = React.createClass({
+    mixins: [DialogMixins(function(v) {
+        this.setState({isDialogOpen: v})
+    })],
+    getInitialState: function() {
+        return {
+            name: '',
+            blocks: [],
+            srcFiles: {},
+            selectedFile: {},
+            isDialogOpen: false,
+            panelDoms: {}
         };
     },
     onProjectRenameOk: function(text) {
@@ -363,7 +456,7 @@ var MainPanel = React.createClass({
     },
     onProjectRenameClick: function() {
         this.openTextDialog(
-            this.state.name, "New project name?", this.onProjectNameOK);
+            this.state.projectName, "New project name?", this.onProjectNameOK);
     },
     onFileNameOK: function(oldFile, newFile) {
         if (newFile === oldFile)
@@ -597,7 +690,6 @@ var MainPanel = React.createClass({
             });
             this.setState({panelDoms: ndoms});
         } catch (e) {
-//            console.log(e.stack);
             console.log("python[ERROR]> " + e.toString());
         }
     },
