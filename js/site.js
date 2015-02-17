@@ -7,7 +7,8 @@ var skulptgl = {
             }
             return -1;
         },
-        // http://stackoverflow.com/questions/1349404/generate-a-string-of-5-random-characters-in-javascript
+        // http://stackoverflow.com/questions/1349404/
+        // generate-a-string-of-5-random-characters-in-javascript
         makeId: function(len) {
             var text = "";
             var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -68,6 +69,28 @@ var skulptgl = {
             if (fname.indexOf('.') < 0)
                 return null;
             return fname.substring(0, fname.indexOf('.'));
+        },
+        // http://stackoverflow.com/questions/10787782/
+        // full-height-of-a-html-element-div-including-border-padding-and-margin
+        fullElementHeight: function(e) {
+            var elmHeight = 0;
+            var elmMargin = 0;
+            if (document.all) { // IE
+                elmHeight = parseInt(e.currentStyle.height, 10);
+                elmMargin = parseInt(e.currentStyle.marginTop, 10) +
+                    parseInt(e.currentStyle.marginBottom, 10);
+            }
+            else { // Mozilla
+                elmHeight = parseInt(document.defaultView.getComputedStyle(e, '')
+                                     .getPropertyValue('height'));
+                elmHeight = Math.max(e.getBoundingClientRect().height);
+                elmMargin = parseInt(document.defaultView
+                                     .getComputedStyle(e, '')
+                                     .getPropertyValue('margin-top')) +
+                    parseInt(document.defaultView.getComputedStyle(e, '')
+                             .getPropertyValue('margin-bottom'));
+            }
+            return elmHeight + elmMargin;
         }
     },
     readProject: function(onLoad, onFailed) {

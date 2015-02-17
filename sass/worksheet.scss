@@ -86,11 +86,20 @@ $console-button-size: 50px;
   @include align-items(stretch);
   @include align-self(stretch);
 
+  .line-wrapper {
+    opacity: .15;
+    transition: opacity $std-duration;
+    border-width: 1px;
+  }
+  .line-wrapper:hover {
+    opacity: 1;
+    transition: opacity $std-duration;
+  }
+
   .separator {
     @extend %flexbox;
     @include flex-direction(row);
     @include align-items(center);
-    height: $button-size-small * 2;
     margin: 10px 0;
 
     .separator-line-wrapper {
@@ -99,17 +108,27 @@ $console-button-size: 50px;
       @include flex-direction(column);
       @include align-items(stretch);
       cursor: ns-resize;
+      @extend .line-wrapper;
     }
-
     .separator-line {
       display: inline;
       @include align-items(stretch);
       @include flex-grow(1);
       margin: 5px 10px;
       border-style: dashed none none none;
-      border-width: 1px 0 0 0;
       height: 0;
       border-color: $prime-inv-color;
+      border-width: 2px;
+    }
+    .collapsed-line-wrapper {
+      @extend .separator-line-wrapper;
+      cursor: pointer;
+    }
+    .collapsed-line {
+      @extend .separator-line;
+      border-style: solid none solid none;
+      height: 4px;
+      border-width: 2px;
     }
   }
 
@@ -128,20 +147,21 @@ $console-button-size: 50px;
       @include flex-direction(row);
       @include align-items(stretch);
       cursor: ew-resize;
+      @extend .line-wrapper;
     }
-
     .divide-line {
       width: 0;
       border-style: none none none dashed;
-      border-width: 0 0 0 1px;
       border-color: $prime-inv-color;
       margin: 5px 10px;
+      border-width: 2px;
     }
     .content-pane {
       @extend %flexbox;
       @include flex-direction(column);
       @include align-items(stretch);
       @include flex(auto);
+      @include align-self(flex-start);
     }
   }
 }

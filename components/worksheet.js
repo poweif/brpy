@@ -73,6 +73,9 @@ var ContentPane = React.createClass({
     componentDidMount: function() {
         this.mountContentDoms();
     },
+    maxHeight: function() {
+        return skulptgl.util.fullElementHeight(this.getDOMNode());
+    },
     render: function() {
         return (
             <div ref="main" className="content-pane"></div>
@@ -101,7 +104,7 @@ var EditorFileRow = React.createClass({
                     {text: "delete", icon: "close47"}
                 ];
                 return <ButtonMenu text={fileExt} items={buttons}
-                     selected="true" />
+                           selected="true" />
             }
         );
         return (
@@ -114,6 +117,17 @@ var EditorFileRow = React.createClass({
 });
 
 var EditorPane = React.createClass({
+    maxHeight: function() {
+        var totalHeight = 0;
+        if (this.refs.fileRow) {
+            totalHeight +=
+                skulptgl.util.fullElementHeight(this.refs.fileRow.getDOMNode());
+        }
+
+        if (this.refs.editor)
+            totalHeight += this.refs.editor.maxHeight();
+        return totalHeight;
+    },
     render: function() {
         var src = null;
         if (this.props.currentFileInd >= 0) {
@@ -127,7 +141,8 @@ var EditorPane = React.createClass({
 
         return (
             <div className={editorPaneCn}>
-                <EditorFileRow onFileNameClick={this.props.onFileNameClick}
+                <EditorFileRow ref="fileRow"
+                    onFileNameClick={this.props.onFileNameClick}
                     currentFileInd={this.props.currentFileInd}
                     srcFiles={this.props.srcFiles} />
                 <div className="editor-wrapper">
@@ -147,7 +162,6 @@ var WorksheetBlock = React.createClass({
     getInitialState: function() {
         return {
             editorHighlightable: true,
-            defaultHeight: 200,
             collapsed: false
         };
     },
@@ -195,43 +209,95 @@ var WorksheetBlock = React.createClass({
         this.setState({editorHighlightable: true});
     },
     componentDidMount: function() {
-        this.setHeight(window.innerHeight - 100);
-        this.setState({defaultHeight: window.innerHeight - 100});
+        this.setHeight(this.defaultHeight());
         window.addEventListener("mouseup", this.mouseUp);
+    },
+    defaultHeight: function() {
+        return window.innerHeight - 100;
     },
     height: function() {
         return this.getDOMNode().getBoundingClientRect().height;
     },
-    setHeight: function(h, trans) {
+    maxHeight: function() {
+        var height = 0;
+        if (this.refs.editorPane)
+            height = Math.max(height, this.refs.editorPane.maxHeight());
+        if (this.refs.contentPane)
+            height = Math.max(height, this.refs.contentPane.maxHeight());
+        if (this.refs.separator) {
+            height += 2 *
+                skulptgl.util.fullElementHeight(
+                    this.refs.separator.getDOMNode());
+        }
+        return height + 30;
+    },
+    setHeight: function(h, trans, transEnd) {
         if (trans) {
             this.getDOMNode().style.transition = "height .3s";
+            if (transEnd)
+                this.getDOMNode().addEventListener(
+                    "transitionend", transEnd, false);
         } else {
             this.getDOMNode().style.transition = null;
         }
         this.getDOMNode().style.height = h + "px";
     },
+    collapseTransitionEnd: function() {
+        this.getDOMNode().removeEventListener(
+            "transitionend", this.collapseTransitionEnd);
+        this.setState({collapsed: true});
+    },
     blockExpand: function() {
-        console.log(this.height());
-        console.log(this.state.defaultHeight);
-        if (this.height() < this.state.defaultHeight) {
-            this.setHeight(this.state.defaultHeight, true);
-            return;
+        if (this.height() < this.defaultHeight()) {
+            var transEnd = null;
+            if (this.state.collapsed) {
+                var that = this;
+                transEnd = function() {
+                    if (that.refs.editorPane)
+                        that.refs.editorPane.forceUpdate();
+                    that.getDOMNode().removeEventListener(
+                        "transitionend", transEnd);
+                };
+                this.setState({collapsed: false});
+                this.setHeight(this.defaultHeight(), true, transEnd);
+            }
+            this.setHeight(this.defaultHeight(), true, transEnd);
+            return
         }
+        var maxHeight = this.maxHeight();
+        if (this.height() < maxHeight)
+            this.setHeight(maxHeight, true);
     },
     blockCollapse: function() {
-        if (this.height() > this.state.defaultHeight) {
-            this.setHeight(this.state.defaultHeight, true);
+        if (this.height() > this.defaultHeight()) {
+            this.setHeight(this.defaultHeight(), true);
             return;
         }
+        this.setHeight(0, true, this.collapseTransitionEnd);
     },
     render: function() {
+        if (this.state.collapsed) {
+            return (
+                <div className="worksheet-block">
+                    <div className="separator">
+                        <div className="collapsed-line-wrapper"
+                            onClick={this.blockExpand}>
+                            <div className="collapsed-line"></div>
+                        </div>
+                        <Button text="test" />
+                        <Button icon="show7" click={this.blockExpand} />
+                    </div>
+                </div>
+            );
+        }
+
         var sepUpper =
             function(e) { this.separatorMouseDown(true, e); }.bind(this);
         var sepLower =
             function(e) { this.separatorMouseDown(false, e); }.bind(this);
         return (
             <div className="worksheet-block">
-                <div className="separator">
+                <div ref="separator" className="separator">
                     <div className="separator-line-wrapper" onMouseDown={sepUpper}>
                         <div className="separator-line"></div>
                     </div>
@@ -240,13 +306,13 @@ var WorksheetBlock = React.createClass({
                     <Button icon="show7" click={this.blockExpand} />
                 </div>
                 <div className="block-content">
-                    <ContentPane contentDoms={this.props.contentDoms}
-                        ref="contentPane" />
+                    <ContentPane ref="contentPane"
+                        contentDoms={this.props.contentDoms} />
                     <div className="divide-line-wrapper"
                         onMouseDown={this.verticalDivideMouseDown}>
                         <div className="divide-line"></div>
                     </div>
-                    <EditorPane ref="editor" onRun={this.props.onRun}
+                    <EditorPane ref="editorPane" onRun={this.props.onRun}
                         highlightable={this.state.editorHighlightable}
                         onSave={this.props.onSave} height="500"
                         onFileNameClick={this.props.onFileNameClick}

@@ -14,7 +14,7 @@ var SourceEditor = React.createClass({
         window.scrollTo(0, cursorPos - (winHeight / 2));
     },
     componentDidUpdate: function(prevProps, prevState) {
-        if (prevProps.src != this.props.src && this.props.src) {
+        if (this.props.src) {
             var code = this.props.src;
             if (!this.cdm) {
                 this.refs.textarea.getDOMNode().value = code;
