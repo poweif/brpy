@@ -23,6 +23,7 @@
     .project-name {
       @extend .button;
     }
+    transition: opacity $std-duration;
   }
 
   .text-input {

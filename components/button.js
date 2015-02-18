@@ -85,6 +85,8 @@ var ButtonMenu =  React.createClass({
         this.setState({hidden: !this.state.hidden});
     },
     windowMouseClick: function(obj, e) {
+        if (!obj.refs.items) return;
+
         var rect = obj.refs.items.getDOMNode().getBoundingClientRect();
         if (e.clientX > rect.right || e.clientX < rect.left ||
             e.clientY < rect.top || e.clientY > rect.bottom) {
@@ -129,14 +131,15 @@ var ButtonMenu =  React.createClass({
                     selected={!that.state.hidden || that.props.selected}
                     mid={that.props.mid}
                     small={that.props.small}
-                    addClass="main-button"
+                    addClass={that.state.hidden ?
+                              "main-button "  + that.props.addClass :
+                              "main-button"}
                     click={that.onClickMain} text={that.props.text}
                     icon={that.props.icon} />
             );
         }();
 
         var buttonMenuCn = "button-menu";
-
         if (this.state.hidden)
             return mainButton;
 
@@ -144,6 +147,9 @@ var ButtonMenu =  React.createClass({
             buttonMenuCn += " button-menu-center";
         } else if (this.props.right) {
             buttonMenuCn += " button-menu-right";
+        }
+        if (this.props.addClass) {
+            buttonMenuCn += " " + this.props.addClass;
         }
 
         var onClickWrapper = function(callback) {
@@ -158,7 +164,7 @@ var ButtonMenu =  React.createClass({
             this.props.items.map(function(item, ind) {
                 if (item.hr) {
                     return (
-                        <span className="vspace"> 
+                        <span className="vspace">
                             <MenuHr text={item.text} key={ind}/>
                         </span>
                     );

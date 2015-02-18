@@ -80,11 +80,17 @@ $console-button-size: 50px;
   }
 }
 
+$line-width: 1px;
+
 .worksheet-block {
   @extend %flexbox;
   @include flex-direction(column);
   @include align-items(stretch);
   @include align-self(stretch);
+  @include flex-grow(0);
+  @include flex-shrink(0);
+
+  overflow: hidden;
 
   .line-wrapper {
     opacity: .15;
@@ -100,25 +106,25 @@ $console-button-size: 50px;
     @extend %flexbox;
     @include flex-direction(row);
     @include align-items(center);
-    margin: 10px 0;
+    @include flex-grow(0);
+    @include flex-shrink(0);
+
+    margin: 5px 0;
 
     .separator-line-wrapper {
-      @include flex(auto);
       @extend %flexbox;
+      @include flex(auto);
       @include flex-direction(column);
       @include align-items(stretch);
       cursor: ns-resize;
       @extend .line-wrapper;
     }
     .separator-line {
-      display: inline;
-      @include align-items(stretch);
-      @include flex-grow(1);
       margin: 5px 10px;
       border-style: dashed none none none;
       height: 0;
       border-color: $prime-inv-color;
-      border-width: 2px;
+      border-width: $line-width;
     }
     .collapsed-line-wrapper {
       @extend .separator-line-wrapper;
@@ -128,7 +134,7 @@ $console-button-size: 50px;
       @extend .separator-line;
       border-style: solid none solid none;
       height: 4px;
-      border-width: 2px;
+      border-width: $line-width;
     }
   }
 
@@ -137,7 +143,6 @@ $console-button-size: 50px;
     @include flex-direction(row);
     @include align-items(stretch);
     @include justify-content(flex-start);
-
     min-height: 50px;
 
     .divide-line-wrapper {
@@ -154,7 +159,7 @@ $console-button-size: 50px;
       border-style: none none none dashed;
       border-color: $prime-inv-color;
       margin: 5px 10px;
-      border-width: 2px;
+      border-width: $line-width;
     }
     .content-pane {
       @extend %flexbox;
@@ -174,25 +179,22 @@ $console-button-size: 50px;
     padding: 0 20px 0 0;
     overflow: auto;
   }
+  .editor-wrapper-hidden {
+    @extend .editor-wrapper;
+    z-index: -1
+  }
 
   .editor-file-row {
     @extend %flexbox;
     @include flex-direction(row);
     @include align-items(center);
-    @include flex-wrap(nowrap);
-    @include justify-content(space-between);
+    @include justify-content(flex-start);
     @include flex-grow(0);
     @include flex-shrink(0);
     height: $button-size-small * 2;
     margin: 5px 0;
-
-    .files {
-      @extend %flexbox;
-      @include flex-direction(row);
-      @include align-items(center);
-      @include flex-wrap(nowrap);
-      @include justify-content(flex-start);
-      @include flex-grow(1);
+    .file-item {
+      margin: 0 3px;
     }
   }
 }

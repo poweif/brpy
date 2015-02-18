@@ -124,6 +124,13 @@ var skulptgl = {
         React.unmountComponentAtNode(
             document.getElementById('dialog0'));
     },
+    builtinRead: function(x) {
+        if (Sk.builtinFiles === undefined ||
+            Sk.builtinFiles["files"][x] === undefined) {
+            throw "File not found: '" + x + "'";
+        }
+        return Sk.builtinFiles["files"][x];
+    },
     project: null,
 };
 

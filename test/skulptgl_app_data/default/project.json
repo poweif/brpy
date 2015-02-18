@@ -1,5 +1,4 @@
 [
-    {"src": ["hello.py"], "defaultFile": 0, "name": "block0"}, 
-    {"src": ["test.py", "main.py"], "defaultFile": 1, "name": "block1"}
+    {"src": ["hello.py", "world.py"], "defaultFile": 0, "name": "hello-world"},
+    {"src": ["main.py"], "defaultFile": 0, "name": "main"}
 ]
-

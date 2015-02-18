@@ -1,7 +1,8 @@
 @import 'common';
 @import 'flexbox';
 
-.editor {
+.editorInner {
+  @extend .unselectable;
   @extend %flexbox;
   @include flex-direction(column);
 

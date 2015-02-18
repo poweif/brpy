@@ -40,8 +40,8 @@ var HeaderBar = React.createClass({
         };
         var buttons = [
             {text: "Projects", hr: true},
-            {text: "Options", hr: true},
             {text: "new...", click: func, icon: "add186"},
+            {text: "Options", hr: true},
             {text: "rename", click: func, icon: "rotate11",
              click: this.props.onProjectRenameClick},
             {text: "delete", click: func, icon: "close47"},
@@ -88,29 +88,57 @@ var EditorFileRow = React.createClass({
         var that = this;
         var fileButtons = this.props.srcFiles.map(
             function(fileExt, order) {
-                var click = function() {
-                    that.props.onFileNameClick(
-                        skulptgl.util.getFileName(fileExt));
-                };
                 var selected = order == that.props.currentFileInd;
                 if (!selected) {
-                    return <Button click={click} selected={selected}
+                    var click = function() {
+                        that.props.onFileClick(fileExt);
+                    };
+                    return <Button addClass="file-item" click={click}
+                               selected={selected}
                                key={order} text={fileExt} />;
                 }
-                var buttons = [
-                    {text: "move left", icon: "go10"},
-                    {text: "move right", icon: "right244"},
-                    {text: "rename", icon: "rotate11"},
-                    {text: "delete", icon: "close47"}
-                ];
-                return <ButtonMenu text={fileExt} items={buttons}
-                           selected="true" />
+                var moveLeft = function() {
+                    that.props.onFileMove(that.props.currentFileInd,
+                                          that.props.currentFileInd - 1);
+                };
+                var moveRight = function() {
+                    that.props.onFileMove(that.props.currentFileInd,
+                                          that.props.currentFileInd + 1);
+                };
+                var rename = function() {
+                    that.props.onFileRename(skulptgl.util.getFileName(fileExt));
+                };
+                var del = function() {
+                    that.props.onFileDelete(fileExt);
+                };
+
+                var left = {text: "move left", icon: "go10", click: moveLeft};
+                var right = {text: "move right", icon: "right244",
+                             click: moveRight};
+                var rename = {text: "rename", icon: "rotate11", click: rename};
+                var del = {text: "delete",icon: "close47", click: del};
+
+                var buttons = [];
+                if (order != 0)
+                    buttons.push(left);
+                if (order != that.props.srcFiles.length - 1)
+                    buttons.push(right);
+                buttons.push(rename);
+                buttons.push(del);
+
+                return <ButtonMenu addClass="file-item" text={fileExt}
+                           items={buttons} key={order} selected="true" />
             }
         );
+        fileButtons.push(function() {
+            return (
+                <Button icon="add186" addClass="file-item"
+                    click={that.props.onFileAdd} />
+            );
+        }());
         return (
             <div className="editor-file-row">
-                <div className="files">{fileButtons}</div>
-                <Button icon="add186" />
+                {fileButtons}
             </div>
         );
     }
@@ -130,7 +158,7 @@ var EditorPane = React.createClass({
     },
     render: function() {
         var src = null;
-        if (this.props.currentFileInd >= 0) {
+        if (this.props.currentFileInd >= 0 && this.props.srcTexts) {
             var srcFileName = this.props.srcFiles[this.props.currentFileInd];
             src = this.props.srcTexts[srcFileName];
         }
@@ -139,17 +167,24 @@ var EditorPane = React.createClass({
         if (!this.props.highlightable)
             editorPaneCn += " unselectable";
 
+        var editorWrapperCn = "editor-wrapper";
+        if (this.props.isDialogOpen)
+            editorWrapperCn += "-hidden";
+
         return (
             <div className={editorPaneCn}>
                 <EditorFileRow ref="fileRow"
-                    onFileNameClick={this.props.onFileNameClick}
+                    onFileClick={this.props.onFileClick}
+                    onFileRename={this.props.onFileRename}
+                    onFileAdd={this.props.onFileAdd}
+                    onFileDelete={this.props.onFileDelete}
+                    onFileMove={this.props.onFileMove}
                     currentFileInd={this.props.currentFileInd}
                     srcFiles={this.props.srcFiles} />
-                <div className="editor-wrapper">
+                <div className={editorWrapperCn}>
                     <SourceEditor ref="editor" src={src}
                         height={this.props.height}
-                        onRun={this.props.onRun} onSave={this.props.onSave}
-                        isDialogOpen={this.props.isDialogOpen} />
+                        onRun={this.props.onRun} onSave={this.props.onSave} />
                 </div>
             </div>
         );
@@ -208,15 +243,12 @@ var WorksheetBlock = React.createClass({
         }
         this.setState({editorHighlightable: true});
     },
-    componentDidMount: function() {
-        this.setHeight(this.defaultHeight());
-        window.addEventListener("mouseup", this.mouseUp);
-    },
     defaultHeight: function() {
         return window.innerHeight - 100;
     },
     height: function() {
-        return this.getDOMNode().getBoundingClientRect().height;
+        var val = this.getDOMNode().getBoundingClientRect().height;
+        return val ? val : 0;
     },
     maxHeight: function() {
         var height = 0;
@@ -229,7 +261,7 @@ var WorksheetBlock = React.createClass({
                 skulptgl.util.fullElementHeight(
                     this.refs.separator.getDOMNode());
         }
-        return height + 30;
+        return height;
     },
     setHeight: function(h, trans, transEnd) {
         if (trans) {
@@ -240,28 +272,21 @@ var WorksheetBlock = React.createClass({
         } else {
             this.getDOMNode().style.transition = null;
         }
-        this.getDOMNode().style.height = h + "px";
+        this.getDOMNode().style.height = Math.min(h, this.maxHeight()) + "px";
     },
     collapseTransitionEnd: function() {
         this.getDOMNode().removeEventListener(
             "transitionend", this.collapseTransitionEnd);
+        this.getDOMNode().style.height = null;
         this.setState({collapsed: true});
     },
     blockExpand: function() {
         if (this.height() < this.defaultHeight()) {
-            var transEnd = null;
             if (this.state.collapsed) {
-                var that = this;
-                transEnd = function() {
-                    if (that.refs.editorPane)
-                        that.refs.editorPane.forceUpdate();
-                    that.getDOMNode().removeEventListener(
-                        "transitionend", transEnd);
-                };
-                this.setState({collapsed: false});
-                this.setHeight(this.defaultHeight(), true, transEnd);
+               this.setState({collapsed: false});
             }
-            this.setHeight(this.defaultHeight(), true, transEnd);
+            this.setHeight(
+                Math.min(this.maxHeight(), this.defaultHeight()), true);
             return
         }
         var maxHeight = this.maxHeight();
@@ -273,7 +298,30 @@ var WorksheetBlock = React.createClass({
             this.setHeight(this.defaultHeight(), true);
             return;
         }
-        this.setHeight(0, true, this.collapseTransitionEnd);
+        this.setHeight(30, true, this.collapseTransitionEnd);
+    },
+    componentDidUpdate: function(prevProps, prevState) {
+        if (this.props.srcTexts !== prevProps.srcTexts &&
+            this.props.currentFileInd >= 0) {
+            var file = this.props.srcFiles[this.props.currentFileInd];
+            if (this.props.srcTexts[file] != prevProps.srcTexts[file]) {
+                this.setHeight(this.defaultHeight());
+            }
+        }
+        if (this.state.collapsed != prevState.collapsed && this.refs.editorPane) {
+            this.refs.editorPane.forceUpdate();
+            var that = this;
+            var transEnd = function() {
+                that.getDOMNode().removeEventListener(
+                    "transitionend", transEnd);
+                that.setHeight(that.defaultHeight(), true);
+            };
+            this.setHeight(this.defaultHeight(), true, transEnd);
+        }
+    },
+    componentDidMount: function() {
+        this.setHeight(Math.min(this.maxHeight(), this.defaultHeight()));
+        window.addEventListener("mouseup", this.mouseUp);
     },
     render: function() {
         if (this.state.collapsed) {
@@ -284,8 +332,7 @@ var WorksheetBlock = React.createClass({
                             onClick={this.blockExpand}>
                             <div className="collapsed-line"></div>
                         </div>
-                        <Button text="test" />
-                        <Button icon="show7" click={this.blockExpand} />
+                        <Button text={this.props.name} />
                     </div>
                 </div>
             );
@@ -301,9 +348,9 @@ var WorksheetBlock = React.createClass({
                     <div className="separator-line-wrapper" onMouseDown={sepUpper}>
                         <div className="separator-line"></div>
                     </div>
-                    <Button text="test" />
-                    <Button icon="show4" click={this.blockCollapse} />
-                    <Button icon="show7" click={this.blockExpand} />
+                    <Button text={this.props.name} />
+                    <Button icon="play107-n" click={this.blockCollapse} />
+                    <Button icon="play107-s" click={this.blockExpand} />
                 </div>
                 <div className="block-content">
                     <ContentPane ref="contentPane"
@@ -312,10 +359,15 @@ var WorksheetBlock = React.createClass({
                         onMouseDown={this.verticalDivideMouseDown}>
                         <div className="divide-line"></div>
                     </div>
-                    <EditorPane ref="editorPane" onRun={this.props.onRun}
+                    <EditorPane ref="editorPane" height="500"
                         highlightable={this.state.editorHighlightable}
-                        onSave={this.props.onSave} height="500"
-                        onFileNameClick={this.props.onFileNameClick}
+                        onSave={this.props.onSave}
+                        onRun={this.props.onRun}
+                        onFileClick={this.props.onFileClick}
+                        onFileRename={this.props.onFileRename}
+                        onFileAdd={this.props.onFileAdd}
+                        onFileDelete={this.props.onFileDelete}
+                        onFileMove={this.props.onFileMove}
                         isDialogOpen={this.props.isDialogOpen}
                         srcTexts={this.props.srcTexts}
                         srcFiles={this.props.srcFiles}
@@ -325,9 +377,8 @@ var WorksheetBlock = React.createClass({
                     <div className="separator-line-wrapper" onMouseDown={sepLower}>
                         <div className="separator-line"></div>
                     </div>
-                    <Button text="test" />
-                    <Button icon="show4" click={this.blockCollapse} />
-                    <Button icon="show7" click={this.blockExpand} />
+                    <Button icon="play107-n" click={this.blockCollapse} />
+                    <Button icon="play107-s" click={this.blockExpand} />
                 </div>
             </div>
         );
@@ -345,9 +396,310 @@ var MainPanel = React.createClass({
             srcFiles: {},
             srcContent: {},
             selectedFile: {},
-            isDialogOpen: false,
-            contentPanelDoms: {}
+            contentPaneDoms: {},
+            isDialogOpen: false
         };
+    },
+    onProjectRename: function() {
+        var that = this;
+        var ok = function(text) {
+            that.openWorkingDialog();
+                /*
+            skulptgl.writeProject(
+                {SKULPTGL_PROJECT_NAME: text},
+                function() {
+                    that.closeDialog();
+                    that.setState({projectName: text});},
+                function() {
+                    this.openPrompDialog("Failed to change project name")}
+            );
+            */
+        };
+        this.openTextDialog(
+            this.state.projectName, "New project name?", ok);
+    },
+    onFileRename: function(block, file) {
+        var oldFile = file;
+        var that = this;
+        var ok = function(newFile) {
+            if (newFile === oldFile) return;
+
+            that.openWorkingDialog();
+            var oldFileExt = oldFile + ".py";
+            var newFileExt = newFile + ".py";
+            var ofiles = skulptgl.util.deepCopy(that.state.srcFiles[block]);
+            var nfiles = ofiles.map(function(file) {
+                return file==oldFileExt ? newFileExt : file;
+            });
+            var failedMsg = function() {
+                that.openPromptDialog("Failed to change file name");
+            };
+            var successProj = function() {
+                    /*
+                skulptgl.renameSrcFile(
+                    oldFileExt, newFileExt,
+                    function() {
+                        that.closeDialog();
+                        that.setState({srcFiles: nfiles}); },
+                    function() {
+                        failedMsg();
+                        // roll back project change
+                        console.log("hope we never get here :(");
+                        skulptgl.writeProject({SKULPTGL_PROJECT_SRC: ofiles})}
+                );
+                    */
+            };
+
+
+            that.closeDialog();
+            var srcFiles = skulptgl.util.deepCopy(that.state.srcFiles);
+            srcFiles[block] = nfiles;
+
+            var srcContent = skulptgl.util.deepCopy(that.state.srcContent);
+            var src = srcContent[oldFileExt];
+            delete srcContent[oldFileExt];
+            srcContent[newFileExt] = src;
+
+            that.setState({srcFiles: srcFiles, srcContent: srcContent});
+
+            //successFile();
+            /*
+            skulptgl.writeProject(
+                {SKULPTGL_PROJECT_SRC: nfiles},
+                successProj,
+                failedMsg
+            );
+            */
+        };
+        this.openTextDialog(file, "New file name?", ok);
+    },
+    onFileClick: function(block, file) {
+        var ind =
+            skulptgl.util.indexOf(this.state.srcFiles[block], file);
+        if (this.state.selectedFile[block] != ind) {
+            var selectedFile = skulptgl.util.deepCopy(this.state.selectedFile);
+            selectedFile[block] = ind;
+            this.setState({selectedFile: selectedFile});
+        }
+    },
+    onFileAdd: function(block) {
+        var that = this;
+        var ok = function(fname) {
+            var fnameExt = fname + ".py";
+            var fileSrc = "# " + fnameExt;
+            var ofiles = that.state.srcFiles[block];
+            if (skulptgl.util.indexOf(ofiles, fnameExt) >= 0) {
+                that.openPromptDialog("File already exist");
+                return;
+            }
+            that.openWorkingDialog();
+            var failedMsg = function() {
+                that.openPromptDialog("Failed to add file");
+            };
+            var nfiles = skulptgl.util.deepCopy(ofiles).concat([fnameExt]);
+            var successFile = function() {
+                that.closeDialog();
+                var srcContent = skulptgl.util.deepCopy(that.state.srcContent);
+                srcContent[block][fnameExt] = fileSrc;
+                var selectedFile =
+                    skulptgl.util.deepCopy(that.state.selectedFile);
+                selectedFile[block] = nfiles.length -1;
+                that.setState({
+                    srcFiles: nfiles,
+                    srcContent: srcContent,
+                    selectedFile: selectedFile
+                });
+            };
+            var failureFile = function() {
+                failedMsg();
+                // roll back project change
+                console.log("hope we never get here :(");
+                //skulptgl.writeProject({SKULPTGL_PROJECT_SRC: ofiles});
+            };
+            successFile();
+/*
+            skulptgl.writeProject(
+                {SKULPTGL_PROJECT_SRC: nfiles},
+                function() {
+                    skulptgl.writeSrcFile(
+                        fnameExt, fileSrc, successFile, failureFile); },
+                failedMsg
+            );
+*/
+        };
+        this.openTextDialog("new", "New file?", ok);
+    },
+    onBlockDelete: function(block) {
+        var ind = skulptgl.util.indexOf(this.state.blocks, block);
+        var blocks = skulptgl.util.deepCopy(this.state.blocks);
+        var srcFiles = skulptgl.util.deepCopy(this.state.srcFiles);
+        var srcContent = skulptgl.util.deepCopy(this.state.srcContent);
+        var selectedFile = skulptgl.util.deepCopy(this.state.selectedFile);
+        var contentPaneDoms = this.state.contentPaneDoms;
+        blocks.splice(ind, 1);
+        var files = srcFiles[block];
+        delete srcFiles[block];
+        delete selectedFile[block];
+        delete contentPaneDoms[block];
+        files.forEach(function(file) {
+            delete srcContent[file];
+        });
+        this.setState({
+            blocks: blocks,
+            srcFiles: srcFiles,
+            srcContent: srcContent,
+            selectedFile: selectedFile,
+            contentPaneDoms: contentPaneDoms
+        });
+    },
+    onFileDelete: function(block, fname) {
+        var fnameExt = fname + ".py";
+        var that = this;
+        var ok = function() {
+            var ofiles = that.state.srcFiles[block];
+            var ind = skulptgl.util.indexOf(ofiles, fname);
+            if (ind < 0) {
+                that.closeDialog();
+                return;
+            }
+            that.openWorkingDialog();
+
+            var nfiles = skulptgl.util.deepCopy(ofiles);
+            nfiles.splice(ind, 1);
+
+            if (nfiles.length == 0) {
+                that.onBlockDelete(block);
+                that.closeDialog();
+                return;
+            }
+
+            var failedMsg = function() {
+                that.openPromptDialog("Failed to delete file");
+            };
+            var successFile = function() {
+                that.closeDialog();
+                var srcFiles = skulptgl.util.deepCopy(that.state.srcFiles);
+                var selectedFile =
+                    skulptgl.util.deepCopy(that.state.selectedFile);
+                srcFiles[block] = nfiles;
+                selectedFile[block] = 0;
+                that.setState({
+                    srcFiles: srcFiles,
+                    selectedFile: selectedFile
+                });
+            };
+            var failureFile = function() {
+                failedMsg();
+                // roll back project change
+                console.log("hope we never get here :(");
+                skulptgl.writeProject({SKULPTGL_PROJECT_SRC: ofiles});
+            };
+
+            successFile();
+/*
+            skulptgl.writeProject(
+                {SKULPTGL_PROJECT_SRC: nfiles},
+                function() {
+                    skulptgl.deleteSrcFile(fnameExt, successFile, failureFile);
+                },
+                failedMsg
+            );
+*/
+        };
+        this.openBinaryDialog(
+            "Are you sure you'd like to delete " + (fname) + "?", ok);
+    },
+    onFileMove: function(block, origin, target) {
+        if (target < 0 || target >= this.state.srcFiles[block].length)
+            return;
+
+        this.openWorkingDialog();
+
+        var that = this;
+        var ofiles = this.state.srcFiles[block];
+        var nfiles = skulptgl.util.deepCopy(ofiles);
+
+        var tmp = nfiles[origin];
+        nfiles[origin] = nfiles[target];
+        nfiles[target] = tmp;
+
+        var successProj = function() {
+            that.closeDialog();
+            var srcFiles = skulptgl.util.deepCopy(that.state.srcFiles);
+            srcFiles[block] = nfiles;
+            var selectedFile = skulptgl.util.deepCopy(that.state.selectedFile);
+            selectedFile[block] = target;
+            that.setState({
+                srcFiles: srcFiles,
+                selectedFile: selectedFile
+            });
+        };
+/*
+        var failureProj = function() {
+            that.openPromptDialog("Failed to change file order");
+        };
+        skulptgl.writeProject({SKULPTGL_PROJECT_SRC: nfiles}, successProj,
+                              failureProj);
+*/
+        successProj();
+    },
+    runProg: function(block) {
+        // If files are missing, do not run program.
+        var files = this.state.srcFiles[block];
+        for (var i = 0; i < files.length; i++) {
+            if (!this.state.srcContent[files[i]])
+                return;
+        }
+        var that = this;
+        var output = function(s) {
+            if (s.trim().length > 0)
+                that.refs.stdoutConsole.write(s);
+        };
+        Sk.configure(
+            {"output": output, "debugout": output, "read": skulptgl.builtinRead}
+        );
+        try {
+            var progs = this.state.srcFiles.map(function(file) {
+                return {name: file, body: that.state.srcs[file]};
+            });
+            Sk.importMainWithMultipleFiles(false, progs);
+            var ndoms = Sk.progdomIds().map(function(elem) {
+                return elem.dom;
+            });
+            var contentPaneDoms = {};
+            for (var i in this.state.contentPaneDoms)
+                contentPaneDoms[i] = this.state.contentPaneDoms[i];
+            contentPaneDoms[block] = ndoms;
+            this.setState({contentPaneDoms: contentPaneDoms});
+        } catch (e) {
+            console.log("python[ERROR]> " + e.toString());
+        }
+    },
+    onRun: function(block, file, code) {
+        this.clientSideSave(file, code);
+        this.runProg(block);
+    },
+    clientSideSave: function(block, file, code) {
+        if (!file)
+            return;
+        this.state.srcs[file] = code;
+    },
+    onSave: function(file, code, onSuccess, onFail) {
+        if (!file)
+            return;
+
+        this.clientSideSave(file, code);
+        /*
+        skulptgl.writeSrcFile(
+            fname, code,
+            function() {
+                console.log("Successfully wrote " + fname);
+                if (onSuccess) onSuccess(); },
+            function() {
+                console.log("Failed to write " + fname);
+                if (onFail) onFail(); }
+        );
+        */
     },
     onLoadProject: function(text) {
         var projectBlocks = JSON.parse(text);
@@ -361,13 +713,9 @@ var MainPanel = React.createClass({
             selectedFile[block.name] = block.defaultFile;
         });
 
-        var files = blocks.map(function(block) {
-            return srcFiles[block];
-        }).join();
-
+        var that = this;
         var readFiles = function(left) {
             if (left.length < 1) return;
-
             var file = left.splice(0, 1)[0];
             skulptgl.readSrcFile(
                 file,
@@ -376,11 +724,12 @@ var MainPanel = React.createClass({
                     readFiles(left);},
                 function() { console.log("failed to read " + file); });
         }
+        var files = [].concat.apply(
+            [], blocks.map(function(block) { return srcFiles[block]; }));
         readFiles(files);
 
-
-        this.setState({projectName: "rough"});
         this.setState({
+            projectName: "example",
             blocks: blocks,
             srcFiles: srcFiles,
             selectedFile: selectedFile
@@ -388,406 +737,43 @@ var MainPanel = React.createClass({
     },
     onLoadSource: function(file, text) {
         console.log("source loaded " + file);
-        var content = this.state.srcContent[file];
+        var content = skulptgl.util.deepCopy(this.state.srcContent);
         content[file] = text;
         this.setState({srcContent: content});
-    },
-    changeCurrentFile: function(ind) {
-        if (ind < 0 || ind >= this.state.srcFiles.length)
-            return;
-
-        if (this.refs.editor) {
-            var oldFile = this.state.srcFiles[this.state.currentFileInd];
-            this.memSave(oldFile, this.refs.editor.getContent());
-            this.setState({
-                currentFileInd: ind
-            });
-        }
-    },
-    componentDidUpdate: function(prevProps, prevState) {
-        var that = this;
     },
     componentDidMount: function() {
         skulptgl.readProject(this.onLoadProject);
     },
     render: function() {
+        var blocks = this.state.blocks.map(function(block) {
+            var srcFiles = this.state.srcFiles[block];
+            var ind = this.state.selectedFile[block];
+            var doms = this.state.contentPaneDoms[block];
+            var fileClick = this.onFileClick.bind(this, block);
+            var fileRename = this.onFileRename.bind(this, block);
+            var fileAdd = this.onFileAdd.bind(this, block);
+            var fileDel = this.onFileDelete.bind(this, block);
+            var fileMove = this.onFileMove.bind(this, block);
+            var run = this.onRun.bind(this, block);
+            var save = this.onSave.bind(this);
+            return (
+                <WorksheetBlock srcFiles={srcFiles} name={block}
+                    srcTexts={this.state.srcContent} currentFileInd={ind}
+                    contentDoms={doms} isDialogOpen={this.state.isDialogOpen}
+                    onFileRename={fileRename} onFileAdd={fileAdd}
+                    onFileDelete={fileDel} onFileMove={fileMove}
+                    onFileClick={fileClick}
+                    onRun={run} onSave={save} />
+            );
+        }.bind(this));
+
         return (
            <div className="main-panel">
                 <HeaderBar projectName={this.state.projectName}
                     onProjectRenameClick={this.onProjectRenameClick} />
                 <StdoutConsole ref="stdoutConsole" />
-                <WorksheetBlock srcFiles={this.state.srcFiles}
-                    onFileNameClick={this.onFileNameClick}
-                    srcTexts={this.state.srcs} onSave={save} onRun={run}
-                    currentFileInd={this.state.currentFileInd}
-                    contentDoms={this.state.panelDoms}
-                    isDialogOpen={this.state.isDialogOpen} />
-            </div>
-        );
-    }
-});
-
-var MainPanel2 = React.createClass({
-    mixins: [DialogMixins(function(v) {
-        this.setState({isDialogOpen: v})
-    })],
-    getInitialState: function() {
-        return {
-            name: '',
-            blocks: [],
-            srcFiles: {},
-            selectedFile: {},
-            isDialogOpen: false,
-            panelDoms: {}
-        };
-    },
-    onProjectRenameOk: function(text) {
-        var that = this;
-        var success = function() {
-            that.closeDialog();
-            that.setState({name: text});
-        };
-        var failure = function() {
-            that.openPromptDialog("Failed to change project name");
-        };
-        this.openWorkingDialog();
-
-        skulptgl.writeProject({SKULPTGL_PROJECT_NAME: text}, success, failure);
-    },
-    onProjectRenameClick: function() {
-        this.openTextDialog(
-            this.state.projectName, "New project name?", this.onProjectNameOK);
-    },
-    onFileNameOK: function(oldFile, newFile) {
-        if (newFile === oldFile)
-            return;
-
-        this.openWorkingDialog();
-
-        var oldFileExt = oldFile + ".py"
-        var newFileExt = newFile + ".py"
-
-        var that = this;
-
-        var ofiles = skulptgl.util.deepCopy(this.state.srcFiles);
-        var nfiles = ofiles.map(
-            function(file) {
-                return file==oldFileExt ? newFileExt : file;
-            }
-        );
-
-        var successFile = function() {
-            that.closeDialog();
-            that.setState({srcFiles: nfiles});
-        };
-
-        var failureFile = function() {
-            that.openPromptDialog("Failed to change file name");
-
-            // roll back project change
-            console.log("hope we never get here :(");
-            skulptgl.writeProject({SKULPTGL_PROJECT_SRC: ofiles});
-        };
-
-        var successProj = function() {
-            skulptgl.renameSrcFile(oldFileExt, newFileExt, successFile,
-                                   failureFile);
-        };
-
-        var failureProj = function() {
-            that.openPromptDialog("Failed to change file name");
-        };
-
-        var proj = {};
-        proj[SKULPTGL_PROJECT_SRC] = nfiles;
-        skulptgl.writeProject({SKULPTGL_PROJECT_SRC: nfiles}, successProj,
-                              failureProj);
-    },
-    onFileNameClick: function(oldFile) {
-        var ind = skulptgl.util.indexOf(this.state.srcFiles, oldFile + ".py");
-
-        if (this.state.currentFileInd != ind) {
-            this.changeCurrentFile(ind);
-            return;
-        }
-    },
-    onFileAddOK: function(fname) {
-        var fnameExt = fname + ".py";
-        var fileSrc = "# " + fnameExt;
-
-        if (skulptgl.util.indexOf(this.state.srcFiles, fnameExt) >= 0) {
-            this.openPromptDialog("File already exist");
-            return;
-        }
-
-        this.openWorkingDialog();
-
-        var that = this;
-        var ofiles = this.state.srcFiles;
-        var nfiles = skulptgl.util.deepCopy(ofiles);
-        nfiles.push(fnameExt);
-
-        var successFile = function() {
-            that.closeDialog();
-            that.state.srcs[fnameExt] = fileSrc;
-            that.setState({
-                srcFiles: nfiles,
-                currentFileInd: nfiles.length - 1
-            });
-        };
-
-        var failureFile = function() {
-            that.openPromptDialog("Failed to add file");
-
-            // roll back project change
-            console.log("hope we never get here :(");
-            skulptgl.writeProject({SKULPTGL_PROJECT_SRC: ofiles});
-        };
-
-        var successProj = function() {
-            skulptgl.writeSrcFile(
-                fnameExt, fileSrc, successFile, failureFile);
-        };
-
-        var failureProj = function() {
-            that.openPromptDialog("Failed to add file");
-        };
-
-        skulptgl.writeProject({SKULPTGL_PROJECT_SRC: nfiles}, successProj,
-                              failureProj);
-    },
-    onFileAddClick: function() {
-        this.openTextDialog("new", "New file?", this.onFileAddOK);
-    },
-    onFileDeleteOK: function(fname) {
-        var fnameExt = fname + ".py";
-
-        if (this.state.srcFiles.length < 2) {
-            that.openPromptDialog(
-                "Cannot delete " + fnameExt +
-                    " since we need at least one source file.");
-            return;
-        }
-
-        var ind = skulptgl.util.indexOf(this.state.srcFiles, fnameExt);
-        if (ind < 0)
-            return;
-
-        this.openWorkingDialog();
-
-        var that = this;
-        var ofiles = this.state.srcFiles;
-        var nfiles = skulptgl.util.deepCopy(ofiles);
-        nfiles.splice(ind, 1);
-
-        var successFile = function() {
-            that.closeDialog();
-            that.setState({
-                srcFiles: nfiles,
-                currentFileInd: 0
-            });
-        };
-
-        var failureFile = function() {
-            that.openPromptDialog("Failed to delete file");
-
-            // roll back project change
-            console.log("hope we never get here :(");
-            skulptgl.writeProject({SKULPTGL_PROJECT_SRC: ofiles});
-        };
-
-        var successProj = function() {
-            skulptgl.deleteSrcFile(fnameExt, successFile, failureFile);
-        };
-
-        var failureProj = function() {
-            that.openPromptDialog("Failed to change file name");
-        };
-        skulptgl.writeProject({SKULPTGL_PROJECT_SRC: nfiles}, successProj,
-                              failureProj);
-    },
-    onFileDeleteClick: function(fname) {
-        var del = function() { this.onFileDeleteOK(fname); }.bind(this);
-        this.openBinaryDialog(
-            "Are you sure you'd like to delete " + (fname + ".py") + "?", del);
-    },
-    onFileIndClick: function(origin, target) {
-        if (target < 0 || target >= this.state.srcFiles.length)
-            return;
-
-        this.openWorkingDialog();
-
-        var that = this;
-        var ofiles = this.state.srcFiles;
-        var nfiles = skulptgl.util.deepCopy(ofiles);
-
-        var tmp = nfiles[origin];
-        nfiles[origin] = nfiles[target];
-        nfiles[target] = tmp;
-
-        var successProj = function() {
-            that.closeDialog();
-            that.setState({
-                srcFiles: nfiles,
-                currentFileInd: target
-            });
-        };
-
-        var failureProj = function() {
-            that.openPromptDialog("Failed to change file order");
-        };
-        skulptgl.writeProject({SKULPTGL_PROJECT_SRC: nfiles}, successProj,
-                              failureProj);
-    },
-    onLoadProject: function(text) {
-        var project = JSON.parse(text);
-        this.setState({
-            name: project[SKULPTGL_PROJECT_NAME],
-            srcFiles: project[SKULPTGL_PROJECT_SRC],
-            currentFileInd: project[SKULPTGL_PROJECT_DEFAULT_FILE]
-        });
-    },
-    onLoadSource: function(file, text) {
-        console.log("source loaded " + file);
-        var srcs = this.state.srcs;
-        srcs[file] = text;
-        this.setState({srcs: srcs});
-    },
-    runProg: function() {
-        // If files are missing, do not run program.
-        for (var i = 0; i < this.state.srcFiles.length; i++) {
-            var file = this.state.srcFiles[i];
-            if (!this.state.srcs[file])
-                return;
-        }
-
-        var that = this;
-        var progs = this.state.srcFiles.map(function(file) {
-            return {name: file, body: that.state.srcs[file]};
-        });
-
-        var output = function(s) {
-            if (s.trim().length > 0)
-                that.refs.stdoutConsole.write(s);
-        };
-        var builtinRead = function(x) {
-            if (Sk.builtinFiles === undefined ||
-                Sk.builtinFiles["files"][x] === undefined) {
-                throw "File not found: '" + x + "'";
-            }
-            return Sk.builtinFiles["files"][x];
-        };
-
-        Sk.configure({
-            "output": output,
-            "debugout": output,
-            "read": builtinRead
-        });
-        try {
-            Sk.importMainWithMultipleFiles(false, progs);
-            var ndoms = Sk.progdomIds().map(function(elem) {
-                return elem.dom;
-            });
-            this.setState({panelDoms: ndoms});
-        } catch (e) {
-            console.log("python[ERROR]> " + e.toString());
-        }
-    },
-    onRun: function(code) {
-        if (this.state.currentFileInd < 0 ||
-            this.state.currentFileInd >= this.state.srcFiles.length) {
-            return;
-        }
-        this.memSave(this.state.srcFiles[this.state.currentFileInd], code);
-        this.runProg();
-    },
-    memSave: function(fname, code) {
-        if (!fname)
-            return;
-        this.state.srcs[fname] = code;
-    },
-    onSave: function(fname, code, onSuccess, onFail) {
-        if (!fname)
-            return;
-
-        this.memSave(fname, code);
-
-        var success = function() {
-            console.log("Successfully wrote " + fname);
-            if (onSuccess)
-                onSuccess();
-        };
-        var fail = function() {
-            console.log("Failed to write " + fname);
-            if (onFail)
-                onFail();
-        };
-        skulptgl.writeSrcFile(fname, code, success, fail);
-    },
-    changeCurrentFile: function(ind) {
-        if (ind < 0 || ind >= this.state.srcFiles.length)
-            return;
-
-        if (this.refs.editor) {
-            var oldFile = this.state.srcFiles[this.state.currentFileInd];
-            this.memSave(oldFile, this.refs.editor.getContent());
-            this.setState({
-                currentFileInd: ind
-            });
-        }
-    },
-    componentDidUpdate: function(prevProps, prevState) {
-        var that = this;
-        if (prevState.srcFiles != this.state.srcFiles) {
-            var toRead = [];
-            for (var i = 0; i < this.state.srcFiles.length; i++) {
-                var file = this.state.srcFiles[i];
-                if (!this.state.srcs[file])
-                    toRead.push(file);
-            }
-            var f = function(aRead) {
-                if (toRead.length == 0) {
-                    // Try running after the sources have been loaded.
-                    that.runProg();
-                    return;
-                }
-                var read = aRead[0];
-                aRead.splice(0, 1);
-                var g = function(text) {
-                    if (!text) {
-                        console.log("reading " + read + " failed");
-                        return;
-                    }
-                    that.onLoadSource(read, text);
-                    f(aRead);
-                };
-                skulptgl.readSrcFile(read, g, g);
-            }
-            f(toRead);
-        }
-    },
-    componentDidMount: function() {
-        skulptgl.readProject(this.onLoadProject);
-    },
-    render: function() {
-        var that = this;
-        var save = function(code) {
-            that.onSave(that.state.srcFiles[that.state.currentFileInd], code);
-        };
-        var run = this.onRun;
-
-        return (
-           <div className="main-panel">
-                <HeaderBar projectName={this.state.name}
-                    onProjectRenameClick={this.onProjectRenameClick} />
-                <StdoutConsole ref="stdoutConsole" />
-                <WorksheetBlock srcFiles={this.state.srcFiles}
-                    onFileNameClick={this.onFileNameClick}
-                    srcTexts={this.state.srcs} onSave={save} onRun={run}
-                    currentFileInd={this.state.currentFileInd}
-                    contentDoms={this.state.panelDoms}
-                    isDialogOpen={this.state.isDialogOpen} />
-            </div>
+                {blocks}
+           </div>
         );
     }
 });
