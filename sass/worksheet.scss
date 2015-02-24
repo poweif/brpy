@@ -80,7 +80,7 @@ $console-button-size: 50px;
   }
 }
 
-$line-width: 1px;
+$line-width: 2px;
 
 .worksheet-block {
   @extend %flexbox;
@@ -121,7 +121,7 @@ $line-width: 1px;
     }
     .separator-line {
       margin: 5px 10px;
-      border-style: dashed none none none;
+      border-style: dotted none none none;
       height: 0;
       border-color: $prime-inv-color;
       border-width: $line-width;
@@ -156,7 +156,7 @@ $line-width: 1px;
     }
     .divide-line {
       width: 0;
-      border-style: none none none dashed;
+      border-style: none none none dotted;
       border-color: $prime-inv-color;
       margin: 5px 10px;
       border-width: $line-width;

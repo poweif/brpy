@@ -66,9 +66,13 @@ var ContentPane = React.createClass({
         this.props.contentDoms.forEach(function(elem) {
             wrapper.appendChild(elem);
         });
+        if (this.props.resize) {
+            this.props.resize();
+        }
     },
-    componentDidUpdate: function() {
-        this.mountContentDoms();
+    componentDidUpdate: function(prevProps, prevState) {
+        if (prevProps.contentDoms !== this.props.contentDoms)
+            this.mountContentDoms();
     },
     componentDidMount: function() {
         this.mountContentDoms();
@@ -132,7 +136,7 @@ var EditorFileRow = React.createClass({
         );
         fileButtons.push(function() {
             return (
-                <Button icon="add186" addClass="file-item"
+                <Button icon="add186" addClass="file-item" key="add123"
                     click={that.props.onFileAdd} />
             );
         }());
@@ -155,6 +159,15 @@ var EditorPane = React.createClass({
         if (this.refs.editor)
             totalHeight += this.refs.editor.maxHeight();
         return totalHeight;
+    },
+    componentDidUpdate: function(prevProps) {
+        if (prevProps.currentFileInd != this.props.currentFileInd ||
+            prevProps.srcTexts !== this.props.srcTexts) {
+            if (this.props.resize) {
+                var srcFileName = this.props.srcFiles[this.props.currentFileInd];
+                this.props.resize();
+            }
+        }
     },
     render: function() {
         var src = null;
@@ -241,7 +254,8 @@ var WorksheetBlock = React.createClass({
             window.removeEventListener("mousemove", this.separatorDrag);
             this.separatorDrag = null;
         }
-        this.setState({editorHighlightable: true});
+        if (!this.state.editorHighlightable)
+            this.setState({editorHighlightable: true});
     },
     defaultHeight: function() {
         return window.innerHeight - 100;
@@ -272,7 +286,11 @@ var WorksheetBlock = React.createClass({
         } else {
             this.getDOMNode().style.transition = null;
         }
-        this.getDOMNode().style.height = Math.min(h, this.maxHeight()) + "px";
+        var nh = Math.min(h, this.maxHeight());
+        this.getDOMNode().style.height = nh + "px";
+    },
+    onContentUpdate: function() {
+        this.setHeight(this.defaultHeight(), true);
     },
     collapseTransitionEnd: function() {
         this.getDOMNode().removeEventListener(
@@ -285,8 +303,7 @@ var WorksheetBlock = React.createClass({
             if (this.state.collapsed) {
                this.setState({collapsed: false});
             }
-            this.setHeight(
-                Math.min(this.maxHeight(), this.defaultHeight()), true);
+            this.setHeight(this.defaultHeight(), true);
             return
         }
         var maxHeight = this.maxHeight();
@@ -303,10 +320,7 @@ var WorksheetBlock = React.createClass({
     componentDidUpdate: function(prevProps, prevState) {
         if (this.props.srcTexts !== prevProps.srcTexts &&
             this.props.currentFileInd >= 0) {
-            var file = this.props.srcFiles[this.props.currentFileInd];
-            if (this.props.srcTexts[file] != prevProps.srcTexts[file]) {
-                this.setHeight(this.defaultHeight());
-            }
+            this.setHeight(this.defaultHeight(), true);
         }
         if (this.state.collapsed != prevState.collapsed && this.refs.editorPane) {
             this.refs.editorPane.forceUpdate();
@@ -322,6 +336,9 @@ var WorksheetBlock = React.createClass({
     componentDidMount: function() {
         this.setHeight(Math.min(this.maxHeight(), this.defaultHeight()));
         window.addEventListener("mouseup", this.mouseUp);
+    },
+    compnentWillUnmount: function() {
+        window.removeEventListener("mouseup", this.mouseUp);
     },
     render: function() {
         if (this.state.collapsed) {
@@ -345,7 +362,8 @@ var WorksheetBlock = React.createClass({
         return (
             <div className="worksheet-block">
                 <div ref="separator" className="separator">
-                    <div className="separator-line-wrapper" onMouseDown={sepUpper}>
+                    <div className="separator-line-wrapper"
+                        onMouseDown={sepUpper}>
                         <div className="separator-line"></div>
                     </div>
                     <Button text={this.props.name} />
@@ -353,13 +371,14 @@ var WorksheetBlock = React.createClass({
                     <Button icon="play107-s" click={this.blockExpand} />
                 </div>
                 <div className="block-content">
-                    <ContentPane ref="contentPane"
-                        contentDoms={this.props.contentDoms} />
+                    <ContentPane ref="contentPane" resize={this.onContentUpdate}
+                        contentDoms={this.props.contentDoms} block={this.props.name}/>
                     <div className="divide-line-wrapper"
                         onMouseDown={this.verticalDivideMouseDown}>
                         <div className="divide-line"></div>
                     </div>
                     <EditorPane ref="editorPane" height="500"
+                        resize={this.onContentUpdate}
                         highlightable={this.state.editorHighlightable}
                         onSave={this.props.onSave}
                         onRun={this.props.onRun}
@@ -653,14 +672,15 @@ var MainPanel = React.createClass({
         var that = this;
         var output = function(s) {
             if (s.trim().length > 0)
-                that.refs.stdoutConsole.write(s);
+                that.refs.stdoutConsole.write(block + "> " + s);
         };
         Sk.configure(
             {"output": output, "debugout": output, "read": skulptgl.builtinRead}
         );
+
         try {
-            var progs = this.state.srcFiles.map(function(file) {
-                return {name: file, body: that.state.srcs[file]};
+            var progs = this.state.srcFiles[block].map(function(file) {
+                return {name: file, body: that.state.srcContent[file]};
             });
             Sk.importMainWithMultipleFiles(false, progs);
             var ndoms = Sk.progdomIds().map(function(elem) {
@@ -706,6 +726,7 @@ var MainPanel = React.createClass({
         var blocks = [];
         var srcFiles = {};
         var selectedFile = {};
+        var that = this;
 
         projectBlocks.forEach(function(block) {
             blocks.push(block.name);
@@ -713,30 +734,43 @@ var MainPanel = React.createClass({
             selectedFile[block.name] = block.defaultFile;
         });
 
-        var that = this;
-        var readFiles = function(left) {
-            if (left.length < 1) return;
-            var file = left.splice(0, 1)[0];
+        var runq = function(q, func, onDoneQ) {
+            if (q.length < 1) {
+                if (onDoneQ) return onDoneQ();
+                return null;
+            }
+
+            var r = q.splice(0, 1)[0];
+            var nextq = q;
+            func(r, function() { runq(nextq, func, onDoneQ); });
+        };
+        var readFile = function(file, onDoneFile) {
             skulptgl.readSrcFile(
                 file,
                 function(text) {
                     that.onLoadSource(file, text);
-                    readFiles(left);},
+                    onDoneFile();},
                 function() { console.log("failed to read " + file); });
-        }
-        var files = [].concat.apply(
-            [], blocks.map(function(block) { return srcFiles[block]; }));
-        readFiles(files);
+        };
+        var readBlock = function(block, onDoneBlock) {
+            var files = skulptgl.util.deepCopy(srcFiles[block]);
+            var runblock = function() {
+                that.runProg(block);
+                if (onDoneBlock)
+                    onDoneBlock();
+            };
+            runq(files, readFile, runblock);
+        };
+        runq(skulptgl.util.deepCopy(blocks), readBlock);
 
-        this.setState({
-            projectName: "example",
+        that.setState({
+           projectName: "example",
             blocks: blocks,
             srcFiles: srcFiles,
             selectedFile: selectedFile
         });
     },
     onLoadSource: function(file, text) {
-        console.log("source loaded " + file);
         var content = skulptgl.util.deepCopy(this.state.srcContent);
         content[file] = text;
         this.setState({srcContent: content});
@@ -755,9 +789,9 @@ var MainPanel = React.createClass({
             var fileDel = this.onFileDelete.bind(this, block);
             var fileMove = this.onFileMove.bind(this, block);
             var run = this.onRun.bind(this, block);
-            var save = this.onSave.bind(this);
+            var save = this.onSave;
             return (
-                <WorksheetBlock srcFiles={srcFiles} name={block}
+                <WorksheetBlock key={block} srcFiles={srcFiles} name={block}
                     srcTexts={this.state.srcContent} currentFileInd={ind}
                     contentDoms={doms} isDialogOpen={this.state.isDialogOpen}
                     onFileRename={fileRename} onFileAdd={fileAdd}
