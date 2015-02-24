@@ -8,7 +8,7 @@ var SourceEditor = React.createClass({
     getContent: function() {
         if (!this.state.cdm)
             return null;
-        return this.cdm.state.getValue();
+        return this.state.cdm.getValue();
     },
     onScrollTo: function() {
         if (!this.state.cdm)
@@ -19,51 +19,59 @@ var SourceEditor = React.createClass({
         window.scrollTo(0, cursorPos - (winHeight / 2));
     },
     componentDidUpdate: function(prevProps, prevState) {
-        console.log("did update " + prevProps.height, " ", this.props.height);
-        if (this.props.src != prevProps.src) {
+        var that = this;
+        if (this.props.src != prevProps.src || !this.state.cdm) {
             var code = this.props.src;
-            if (!this.state.cdm) {
-                this.refs.textarea.getDOMNode().value = code;
-                this.setState({
-                    cdm: CodeMirror.fromTextArea(
-                        this.refs.textarea.getDOMNode(),
-                        {
-                            lineNumbers: true,
-                            lineWrapping: true,
-                            mode: "python",
-                            keyMap: "emacs",
-                            autoCloseBrackets: true,
-                            matchBrackets: true,
-                            showCursorWhenSelecting: true,
-                            theme: "monokai"
-                        }
-                    )
-                });
+            var cdm = this.state.cdm;
+            if (!cdm) {
+                cdm = CodeMirror.fromTextArea(
+                    this.refs.textarea.getDOMNode(),
+                    {
+                        lineNumbers: true,
+                        lineWrapping: true,
+                        mode: "python",
+                        keyMap: "emacs",
+                        autoCloseBrackets: true,
+                        matchBrackets: true,
+                        showCursorWhenSelecting: true,
+                        theme: "monokai"
+                    }
+                );
+                var keymap = {
+                    "Ctrl-B" : function() {
+                        if (that.state.cdm)
+                            that.props.onRun(that.getContent());
+                    }
+                };
+                cdm.addKeyMap(CodeMirror.normalizeKeyMap(keymap));
+                this.setState({cdm: cdm});
             }
+
+            if (code) {
+                cdm.getDoc().setValue(code);
+                cdm.scrollIntoView({line: cdm.getDoc().lastLine(), pos: 0});
+                cdm.scrollIntoView({line: 0, pos: 0});
+            }
+            cdm.refresh();
+            if (this.props.resize)
+                this.props.resize();
         }
 
         if (this.props.height != prevProps.height && this.state.cdm) {
-            console.log(Math.max(1 ,this.props.height), " ", this.props.height);
             this.state.cdm.setSize(650, Math.max(1, this.props.height));
             this.state.cdm.refresh();
         }
+
+        if (this.state.cdm != prevState.cdm && this.props.resize)
+            this.props.resize();
     },
     componentDidMount: function() {
-        console.log("mounting!!!!");
         var keyMapParams = {
             type: 'keydown',
             propagate: false,
             target: document
         };
         var that = this;
-
-        if (this.props.onRun) {
-            var run = function() {
-                if (that.state.cdm)
-                    that.props.onRun(that.state.cdm.getValue());
-            };
-            shortcut.add('Ctrl+B', run, keyMapParams);
-        }
 
         if (this.props.onSave) {
             var save = function() {
@@ -83,12 +91,11 @@ var SourceEditor = React.createClass({
     },
     maxHeight: function() {
         if (!this.state.cdm) {
-            console.log("early out ", this.state.cdm, this);
-            return 400;
+            return 100;
         }
-        var height = this.state.cdm.heightAtLine(10000, "local") + 4;
-        console.log("doc count: " + this.state.cdm.lineCount() + " height: " + height);
-        return this.state.cdm.heightAtLine(10000, "local") + 4;
+        var height = this.state.cdm.heightAtLine(
+            this.state.cdm.getDoc().lastLine(), "local") + 20;
+        return height;
     },
     render: function() {
         var editorInnerCn = "codearea";

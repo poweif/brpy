@@ -155,27 +155,21 @@ var EditorPane = React.createClass({
         return skulptgl.util.fullElementHeight(this.refs.fileRow.getDOMNode());
     },
     maxHeight: function() {
-        var totalHeight = 0;
-        totalHeight += this.fileRowHeight();
-
+        var totalHeight = this.fileRowHeight();
         if (this.refs.editor)
             totalHeight += this.refs.editor.maxHeight();
         return totalHeight;
     },
-    componentDidUpdate: function(prevProps) {
-        if (prevProps.currentFileInd != this.props.currentFileInd ||
-            prevProps.srcTexts !== this.props.srcTexts) {
-            if (this.props.resize) {
-                var srcFileName = this.props.srcFiles[this.props.currentFileInd];
-                this.props.resize();
-            }
-        }
-    },
     render: function() {
+        var that = this;
         var src = null;
+        var run = this.props.onRun;
         if (this.props.currentFileInd >= 0 && this.props.srcTexts) {
             var srcFileName = this.props.srcFiles[this.props.currentFileInd];
             src = this.props.srcTexts[srcFileName];
+            run = function(code) {
+                that.props.onRun(srcFileName, code);
+            };
         }
 
         var editorPaneCn = "editor-pane";
@@ -198,8 +192,8 @@ var EditorPane = React.createClass({
                     currentFileInd={this.props.currentFileInd}
                     srcFiles={this.props.srcFiles} />
                 <SourceEditor ref="editor" src={src}
-                    height={realHeight}
-                    onRun={this.props.onRun} onSave={this.props.onSave} />
+                    height={realHeight} resize={this.props.resize}
+                    onRun={run} onSave={this.props.onSave} />
             </div>
         );
     }
@@ -269,7 +263,7 @@ var WorksheetBlock = React.createClass({
     separatorHeight: function() {
         if (!this.refs.separator)
             return 0;
-        return 2 * 
+        return 2 *
             skulptgl.util.fullElementHeight(this.refs.separator.getDOMNode());
     },
     maxHeight: function() {
@@ -281,28 +275,31 @@ var WorksheetBlock = React.createClass({
         height += this.separatorHeight();
         return height;
     },
+    heightTransitionEnd: null,
     setHeight: function(h, trans, transEnd) {
         var clippedHeight = Math.min(h, this.maxHeight());
         var that = this;
 
-        console.log("setting height to: " + clippedHeight + " h: " + h + " max: " + this.maxHeight());
+        if (this.heightTransitionEnd) {
+            this.getDOMNode().removeEventListener(
+                "transitionend", this.heightTransitionEnd, false);
+            this.heightTransitionEnd = null;
+        }
 
         if (trans) {
             this.getDOMNode().style.transition = "height .3s";
-            var newTransEnd = function() {
+            this.heightTransitionEnd = function() {
                 that.setState(
                     {editorHeight: clippedHeight - that.separatorHeight()}
                 );
-            };
-            if (transEnd) {
-                newTransEnd = function() {
-                    that.setState(
-                        {editorHeight: clippedHeight - that.separatorHeight()}
-                    );
+                that.getDOMNode().removeEventListener(
+                    "transitionend", that.heightTransitionEnd);
+                that.heightTransitionEnd = null;
+                if (transEnd)
                     transEnd();
-                };
-            }
-            this.getDOMNode().addEventListener("transitionend", newTransEnd, false);
+            };
+            this.getDOMNode().addEventListener(
+                "transitionend", this.heightTransitionEnd, false);
         } else {
             this.getDOMNode().style.transition = null;
             that.setState(
@@ -348,15 +345,7 @@ var WorksheetBlock = React.createClass({
         }
         if (this.state.collapsed != prevState.collapsed && this.refs.editorPane) {
             this.refs.editorPane.forceUpdate();
-            var that = this;
-                /*
-            var transEnd = function() {
-                that.getDOMNode().removeEventListener(
-                    "transitionend", transEnd);
-                that.setHeight(that.defaultHeight(), true);
-            };
-*/
-            this.setHeight(this.defaultHeight(), true, transEnd);
+            this.setHeight(this.defaultHeight(), true);
         }
     },
     componentDidMount: function() {
@@ -722,13 +711,13 @@ var MainPanel = React.createClass({
         }
     },
     onRun: function(block, file, code) {
-        this.clientSideSave(file, code);
+        this.clientSideSave(block, file, code);
         this.runProg(block);
     },
     clientSideSave: function(block, file, code) {
         if (!file)
             return;
-        this.state.srcs[file] = code;
+        this.state.srcContent[file] = code;
     },
     onSave: function(file, code, onSuccess, onFail) {
         if (!file)
