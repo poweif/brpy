@@ -1,15 +1,7 @@
 @import 'common';
 @import 'flexbox';
 
-.editorInner {
+.codearea {
   @extend .unselectable;
-  @extend %flexbox;
-  @include flex-direction(column);
-
-  .CodeMirror {
-    height: 100%;
-  }
-  .codearea-hidden {
-    z-index: -1;
-  }
+  @include flex(auto);
 }

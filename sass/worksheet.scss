@@ -175,14 +175,7 @@ $line-width: 2px;
   @extend %flexbox;
   @include flex-direction(column);
   @include align-items(stretch);
-  .editor-wrapper {
-    padding: 0 20px 0 0;
-    overflow: auto;
-  }
-  .editor-wrapper-hidden {
-    @extend .editor-wrapper;
-    z-index: -1
-  }
+  overflow: hidden;
 
   .editor-file-row {
     @extend %flexbox;
@@ -199,6 +192,10 @@ $line-width: 2px;
   }
 }
 
+.editor-pane-hidden {
+  @extend .editor-pane;
+  z-index: -1
+}
 
 .main-panel {
   @extend %flexbox;
