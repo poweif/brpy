@@ -63,7 +63,11 @@ class CherrypyServer(object):
         'tools.sessions.on' : True
     }
 
-    def __result(self, redirect=None, content=None, session_key=None):
+    def __result(self, redirect=None, content=None, session_key=None, fail=None):
+        if fail is not None:
+            cherrypy.response.status = '500'
+            return fail
+
         if redirect is not None:
             if session_key is not None:
                 cherrypy.response.cookie[SESSION_KEY] = session_key
@@ -86,11 +90,11 @@ class CherrypyServer(object):
 
         login_id = cherrypy.session[SESSION_KEY]
         if not login_id in g_session:
-            return self.__result()
+            return self.__result(fail='login in error')
 
         session = g_session[login_id]
         if not 'solution' in session:
-            return self.__result()
+            return self.__result(fail='no solution in session')
 
         solution = session['solution']
 
@@ -98,13 +102,14 @@ class CherrypyServer(object):
             solution = solution.read_solution()
             if solution is not None:
                 return self.__result(content=json.dumps(solution))
-            return self.__result()
+            return self.__result(fail='solution does not exist')
 
         # switch project
         if 'proj' in param:
             proj = param['proj']
             if proj is None:
-                return self.__result()
+                return self.__result('no project name given')
+            solution.set_current_project(proj)
             return self.__result(content=solution.read_project(proj))
 
         if 'rename-proj' in param:
@@ -112,7 +117,7 @@ class CherrypyServer(object):
             if new_name is not None and\
                solution.rename_project(new_name=new_name):
                 return self.__result(content='finished renaming project')
-            return self.__result()
+            return self.__result(fail='no project name give')
 
         if 'new-proj' in param:
             name = param['new-proj']
@@ -120,40 +125,47 @@ class CherrypyServer(object):
                 res = solution.create_project(proj_name=name)
                 if res is not None:
                     return self.__result(content=solution.read_project(name))
-            return self.__result()
+                return self.__result(fail='failed to create new project')
+            return self.__result(fail='no project name given in [new-proj]')
 
         if 'write-proj' in param:
             nproj = json.loads(cherrypy.request.body.read())
             if solution.update_project(nproj):
                 return self.__result(content='finished updating project')
-            return self.__result()
+            return self.__result(fail='failed to update project')
+
+        if 'delete-proj' in param:
+            name = param['delete-proj']
+            if solution.delete_project(name):
+                return self.__result(content='finished delete project')
+            return self.__result(fail='failed to delete project')
 
         if 'read' in param:
             res = solution.read_file(param['read'])
             if res is not None:
                 return self.__result(content=res)
-            return self.__result()
+            return self.__result(fail='no file name given in [read]')
 
         if 'rename' in param:
             fs = param['rename'].split(',')
             if solution.rename_file(old_name=fs[0], new_name=fs[1]):
                 return self.__result(
                     content="finished renaming " + fs[0] + " to " + fs[1])
-            return self.__result()
+            return self.__result(fail='no file name given in [rename]')
 
         if 'delete' in param:
             fname = param['delete']
             if solution.delete_file(fname):
                 return self.__result(content="finished deleting " + fname)
-            return self.__result()
+            return self.__result(fail='no file name given in [delete]')
 
         if 'write' in param:
             fname = param['write']
             if solution.write_file(fname, cherrypy.request.body.read()):
                 return self.__result(content='finished writing ' + fname)
-            return self.__result()
+            return self.__result(fail='no file name given in [write]')
 
-        return self.__result()
+        return self.__result(fail='does not recognize [run] command')
 
     @cherrypy.expose
     def login(self, **param):

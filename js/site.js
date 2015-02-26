@@ -104,11 +104,13 @@ var skulptgl = {
         this.util.xhrPost('/run/?write-proj', newProjStr, onLoad, onFailed);
     },
     renameProject: function(newProjName, onLoad, onFailed) {
-        this.util.xhrPost('/run/?rename-proj=' + newProjName,
-                          newProjStr, onLoad, onFailed);
+        this.util.xhrGet('/run/?rename-proj=' + newProjName, onLoad, onFailed);
     },
     newProject: function(projName, onLoad, onFailed) {
-        this.util.xhrPost('/run/?new-proj=' + projName, onLoad, onFailed);
+        this.util.xhrGet('/run/?new-proj=' + projName, onLoad, onFailed);
+    },
+    deleteProject: function(proj, onLoad, onFailed) {
+        this.util.xhrGet('/run/?delete-proj=' + proj, onLoad, onFailed);
     },
     renameSrcFile: function(oldname, newname, onLoad, onFailed) {
         this.util.xhrGet(

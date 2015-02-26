@@ -5,6 +5,7 @@ import io
 import simplejson as json
 import httplib2
 import os
+import shutil
 
 from abc import ABCMeta, abstractmethod
 
@@ -59,6 +60,8 @@ class SkSolution():
         solution = self.read_solution()
         if proj_name in solution['projects']:
             return None
+        solution['projects'].append(proj_name)
+        self._update_solution({"projects": solution['projects']})
 
         proj_folder_id = self._create_folder(self._app(), proj_name)
 
@@ -122,16 +125,26 @@ class SkSolution():
             old_name = self.get_current_project()
 
         projects = self.read_solution()['projects']
-        if not old_name in projects:
+        if not old_name in projects or new_name in projects:
             return False
 
         self._rename_file_impl(self._app(), old_name, new_name)
         self._update_solution(
-            [x if x != old_name else new_name for x in projects])
+            {"projects": [x if x != old_name else new_name for x in projects]})
 
         if self._current_project == old_name:
             self._current_project = new_name
 
+        return True
+
+    def delete_project(self, name):
+        projects = self.read_solution()['projects']
+        if not name in projects or len(projects) < 2:
+            return False
+
+        self._update_solution({"projects": [x for x in projects if x !=name]})
+        self._current_project = None
+        self._delete_file_impl(self._app(), name)
         return True
 
     def read_file(self, fname, proj=None):
@@ -156,18 +169,14 @@ class SkSolution():
         if proj_id is None:
             return False
         res = self._rename_file_impl(proj_id, old_name, new_name)
-        if res is not None:
-            return True
-        return False
+        return res is not None
 
     def delete_file(self, file_name, proj=None):
         proj_id = self._find_project_id(self._pj(proj))
         if proj_id is None:
             return False
         res = self._delete_file_impl(proj_id, file_name)
-        if res is not None:
-            return True
-        return False
+        return res is not None
 
     def update_project(self, new_proj_data, proj=None):
         return True
@@ -349,7 +358,7 @@ class DevSkSolution(SkSolution):
 
         path = parent_path + "/" + folder_name
         if os.access(path, os.F_OK):
-            return
+            return _write_key(parent_path, folder_name)
         os.mkdir(path)
         return self._write_key(parent_path, folder_name)
 
@@ -380,7 +389,10 @@ class DevSkSolution(SkSolution):
         file_path = self._find_file_id(parent_path, file_name)
         if file_path is None:
             return False
-        os.remove(file_path)
+        if os.path.isfile(file_path):
+            os.remove(file_path)
+        else:
+            shutil.rmtree(file_path)
         self._remove_key(parent_path, file_name)
         return True
 

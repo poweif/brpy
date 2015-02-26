@@ -41,26 +41,31 @@ var HeaderBar = React.createClass({
         var func = function() {
             console.log("clicking!");
         };
-        var currentProj = this.props.projects[this.props.currentProject];
+        var that = this;
+        var current = this.props.projects[this.props.currentProject];
         var buttons = [{text: "Projects", hr: true}];
         buttons = buttons.concat(
             this.props.projects.map(function(proj) {
-                if (proj == currentProj)
+                if (proj == current)
                     return null;
-                return {text: proj, click: func};
+                var projectClick = function() {
+                    return that.props.onProjectClick(proj);
+                };
+                return {text: proj, click: projectClick};
             })
         );
+        var rename = function() { return that.props.onProjectRename(current); };
+        var del = function() { return that.props.onProjectDelete(current); };
         buttons = buttons.concat([
-            {text: "new...", click: this.props.onNewProject,
+            {text: "new...", click: this.props.onProjectNew,
              icon: "add186"},
             {text: "Options", hr: true},
-            {text: "rename", click: func, icon: "rotate11",
-             click: this.props.onProjectRename},
-            {text: "delete", click: func, icon: "close47"},
+            {text: "rename", click: rename, icon: "rotate11"},
+            {text: "delete", click: del, icon: "close47"},
         ]);
 
         return (
-            <ButtonMenu large text={currentProj} items={buttons}/>
+            <ButtonMenu large text={current} items={buttons}/>
         );
     }
 });
@@ -446,33 +451,38 @@ var MainPanel = React.createClass({
             isDialogOpen: false
         };
     },
-    onProjectRename: function() {
+    onProjectRename: function(oldProj) {
         var that = this;
         var ok = function(text) {
             that.openWorkingDialog();
-                /*
-            skulptgl.writeProject(
-                {SKULPTGL_PROJECT_NAME: text},
+            skulptgl.renameProject(
+                text,
                 function() {
                     that.closeDialog();
-                    that.setState({projectName: text});},
+                    var projs = that.state.projects.map(function(p) {
+                        return p == oldProj ? text : p;
+                    });
+                    that.setState({projects: projs});},
                 function() {
-                    this.openPromptDialog("Failed to change project name")}
+                    that.openPromptDialog("Failed to change project name")}
             );
-            */
         };
-        this.openTextDialog(
-            this.state.projectName, "Rename project?", ok);
+        this.openTextDialog(oldProj, "Rename project?", ok);
     },
-    onNewProject: function() {
+    onProjectClick: function(project) {
+        this.setState({
+            currentProject: skulptgl.util.indexOf(this.state.projects, project)
+        });
+    },
+    onProjectNew: function() {
         var that = this;
         var ok = function(text) {
             that.openWorkingDialog();
             skulptgl.newProject(
                 text,
-                function() {
+                function(project) {
                     that.closeDialog();
-                    var projs = skulpt.util.deepCopy(that.state.projects);
+                    var projs = skulptgl.util.deepCopy(that.state.projects);
                     projs.push(text);
                     that.setState({
                         projects: projs,
@@ -485,6 +495,28 @@ var MainPanel = React.createClass({
         };
         this.openTextDialog(
             this.state.projectName + "-1", "New project name?", ok);
+    },
+    onProjectDelete: function(proj) {
+        var that = this;
+        var ok = function() {
+            that.openWorkingDialog();
+            skulptgl.deleteProject(
+                proj,
+                function() {
+                    that.closeDialog();
+                    var projs = [];
+                    for (var i = 0; i < that.state.projects.length; i++)
+                        if (that.state.projects[i] != proj)
+                            projs.push(that.state.projects[i])
+                    that.setState({
+                        projects: projs,
+                        currentProject: 0
+                    });},
+                function() {
+                    that.openPromptDialog("Failed to delete project")}
+            );
+        };
+        this.openBinaryDialog("Delete project?", ok);
     },
     onFileRename: function(block, file) {
         var oldFile = file;
@@ -830,7 +862,7 @@ var MainPanel = React.createClass({
         });
     },
     componentDidUpdate: function(prevProps, prevState) {
-        if (prevState.currentProject != this.state.currentProject) {
+        if (prevState.currentProject != this.state.currentProject && this.state.projects) {
             var project = this.state.projects[this.state.currentProject];
             skulptgl.readProject(
                 project, this.onLoadProject.bind(this, project));
@@ -866,7 +898,9 @@ var MainPanel = React.createClass({
            <div className="main-panel">
                 <HeaderBar projects={this.state.projects}
                     currentProject={this.state.currentProject}
-                    onNewProject={this.onNewProject}
+                    onProjectDelete={this.onProjectDelete}
+                    onProjectNew={this.onProjectNew}
+                    onProjectClick={this.onProjectClick}
                     onProjectRename={this.onProjectRename} />
                 <StdoutConsole ref="stdoutConsole" />
                 {blocks}
