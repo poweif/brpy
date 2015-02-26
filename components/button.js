@@ -162,6 +162,9 @@ var ButtonMenu =  React.createClass({
         var items = !this.props.items ?
             [] :
             this.props.items.map(function(item, ind) {
+                if (!item)
+                    return null;
+
                 if (item.hr) {
                     return (
                         <span className="vspace">

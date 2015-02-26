@@ -35,21 +35,32 @@ var StdoutConsole =  React.createClass({
 
 var HeaderBar = React.createClass({
     render: function(){
+        if (!this.props.projects)
+            return null;
+
         var func = function() {
             console.log("clicking!");
         };
-        var buttons = [
-            {text: "Projects", hr: true},
-            {text: "new...", click: func, icon: "add186"},
+        var currentProj = this.props.projects[this.props.currentProject];
+        var buttons = [{text: "Projects", hr: true}];
+        buttons = buttons.concat(
+            this.props.projects.map(function(proj) {
+                if (proj == currentProj)
+                    return null;
+                return {text: proj, click: func};
+            })
+        );
+        buttons = buttons.concat([
+            {text: "new...", click: this.props.onNewProject,
+             icon: "add186"},
             {text: "Options", hr: true},
             {text: "rename", click: func, icon: "rotate11",
-             click: this.props.onProjectRenameClick},
+             click: this.props.onProjectRename},
             {text: "delete", click: func, icon: "close47"},
-        ];
+        ]);
 
         return (
-            <ButtonMenu large text={this.props.projectName}
-               items={buttons}/>
+            <ButtonMenu large text={currentProj} items={buttons}/>
         );
     }
 });
@@ -173,12 +184,12 @@ var EditorPane = React.createClass({
         }
 
         var editorPaneCn = "editor-pane";
+        if (this.props.isDialogOpen)
+            editorPaneCn += "-hidden";
+
         if (!this.props.highlightable)
             editorPaneCn += " unselectable";
 
-        var editorWrapperCn = "editor-wrapper";
-        if (this.props.isDialogOpen)
-            editorWrapperCn += "-hidden";
         var realHeight = Math.max(0, this.props.height - this.fileRowHeight());
 
         return (
@@ -425,12 +436,13 @@ var MainPanel = React.createClass({
     })],
     getInitialState: function() {
         return {
-            projectName: '',
             blocks: [],
             srcFiles: {},
             srcContent: {},
             selectedFile: {},
             contentPaneDoms: {},
+            projects: [],
+            currentProject: -1,
             isDialogOpen: false
         };
     },
@@ -445,12 +457,34 @@ var MainPanel = React.createClass({
                     that.closeDialog();
                     that.setState({projectName: text});},
                 function() {
-                    this.openPrompDialog("Failed to change project name")}
+                    this.openPromptDialog("Failed to change project name")}
             );
             */
         };
         this.openTextDialog(
-            this.state.projectName, "New project name?", ok);
+            this.state.projectName, "Rename project?", ok);
+    },
+    onNewProject: function() {
+        var that = this;
+        var ok = function(text) {
+            that.openWorkingDialog();
+            skulptgl.newProject(
+                text,
+                function() {
+                    that.closeDialog();
+                    var projs = skulpt.util.deepCopy(that.state.projects);
+                    projs.push(text);
+                    that.setState({
+                        projects: projs,
+                        currentProject: projs.length - 1
+                    });
+                },
+                function() {
+                    that.openPromptDialog("Failed to create new project.")}
+            );
+        };
+        this.openTextDialog(
+            this.state.projectName + "-1", "New project name?", ok);
     },
     onFileRename: function(block, file) {
         var oldFile = file;
@@ -469,21 +503,19 @@ var MainPanel = React.createClass({
                 that.openPromptDialog("Failed to change file name");
             };
             var successProj = function() {
-                    /*
                 skulptgl.renameSrcFile(
                     oldFileExt, newFileExt,
                     function() {
                         that.closeDialog();
-                        that.setState({srcFiles: nfiles}); },
+                        that.setState({srcFiles: nfiles});
+                    },
                     function() {
                         failedMsg();
                         // roll back project change
                         console.log("hope we never get here :(");
                         skulptgl.writeProject({SKULPTGL_PROJECT_SRC: ofiles})}
                 );
-                    */
             };
-
 
             that.closeDialog();
             var srcFiles = skulptgl.util.deepCopy(that.state.srcFiles);
@@ -736,7 +768,7 @@ var MainPanel = React.createClass({
         );
         */
     },
-    onLoadProject: function(text) {
+    onLoadProject: function(projectName, text) {
         var projectBlocks = JSON.parse(text);
         var blocks = [];
         var srcFiles = {};
@@ -779,7 +811,7 @@ var MainPanel = React.createClass({
         runq(skulptgl.util.deepCopy(blocks), readBlock);
 
         that.setState({
-           projectName: "example",
+            projectName: projectName,
             blocks: blocks,
             srcFiles: srcFiles,
             selectedFile: selectedFile
@@ -790,8 +822,22 @@ var MainPanel = React.createClass({
         content[file] = text;
         this.setState({srcContent: content});
     },
+    onLoadSolution: function(text) {
+        var solution = JSON.parse(text);
+        this.setState({
+            projects: solution.projects,
+            currentProject: solution.current
+        });
+    },
+    componentDidUpdate: function(prevProps, prevState) {
+        if (prevState.currentProject != this.state.currentProject) {
+            var project = this.state.projects[this.state.currentProject];
+            skulptgl.readProject(
+                project, this.onLoadProject.bind(this, project));
+        }
+    },
     componentDidMount: function() {
-        skulptgl.readProject(this.onLoadProject);
+        skulptgl.readSolution(this.onLoadSolution);
     },
     render: function() {
         var blocks = this.state.blocks.map(function(block) {
@@ -818,8 +864,10 @@ var MainPanel = React.createClass({
 
         return (
            <div className="main-panel">
-                <HeaderBar projectName={this.state.projectName}
-                    onProjectRenameClick={this.onProjectRenameClick} />
+                <HeaderBar projects={this.state.projects}
+                    currentProject={this.state.currentProject}
+                    onNewProject={this.onNewProject}
+                    onProjectRename={this.onProjectRename} />
                 <StdoutConsole ref="stdoutConsole" />
                 {blocks}
            </div>

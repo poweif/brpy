@@ -94,10 +94,35 @@ class CherrypyServer(object):
 
         solution = session['solution']
 
-        if 'proj' in param:
-            return self.__result(content=solution.project_metadata())
+        if 'solution' in param:
+            solution = solution.read_solution()
+            if solution is not None:
+                return self.__result(content=json.dumps(solution))
+            return self.__result()
 
-        if 'wproj' in param:
+        # switch project
+        if 'proj' in param:
+            proj = param['proj']
+            if proj is None:
+                return self.__result()
+            return self.__result(content=solution.read_project(proj))
+
+        if 'rename-proj' in param:
+            new_name = param['rename-proj']
+            if new_name is not None and\
+               solution.rename_project(new_name=new_name):
+                return self.__result(content='finished renaming project')
+            return self.__result()
+
+        if 'new-proj' in param:
+            name = param['new-proj']
+            if name is not None:
+                res = solution.create_project(proj_name=name)
+                if res is not None:
+                    return self.__result(content=solution.read_project(name))
+            return self.__result()
+
+        if 'write-proj' in param:
             nproj = json.loads(cherrypy.request.body.read())
             if solution.update_project(nproj):
                 return self.__result(content='finished updating project')

@@ -93,12 +93,22 @@ var skulptgl = {
             return elmHeight + elmMargin;
         }
     },
-    readProject: function(onLoad, onFailed) {
-        this.util.xhrGet('/run/?proj', onLoad, onFailed);
+    readSolution: function(onLoad, onFailed) {
+        this.util.xhrGet('/run/?solution', onLoad, onFailed);
+    },
+    readProject: function(proj, onLoad, onFailed) {
+        this.util.xhrGet('/run/?proj=' + proj, onLoad, onFailed);
     },
     writeProject: function(newProj, onLoad, onFailed) {
         var newProjStr = JSON.stringify(newProj);
-        this.util.xhrPost('/run/?wproj', newProjStr, onLoad, onFailed);
+        this.util.xhrPost('/run/?write-proj', newProjStr, onLoad, onFailed);
+    },
+    renameProject: function(newProjName, onLoad, onFailed) {
+        this.util.xhrPost('/run/?rename-proj=' + newProjName,
+                          newProjStr, onLoad, onFailed);
+    },
+    newProject: function(projName, onLoad, onFailed) {
+        this.util.xhrPost('/run/?new-proj=' + projName, onLoad, onFailed);
     },
     renameSrcFile: function(oldname, newname, onLoad, onFailed) {
         this.util.xhrGet(
