@@ -26,7 +26,6 @@ class SkSolution():
 
     def __init__(self):
         self._files = {}
-        self._current_project = None
 
     def _key(self, parent_id, file_name):
         return parent_id + '_' +  file_name
@@ -95,61 +94,35 @@ class SkSolution():
 
     def _update_solution(self, new_sol):
         solution = self.read_solution()
-        for key in new_sol:
-            if key in solution:
-                solution[key] = new_sol[key]
+        for key in (x for x in new_sol if x in solution):
+            solution[key] = new_sol[key]
 
         self._update_text_file_impl(self._app(), self._SOLUTION_JSON,
                                     json.dumps(solution))
 
-    def _pj(self, proj=None):
-        if proj is not None:
-            return proj
-        return self.get_current_project()
-
-    def get_current_project(self):
-        if self._current_project is not None:
-            return self._current_project
-        self.set_current_project(self.read_solution()['projects'][0])
-        return self._current_project
-
-    def set_current_project(self, proj):
-        projects = self.read_solution()['projects']
-        if not proj in projects:
-            return False
-        self._current_project = proj
-        return True
-
-    def rename_project(self, new_name, old_name=None):
-        if old_name is None:
-            old_name = self.get_current_project()
-
+    def rename_project(self, old_name, new_name):
         projects = self.read_solution()['projects']
         if not old_name in projects or new_name in projects:
             return False
-
         self._rename_file_impl(self._app(), old_name, new_name)
         self._update_solution(
             {"projects": [x if x != old_name else new_name for x in projects]})
-
-        if self._current_project == old_name:
-            self._current_project = new_name
-
         return True
 
-    def delete_project(self, name):
+    def delete_project(self, proj):
         projects = self.read_solution()['projects']
-        if not name in projects or len(projects) < 2:
+        if not proj in projects or len(projects) < 2:
             return False
 
-        self._update_solution({"projects": [x for x in projects if x !=name]})
-        self._current_project = None
-        self._delete_file_impl(self._app(), name)
-        return True
+        self._update_solution({
+            "projects": [x for x in projects if x != proj],
+            "currentProject": 0
+        })
+        return self._delete_file_impl(self._app(), proj) is not None
 
-    def read_file(self, fname, proj=None):
+    def read_file(self, proj, fname):
         print "read file: " + fname
-        proj_id = self._find_project_id(self._pj(proj))
+        proj_id = self._find_project_id(proj)
         if proj_id is None:
             return None
         file_id = self._find_file_id(proj_id, fname)
@@ -157,48 +130,29 @@ class SkSolution():
             return None
         return self._read_text_file_impl(file_id)
 
-    def write_file(self, fname, text, proj=None):
-        proj_id = self._find_project_id(self._pj(proj))
+    def write_file(self, proj, fname, text):
+        proj_id = self._find_project_id(proj)
         if proj_id is None:
             return False
-        self._update_text_file_impl(proj_id, fname, text)
+        return self._update_text_file_impl(proj_id, fname, text) is not None
+
+    def rename_file(self, proj, old_name, new_name):
+        proj_id = self._find_project_id(proj)
+        if proj_id is None:
+            return False
+        return self._rename_file_impl(proj_id, old_name, new_name) is not None
+
+    def delete_file(self, proj, fname):
+        proj_id = self._find_project_id(proj)
+        if proj_id is None:
+            return False
+        return self._delete_file_impl(proj_id, fname) is not None
+
+    def update_project(self, new_proj_data, proj):
         return True
 
-    def rename_file(self, old_name, new_name, proj=None):
-        proj_id = self._find_project_id(self._pj(proj))
-        if proj_id is None:
-            return False
-        res = self._rename_file_impl(proj_id, old_name, new_name)
-        return res is not None
-
-    def delete_file(self, file_name, proj=None):
-        proj_id = self._find_project_id(self._pj(proj))
-        if proj_id is None:
-            return False
-        res = self._delete_file_impl(proj_id, file_name)
-        return res is not None
-
-    def update_project(self, new_proj_data, proj=None):
-        return True
-#        changed = False
-#        oldproj = json.loads(self.read_project());
-
-#        for key in [self._PROJ_NAME, self._PROJ_SRC, self._PROJ_DEFAULT_FILE]:
-#            if key in proj and oldproj[key] != proj[key]:
-#                oldproj[key] = proj[key]
-#                changed = True
-
-#        if changed:
-#            proj_id = self._find_project_id(self._pj(), create=False)
-#            if proj_id is None:
-#                return
-#            self._update_text_file_impl(
-#                proj_id, self._PROJ_JSON, json.dumps(oldproj))
-#            return True
-
-    def read_project(self, proj=None, create_if_not_found=False):
-        proj_id = self._find_project_id(
-            self._pj(proj), create=create_if_not_found)
+    def read_project(self, proj, create_if_not_found=False):
+        proj_id = self._find_project_id(proj, create=create_if_not_found)
         if proj_id is None:
             return None
         proj_file_id = self._find_file_id(proj_id, self._PROJ_JSON)
@@ -240,7 +194,7 @@ class GdriveSkSolution(SkSolution):
         super(GdriveSkSolution, self).__init__()
         self.__cred = cred
         self.__drive = _build_drive_service(cred)
-        self.read_project(create_if_not_found=True)
+        self.read_project(self._DEFAULT_PROJ, create_if_not_found=True)
 
     def _root_impl(self):
         self._files['root'] =\
@@ -334,7 +288,7 @@ class DevSkSolution(SkSolution):
         self.__read_only = read_only
         # The root directory must exist
         assert os.access(root_dir, os.F_OK)
-        self.read_project(create_if_not_found=True)
+        self.read_project(self._DEFAULT_PROJ, create_if_not_found=True)
 
     def _write_key(self, parent_path, file_name):
         key = self._key(parent_path, file_name)

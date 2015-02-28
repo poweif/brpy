@@ -97,33 +97,39 @@ var skulptgl = {
         this.util.xhrGet('/run/?solution', onLoad, onFailed);
     },
     readProject: function(proj, onLoad, onFailed) {
-        this.util.xhrGet('/run/?proj=' + proj, onLoad, onFailed);
+        this.util.xhrGet('/run/?read-proj=' + proj, onLoad, onFailed);
     },
-    writeProject: function(newProj, onLoad, onFailed) {
-        var newProjStr = JSON.stringify(newProj);
-        this.util.xhrPost('/run/?write-proj', newProjStr, onLoad, onFailed);
+    writeProject: function(proj, projData, onLoad, onFailed) {
+        var projDataStr = JSON.stringify(projData);
+        this.util.xhrPost(
+            '/run/?write-proj=' + proj, projDataStr, onLoad, onFailed);
     },
-    renameProject: function(newProjName, onLoad, onFailed) {
-        this.util.xhrGet('/run/?rename-proj=' + newProjName, onLoad, onFailed);
+    renameProject: function(oldName, newName, onLoad, onFailed) {
+        this.util.xhrGet(
+            '/run/?rename-proj=' + oldName + ',' + newName, onLoad, onFailed);
     },
-    newProject: function(projName, onLoad, onFailed) {
-        this.util.xhrGet('/run/?new-proj=' + projName, onLoad, onFailed);
+    newProject: function(proj, onLoad, onFailed) {
+        this.util.xhrGet('/run/?new-proj=' + proj, onLoad, onFailed);
     },
     deleteProject: function(proj, onLoad, onFailed) {
         this.util.xhrGet('/run/?delete-proj=' + proj, onLoad, onFailed);
     },
-    renameSrcFile: function(oldname, newname, onLoad, onFailed) {
+    renameSrcFile: function(proj, oldname, newname, onLoad, onFailed) {
         this.util.xhrGet(
-            '/run/?rename=' + oldname + "," + newname, onLoad, onFailed);
+            '/run/?rename=' + oldname + "," + newname + '&proj=' + proj,
+            onLoad, onFailed);
     },
-    deleteSrcFile: function(filename, onLoad, onFailed) {
-        this.util.xhrGet('/run/?delete=' + filename, onLoad, onFailed);
+    deleteSrcFile: function(proj, filename, onLoad, onFailed) {
+        this.util.xhrGet('/run/?delete=' + filename + '&proj=' + proj,
+                         onLoad, onFailed);
     },
-    readSrcFile: function(filename, onLoad, onFailed) {
-        this.util.xhrGet('/run/?read=' + filename, onLoad, onFailed);
+    readSrcFile: function(proj, filename, onLoad, onFailed) {
+        this.util.xhrGet('/run/?read=' + filename + '&proj=' + proj,
+                         onLoad, onFailed);
     },
-    writeSrcFile: function(filename, text, onLoad, onFailed) {
-        this.util.xhrPost('/run/?write=' + filename, text, onLoad, onFailed);
+    writeSrcFile: function(proj, filename, text, onLoad, onFailed) {
+        this.util.xhrPost('/run/?write=' + filename + '&proj=' + proj,
+                          text, onLoad, onFailed);
     },
     openDialog: function(text, prompt, onOK, onCancel) {
         this.closeDialog();

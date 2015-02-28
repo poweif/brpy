@@ -456,6 +456,7 @@ var MainPanel = React.createClass({
         var ok = function(text) {
             that.openWorkingDialog();
             skulptgl.renameProject(
+                oldProj,
                 text,
                 function() {
                     that.closeDialog();
@@ -518,7 +519,7 @@ var MainPanel = React.createClass({
         };
         this.openBinaryDialog("Delete project?", ok);
     },
-    onFileRename: function(block, file) {
+    onFileRename: function(proj, block, file) {
         var oldFile = file;
         var that = this;
         var ok = function(newFile) {
@@ -571,7 +572,7 @@ var MainPanel = React.createClass({
         };
         this.openTextDialog(file, "New file name?", ok);
     },
-    onFileClick: function(block, file) {
+    onFileClick: function(proj, block, file) {
         var ind =
             skulptgl.util.indexOf(this.state.srcFiles[block], file);
         if (this.state.selectedFile[block] != ind) {
@@ -580,7 +581,7 @@ var MainPanel = React.createClass({
             this.setState({selectedFile: selectedFile});
         }
     },
-    onFileAdd: function(block) {
+    onFileAdd: function(proj, block) {
         var that = this;
         var ok = function(fname) {
             var fnameExt = fname + ".py";
@@ -650,7 +651,7 @@ var MainPanel = React.createClass({
             contentPaneDoms: contentPaneDoms
         });
     },
-    onFileDelete: function(block, fname) {
+    onFileDelete: function(proj, block, fname) {
         var fnameExt = fname + ".py";
         var that = this;
         var ok = function() {
@@ -707,7 +708,7 @@ var MainPanel = React.createClass({
         this.openBinaryDialog(
             "Are you sure you'd like to delete " + (fname) + "?", ok);
     },
-    onFileMove: function(block, origin, target) {
+    onFileMove: function(proj, block, origin, target) {
         if (target < 0 || target >= this.state.srcFiles[block].length)
             return;
 
@@ -825,6 +826,7 @@ var MainPanel = React.createClass({
         };
         var readFile = function(file, onDoneFile) {
             skulptgl.readSrcFile(
+                projectName,
                 file,
                 function(text) {
                     that.onLoadSource(file, text);
@@ -872,15 +874,19 @@ var MainPanel = React.createClass({
         skulptgl.readSolution(this.onLoadSolution);
     },
     render: function() {
+        var proj = this.state.projects && this.state.currentProj ?
+            this.state.projects[this.state.currentProject] :
+            null;
+
         var blocks = this.state.blocks.map(function(block) {
             var srcFiles = this.state.srcFiles[block];
             var ind = this.state.selectedFile[block];
             var doms = this.state.contentPaneDoms[block];
-            var fileClick = this.onFileClick.bind(this, block);
-            var fileRename = this.onFileRename.bind(this, block);
-            var fileAdd = this.onFileAdd.bind(this, block);
-            var fileDel = this.onFileDelete.bind(this, block);
-            var fileMove = this.onFileMove.bind(this, block);
+            var fileClick = this.onFileClick.bind(this, proj, block);
+            var fileRename = this.onFileRename.bind(this, proj, block);
+            var fileAdd = this.onFileAdd.bind(this, proj, block);
+            var fileDel = this.onFileDelete.bind(this, proj, block);
+            var fileMove = this.onFileMove.bind(this, proj, block);
             var run = this.onRun.bind(this, block);
             var save = this.onSave;
             return (
