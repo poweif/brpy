@@ -56,25 +56,16 @@ class SkSolution():
         return res
 
     def create_project(self, proj_name):
-        solution = self.read_solution()
-        if proj_name in solution['projects']:
-            return None
-        solution['projects'].append(proj_name)
-        self._update_solution({"projects": solution['projects']})
-
         proj_folder_id = self._create_folder(self._app(), proj_name)
 
         with open('./sample/default/' + self._MAIN_PY) as main_py:
             self._update_text_file_impl(proj_folder_id, self._MAIN_PY,
                                        main_py.read())
-        proj_json = [{
-            self._PROJ_SRC : [self._MAIN_PY],
-            self._PROJ_DEFAULT_FILE: 0,
-            self._PROJ_BLOCK_NAME: self._DEFAULT_BLOCK
-        }]
-        self._update_text_file_impl(proj_folder_id, self._PROJ_JSON,
-                                   json.dumps(proj_json))
-        return proj_folder_id
+
+        with open('./sample/default/' + self._PROJECT_JSON) as proj_json:
+            self._update_text_file_impl(proj_folder_id, self._PROJ_JSON,
+                                       proj_json.read())        
+        return True
 
     def _find_project_id(self, proj_name, create=False):
         proj_folder_id = self._find_file_id(self._app(), proj_name)
@@ -92,32 +83,19 @@ class SkSolution():
                 return solution
         return json.loads(self._read_text_file_impl(solution_file_id))
 
-    def _update_solution(self, new_sol):
+    def update_solution(self, new_sol):
         solution = self.read_solution()
         for key in (x for x in new_sol if x in solution):
             solution[key] = new_sol[key]
 
-        self._update_text_file_impl(self._app(), self._SOLUTION_JSON,
-                                    json.dumps(solution))
+        return self._update_text_file_impl(self._app(), self._SOLUTION_JSON,
+                                           json.dumps(solution))
 
     def rename_project(self, old_name, new_name):
-        projects = self.read_solution()['projects']
-        if not old_name in projects or new_name in projects:
-            return False
-        self._rename_file_impl(self._app(), old_name, new_name)
-        self._update_solution(
-            {"projects": [x if x != old_name else new_name for x in projects]})
-        return True
+        return self._rename_file_impl(self._app(), old_name, new_name)\
+            is not None
 
     def delete_project(self, proj):
-        projects = self.read_solution()['projects']
-        if not proj in projects or len(projects) < 2:
-            return False
-
-        self._update_solution({
-            "projects": [x for x in projects if x != proj],
-            "currentProject": 0
-        })
         return self._delete_file_impl(self._app(), proj) is not None
 
     def read_file(self, proj, fname):
@@ -149,6 +127,13 @@ class SkSolution():
         return self._delete_file_impl(proj_id, fname) is not None
 
     def update_project(self, new_proj_data, proj):
+        proj_data = self.read_project(proj)
+        for key in (x for x in new_proj_data if x in proj_data):
+            proj_data[key] = new_sol[key]
+
+        proj_id = self._find_project_id(proj)
+        self._update_text_file_impl(proj_id, self._PROJ_JSON,
+                                    json.dumps(proj_data))
         return True
 
     def read_project(self, proj, create_if_not_found=False):
@@ -158,7 +143,7 @@ class SkSolution():
         proj_file_id = self._find_file_id(proj_id, self._PROJ_JSON)
         if proj_file_id is None:
             return None
-        return self._read_text_file_impl(proj_file_id)
+        return json.loads(self._read_text_file_impl(proj_file_id))
 
     @abstractmethod
     def _root_impl(self): pass

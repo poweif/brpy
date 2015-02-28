@@ -103,13 +103,20 @@ class CherrypyServer(object):
             if solution is not None:
                 return self.__result(content=json.dumps(solution))
             return self.__result(fail='solution does not exist')
+        
+        if 'update-solution' in param:
+            body = json.loads(cherrypy.request.body.read())
+            if solution.update_solution(body) is not None:
+                return self.__result(content="updated solution")
+            return self.__result(fail="failed to update solution")
 
         # switch project
         if 'read-proj' in param:
             proj = param['read-proj']
             if proj is None:
                 return self.__result('no project name given')
-            return self.__result(content=solution.read_project(proj))
+            return self.__result(
+                content=json.dumps(solution.read_project(proj)))
 
         if 'rename-proj' in param:
             old_name, new_name = tuple(param['rename-proj'].split(','))
@@ -122,7 +129,8 @@ class CherrypyServer(object):
             proj = param['new-proj']
             if proj is not None:
                 if solution.create_project(proj_name=proj) is not None:
-                    return self.__result(content=solution.read_project(proj))
+                    return self.__result(
+                        content=json.dumps(solution.read_project(proj)))
                 return self.__result(fail='failed to create new project')
             return self.__result(fail='no project name given in [new-proj]')
 

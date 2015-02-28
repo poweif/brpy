@@ -94,7 +94,7 @@ var ContentPane = React.createClass({
         this.mountContentDoms();
     },
     maxHeight: function() {
-        return skulptgl.util.fullElementHeight(this.getDOMNode());
+        return SKG.util.fullElementHeight(this.getDOMNode());
     },
     render: function() {
         return (
@@ -126,7 +126,7 @@ var EditorFileRow = React.createClass({
                                           that.props.currentFileInd + 1);
                 };
                 var rename = function() {
-                    that.props.onFileRename(skulptgl.util.getFileName(fileExt));
+                    that.props.onFileRename(SKG.util.getFileName(fileExt));
                 };
                 var del = function() {
                     that.props.onFileDelete(fileExt);
@@ -168,7 +168,7 @@ var EditorPane = React.createClass({
     fileRowHeight: function() {
         if (!this.refs.fileRow)
             return 0;
-        return skulptgl.util.fullElementHeight(this.refs.fileRow.getDOMNode());
+        return SKG.util.fullElementHeight(this.refs.fileRow.getDOMNode());
     },
     maxHeight: function() {
         var totalHeight = this.fileRowHeight();
@@ -280,7 +280,7 @@ var WorksheetBlock = React.createClass({
         if (!this.refs.separator)
             return 0;
         return 2 *
-            skulptgl.util.fullElementHeight(this.refs.separator.getDOMNode());
+            SKG.util.fullElementHeight(this.refs.separator.getDOMNode());
     },
     maxHeight: function() {
         var height = 0;
@@ -451,11 +451,22 @@ var MainPanel = React.createClass({
             isDialogOpen: false
         };
     },
+    updateSolution: function(solData, onOk, onFail) {
+        var that = this;
+        var outerOk = function() {
+            that.setState(solData);
+            if (onOk) onOk();
+        };
+        SKG.updateSolution(solData, outerOk, onFail);
+    },
     onProjectRename: function(oldProj) {
         var that = this;
+        var fail = function() {
+            that.openPromptDialog("Failed to change project name");
+        };
         var ok = function(text) {
             that.openWorkingDialog();
-            skulptgl.renameProject(
+            SKG.renameProject(
                 oldProj,
                 text,
                 function() {
@@ -463,35 +474,40 @@ var MainPanel = React.createClass({
                     var projs = that.state.projects.map(function(p) {
                         return p == oldProj ? text : p;
                     });
-                    that.setState({projects: projs});},
-                function() {
-                    that.openPromptDialog("Failed to change project name")}
+                    that.updateSolution(
+                        SKG.d(SKG_SOLUTION_PROJECTS, projs).o(), null, fail);
+                },
+                fail
             );
         };
         this.openTextDialog(oldProj, "Rename project?", ok);
     },
     onProjectClick: function(project) {
-        this.setState({
-            currentProject: skulptgl.util.indexOf(this.state.projects, project)
-        });
+        this.updateSolution(
+            SKG.d(SKG_SOLUTION_CURRENT_PROJECT, 
+                  SKG.util.indexOf(this.state.projects, project)).o()
+        );
     },
     onProjectNew: function() {
         var that = this;
+        var fail = function() {
+            that.openPromptDialog("Failed to create new project.");
+        };
         var ok = function(text) {
             that.openWorkingDialog();
-            skulptgl.newProject(
+            SKG.newProject(
                 text,
                 function(project) {
                     that.closeDialog();
-                    var projs = skulptgl.util.deepCopy(that.state.projects);
+                    var projs = SKG.util.deepCopy(that.state.projects);
                     projs.push(text);
-                    that.setState({
-                        projects: projs,
-                        currentProject: projs.length - 1
-                    });
+                    that.updateSolution(
+                        SKG.d(SKG_SOLUTION_PROJECTS, projs)
+                            .i(SKG_SOLUTION_CURRENT_PROJECT, projs.length -1)
+                            .o(), 
+                        null, fail);
                 },
-                function() {
-                    that.openPromptDialog("Failed to create new project.")}
+                fail
             );
         };
         this.openTextDialog(
@@ -499,22 +515,27 @@ var MainPanel = React.createClass({
     },
     onProjectDelete: function(proj) {
         var that = this;
+        var fail = function() {
+            that.openPromptDialog("Failed to delete project"); 
+        };
         var ok = function() {
             that.openWorkingDialog();
-            skulptgl.deleteProject(
+            SKG.deleteProject(
                 proj,
                 function() {
                     that.closeDialog();
                     var projs = [];
-                    for (var i = 0; i < that.state.projects.length; i++)
-                        if (that.state.projects[i] != proj)
+                    that.state.projects.forEach(function(tproj) {
+                        if (tproj != proj)
                             projs.push(that.state.projects[i])
-                    that.setState({
-                        projects: projs,
-                        currentProject: 0
-                    });},
-                function() {
-                    that.openPromptDialog("Failed to delete project")}
+                    });
+                    that.updateSolution(
+                        SKG.d(SKG_SOLUTION_PROJECTS, projs)
+                            .i(SKG_SOLUTION_CURRENT_PROJECT, 0)
+                            .o(), 
+                        null, fail);
+                },
+                fail
             );
         };
         this.openBinaryDialog("Delete project?", ok);
@@ -528,7 +549,7 @@ var MainPanel = React.createClass({
             that.openWorkingDialog();
             var oldFileExt = oldFile + ".py";
             var newFileExt = newFile + ".py";
-            var ofiles = skulptgl.util.deepCopy(that.state.srcFiles[block]);
+            var ofiles = SKG.util.deepCopy(that.state.srcFiles[block]);
             var nfiles = ofiles.map(function(file) {
                 return file==oldFileExt ? newFileExt : file;
             });
@@ -536,7 +557,7 @@ var MainPanel = React.createClass({
                 that.openPromptDialog("Failed to change file name");
             };
             var successProj = function() {
-                skulptgl.renameSrcFile(
+                SKG.renameSrcFile(
                     oldFileExt, newFileExt,
                     function() {
                         that.closeDialog();
@@ -546,15 +567,15 @@ var MainPanel = React.createClass({
                         failedMsg();
                         // roll back project change
                         console.log("hope we never get here :(");
-                        skulptgl.writeProject({SKULPTGL_PROJECT_SRC: ofiles})}
+                        SKG.writeProject({SKG_PROJECT_SRC: ofiles})}
                 );
             };
 
             that.closeDialog();
-            var srcFiles = skulptgl.util.deepCopy(that.state.srcFiles);
+            var srcFiles = SKG.util.deepCopy(that.state.srcFiles);
             srcFiles[block] = nfiles;
 
-            var srcContent = skulptgl.util.deepCopy(that.state.srcContent);
+            var srcContent = SKG.util.deepCopy(that.state.srcContent);
             var src = srcContent[oldFileExt];
             delete srcContent[oldFileExt];
             srcContent[newFileExt] = src;
@@ -563,8 +584,8 @@ var MainPanel = React.createClass({
 
             //successFile();
             /*
-            skulptgl.writeProject(
-                {SKULPTGL_PROJECT_SRC: nfiles},
+            SKG.writeProject(
+                {SKG_PROJECT_SRC: nfiles},
                 successProj,
                 failedMsg
             );
@@ -574,9 +595,9 @@ var MainPanel = React.createClass({
     },
     onFileClick: function(proj, block, file) {
         var ind =
-            skulptgl.util.indexOf(this.state.srcFiles[block], file);
+            SKG.util.indexOf(this.state.srcFiles[block], file);
         if (this.state.selectedFile[block] != ind) {
-            var selectedFile = skulptgl.util.deepCopy(this.state.selectedFile);
+            var selectedFile = SKG.util.deepCopy(this.state.selectedFile);
             selectedFile[block] = ind;
             this.setState({selectedFile: selectedFile});
         }
@@ -587,7 +608,7 @@ var MainPanel = React.createClass({
             var fnameExt = fname + ".py";
             var fileSrc = "# " + fnameExt;
             var ofiles = that.state.srcFiles[block];
-            if (skulptgl.util.indexOf(ofiles, fnameExt) >= 0) {
+            if (SKG.util.indexOf(ofiles, fnameExt) >= 0) {
                 that.openPromptDialog("File already exist");
                 return;
             }
@@ -595,13 +616,13 @@ var MainPanel = React.createClass({
             var failedMsg = function() {
                 that.openPromptDialog("Failed to add file");
             };
-            var nfiles = skulptgl.util.deepCopy(ofiles).concat([fnameExt]);
+            var nfiles = SKG.util.deepCopy(ofiles).concat([fnameExt]);
             var successFile = function() {
                 that.closeDialog();
-                var srcContent = skulptgl.util.deepCopy(that.state.srcContent);
+                var srcContent = SKG.util.deepCopy(that.state.srcContent);
                 srcContent[block][fnameExt] = fileSrc;
                 var selectedFile =
-                    skulptgl.util.deepCopy(that.state.selectedFile);
+                    SKG.util.deepCopy(that.state.selectedFile);
                 selectedFile[block] = nfiles.length -1;
                 that.setState({
                     srcFiles: nfiles,
@@ -613,14 +634,14 @@ var MainPanel = React.createClass({
                 failedMsg();
                 // roll back project change
                 console.log("hope we never get here :(");
-                //skulptgl.writeProject({SKULPTGL_PROJECT_SRC: ofiles});
+                //SKG.writeProject({SKG_PROJECT_SRC: ofiles});
             };
             successFile();
 /*
-            skulptgl.writeProject(
-                {SKULPTGL_PROJECT_SRC: nfiles},
+            SKG.writeProject(
+                {SKG_PROJECT_SRC: nfiles},
                 function() {
-                    skulptgl.writeSrcFile(
+                    SKG.writeSrcFile(
                         fnameExt, fileSrc, successFile, failureFile); },
                 failedMsg
             );
@@ -629,11 +650,11 @@ var MainPanel = React.createClass({
         this.openTextDialog("new", "New file?", ok);
     },
     onBlockDelete: function(block) {
-        var ind = skulptgl.util.indexOf(this.state.blocks, block);
-        var blocks = skulptgl.util.deepCopy(this.state.blocks);
-        var srcFiles = skulptgl.util.deepCopy(this.state.srcFiles);
-        var srcContent = skulptgl.util.deepCopy(this.state.srcContent);
-        var selectedFile = skulptgl.util.deepCopy(this.state.selectedFile);
+        var ind = SKG.util.indexOf(this.state.blocks, block);
+        var blocks = SKG.util.deepCopy(this.state.blocks);
+        var srcFiles = SKG.util.deepCopy(this.state.srcFiles);
+        var srcContent = SKG.util.deepCopy(this.state.srcContent);
+        var selectedFile = SKG.util.deepCopy(this.state.selectedFile);
         var contentPaneDoms = this.state.contentPaneDoms;
         blocks.splice(ind, 1);
         var files = srcFiles[block];
@@ -656,14 +677,14 @@ var MainPanel = React.createClass({
         var that = this;
         var ok = function() {
             var ofiles = that.state.srcFiles[block];
-            var ind = skulptgl.util.indexOf(ofiles, fname);
+            var ind = SKG.util.indexOf(ofiles, fname);
             if (ind < 0) {
                 that.closeDialog();
                 return;
             }
             that.openWorkingDialog();
 
-            var nfiles = skulptgl.util.deepCopy(ofiles);
+            var nfiles = SKG.util.deepCopy(ofiles);
             nfiles.splice(ind, 1);
 
             if (nfiles.length == 0) {
@@ -677,9 +698,9 @@ var MainPanel = React.createClass({
             };
             var successFile = function() {
                 that.closeDialog();
-                var srcFiles = skulptgl.util.deepCopy(that.state.srcFiles);
+                var srcFiles = SKG.util.deepCopy(that.state.srcFiles);
                 var selectedFile =
-                    skulptgl.util.deepCopy(that.state.selectedFile);
+                    SKG.util.deepCopy(that.state.selectedFile);
                 srcFiles[block] = nfiles;
                 selectedFile[block] = 0;
                 that.setState({
@@ -691,15 +712,15 @@ var MainPanel = React.createClass({
                 failedMsg();
                 // roll back project change
                 console.log("hope we never get here :(");
-                skulptgl.writeProject({SKULPTGL_PROJECT_SRC: ofiles});
+                SKG.writeProject({SKG_PROJECT_SRC: ofiles});
             };
 
             successFile();
 /*
-            skulptgl.writeProject(
-                {SKULPTGL_PROJECT_SRC: nfiles},
+            SKG.writeProject(
+                {SKG_PROJECT_SRC: nfiles},
                 function() {
-                    skulptgl.deleteSrcFile(fnameExt, successFile, failureFile);
+                    SKG.deleteSrcFile(fnameExt, successFile, failureFile);
                 },
                 failedMsg
             );
@@ -716,7 +737,7 @@ var MainPanel = React.createClass({
 
         var that = this;
         var ofiles = this.state.srcFiles[block];
-        var nfiles = skulptgl.util.deepCopy(ofiles);
+        var nfiles = SKG.util.deepCopy(ofiles);
 
         var tmp = nfiles[origin];
         nfiles[origin] = nfiles[target];
@@ -724,9 +745,9 @@ var MainPanel = React.createClass({
 
         var successProj = function() {
             that.closeDialog();
-            var srcFiles = skulptgl.util.deepCopy(that.state.srcFiles);
+            var srcFiles = SKG.util.deepCopy(that.state.srcFiles);
             srcFiles[block] = nfiles;
-            var selectedFile = skulptgl.util.deepCopy(that.state.selectedFile);
+            var selectedFile = SKG.util.deepCopy(that.state.selectedFile);
             selectedFile[block] = target;
             that.setState({
                 srcFiles: srcFiles,
@@ -737,7 +758,7 @@ var MainPanel = React.createClass({
         var failureProj = function() {
             that.openPromptDialog("Failed to change file order");
         };
-        skulptgl.writeProject({SKULPTGL_PROJECT_SRC: nfiles}, successProj,
+        SKG.writeProject({SKG_PROJECT_SRC: nfiles}, successProj,
                               failureProj);
 */
         successProj();
@@ -755,7 +776,7 @@ var MainPanel = React.createClass({
                 that.refs.stdoutConsole.write(block + "> " + s);
         };
         Sk.configure(
-            {"output": output, "debugout": output, "read": skulptgl.builtinRead}
+            {"output": output, "debugout": output, "read": SKG.builtinRead}
         );
 
         try {
@@ -790,7 +811,7 @@ var MainPanel = React.createClass({
 
         this.clientSideSave(file, code);
         /*
-        skulptgl.writeSrcFile(
+        SKG.writeSrcFile(
             fname, code,
             function() {
                 console.log("Successfully wrote " + fname);
@@ -825,7 +846,7 @@ var MainPanel = React.createClass({
             func(r, function() { runq(nextq, func, onDoneQ); });
         };
         var readFile = function(file, onDoneFile) {
-            skulptgl.readSrcFile(
+            SKG.readSrcFile(
                 projectName,
                 file,
                 function(text) {
@@ -834,7 +855,7 @@ var MainPanel = React.createClass({
                 function() { console.log("failed to read " + file); });
         };
         var readBlock = function(block, onDoneBlock) {
-            var files = skulptgl.util.deepCopy(srcFiles[block]);
+            var files = SKG.util.deepCopy(srcFiles[block]);
             var runblock = function() {
                 that.runProg(block);
                 if (onDoneBlock)
@@ -842,7 +863,7 @@ var MainPanel = React.createClass({
             };
             runq(files, readFile, runblock);
         };
-        runq(skulptgl.util.deepCopy(blocks), readBlock);
+        runq(SKG.util.deepCopy(blocks), readBlock);
 
         that.setState({
             projectName: projectName,
@@ -852,26 +873,25 @@ var MainPanel = React.createClass({
         });
     },
     onLoadSource: function(file, text) {
-        var content = skulptgl.util.deepCopy(this.state.srcContent);
+        var content = SKG.util.deepCopy(this.state.srcContent);
         content[file] = text;
         this.setState({srcContent: content});
     },
     onLoadSolution: function(text) {
         var solution = JSON.parse(text);
-        this.setState({
-            projects: solution.projects,
-            currentProject: solution.current
-        });
+        this.setState(
+            SKG.d(SKG_SOLUTION_PROJECTS, solution.projects)
+                .i(SKG_SOLUTION_CURRENT_PROJECT, solution.currentProject).o());
     },
     componentDidUpdate: function(prevProps, prevState) {
         if (prevState.currentProject != this.state.currentProject && this.state.projects) {
             var project = this.state.projects[this.state.currentProject];
-            skulptgl.readProject(
+            SKG.readProject(
                 project, this.onLoadProject.bind(this, project));
         }
     },
     componentDidMount: function() {
-        skulptgl.readSolution(this.onLoadSolution);
+        SKG.readSolution(this.onLoadSolution);
     },
     render: function() {
         var proj = this.state.projects && this.state.currentProj ?

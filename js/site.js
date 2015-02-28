@@ -1,3 +1,16 @@
+var SKG_DICT = function() {
+    this.obj = {};
+};
+
+SKG_DICT.prototype.i = function(key, value) {
+    this.obj[key] = value;
+    return this;
+};
+
+SKG_DICT.prototype.o = function(key, value) {
+    return this.obj;
+};
+
 var skulptgl = {
     util: {
         indexOf: function(list, elem) {
@@ -91,10 +104,20 @@ var skulptgl = {
                              .getPropertyValue('margin-bottom'));
             }
             return elmHeight + elmMargin;
-        }
+        },
+    },
+    d: function(key, val) {
+        if (key)
+            return (new SKG_DICT()).i(key, val);
+        return new SKG_DICT();
     },
     readSolution: function(onLoad, onFailed) {
         this.util.xhrGet('/run/?solution', onLoad, onFailed);
+    },
+    updateSolution: function(solData, onLoad, onFailed) {
+        var solDataStr = JSON.stringify(solData)
+        this.util.xhrPost(
+            '/run/?update-solution', solDataStr, onLoad, onFailed);
     },
     readProject: function(proj, onLoad, onFailed) {
         this.util.xhrGet('/run/?read-proj=' + proj, onLoad, onFailed);
@@ -148,15 +171,18 @@ var skulptgl = {
             throw "File not found: '" + x + "'";
         }
         return Sk.builtinFiles["files"][x];
-    },
-    project: null,
+    }
 };
+
+var SKG = skulptgl;
 
 (function() {
     // Site-wide constants
-    SKULPTGL_PROJECT_NAME = 'name';
-    SKULPTGL_PROJECT_SRC = 'src';
-    SKULPTGL_PROJECT_DEFAULT_FILE = 'defaultFile';
+    SKG_PROJECT_NAME = 'name';
+    SKG_PROJECT_SRC = 'src';
+    SKG_PROJECT_DEFAULT_FILE = 'defaultFile';
+    SKG_SOLUTION_PROJECTS = 'projects';
+    SKG_SOLUTION_CURRENT_PROJECT = 'currentProject';    
 
     window.addEventListener("beforeunload", function (e) {
         var confirmation = "Did you save? Are you sure you'd like to quit?"
