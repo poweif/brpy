@@ -20,7 +20,7 @@ class SkSolution():
 
     _PROJ_BLOCK_NAME = "name"
     _PROJ_SRC = "src"
-    _PROJ_DEFAULT_FILE = "defaultFile"
+    _PROJ_DEFAULT_FILE = "currentFile"
 
     _DEFAULT_BLOCK ="default-block"
 
@@ -62,7 +62,7 @@ class SkSolution():
             self._update_text_file_impl(proj_folder_id, self._MAIN_PY,
                                        main_py.read())
 
-        with open('./sample/default/' + self._PROJECT_JSON) as proj_json:
+        with open('./sample/default/' + self._PROJ_JSON) as proj_json:
             self._update_text_file_impl(proj_folder_id, self._PROJ_JSON,
                                        proj_json.read())        
         return True
@@ -126,15 +126,11 @@ class SkSolution():
             return False
         return self._delete_file_impl(proj_id, fname) is not None
 
-    def update_project(self, new_proj_data, proj):
-        proj_data = self.read_project(proj)
-        for key in (x for x in new_proj_data if x in proj_data):
-            proj_data[key] = new_sol[key]
-
+    def update_project(self, proj, proj_data):
+        print proj_data, len(proj_data)
         proj_id = self._find_project_id(proj)
-        self._update_text_file_impl(proj_id, self._PROJ_JSON,
-                                    json.dumps(proj_data))
-        return True
+        return self._update_text_file_impl(
+            proj_id, self._PROJ_JSON, json.dumps(proj_data)) is not None
 
     def read_project(self, proj, create_if_not_found=False):
         proj_id = self._find_project_id(proj, create=create_if_not_found)
@@ -297,7 +293,7 @@ class DevSkSolution(SkSolution):
 
         path = parent_path + "/" + folder_name
         if os.access(path, os.F_OK):
-            return _write_key(parent_path, folder_name)
+            return self._write_key(parent_path, folder_name)
         os.mkdir(path)
         return self._write_key(parent_path, folder_name)
 

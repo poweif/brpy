@@ -167,7 +167,7 @@ class CherrypyServer(object):
             if proj is None:
                 return self.__result(fail="no proj given in [rename]")
 
-            if solution.rename_file(old_name=old_name, new_name=new_name):
+            if solution.rename_file(proj, old_name, new_name):
                 return self.__result(
                     content="finished renaming " + old_name + " to " + new_name)
             return self.__result(fail='failed in [rename]')

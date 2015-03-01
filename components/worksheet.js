@@ -484,7 +484,7 @@ var MainPanel = React.createClass({
     },
     onProjectClick: function(project) {
         this.updateSolution(
-            SKG.d(SKG_SOLUTION_CURRENT_PROJECT, 
+            SKG.d(SKG_SOLUTION_CURRENT_PROJECT,
                   SKG.util.indexOf(this.state.projects, project)).o()
         );
     },
@@ -504,7 +504,7 @@ var MainPanel = React.createClass({
                     that.updateSolution(
                         SKG.d(SKG_SOLUTION_PROJECTS, projs)
                             .i(SKG_SOLUTION_CURRENT_PROJECT, projs.length -1)
-                            .o(), 
+                            .o(),
                         null, fail);
                 },
                 fail
@@ -516,7 +516,7 @@ var MainPanel = React.createClass({
     onProjectDelete: function(proj) {
         var that = this;
         var fail = function() {
-            that.openPromptDialog("Failed to delete project"); 
+            that.openPromptDialog("Failed to delete project");
         };
         var ok = function() {
             that.openWorkingDialog();
@@ -527,18 +527,36 @@ var MainPanel = React.createClass({
                     var projs = [];
                     that.state.projects.forEach(function(tproj) {
                         if (tproj != proj)
-                            projs.push(that.state.projects[i])
+                            projs.push(tproj);
                     });
                     that.updateSolution(
                         SKG.d(SKG_SOLUTION_PROJECTS, projs)
                             .i(SKG_SOLUTION_CURRENT_PROJECT, 0)
-                            .o(), 
+                            .o(),
                         null, fail);
                 },
                 fail
             );
         };
         this.openBinaryDialog("Delete project?", ok);
+    },
+    updateProject: function(proj, blocks, srcFiles, selectedFile, onOk, onFail) {
+        var that = this;
+        if (!blocks)
+            blocks = this.state.blocks;
+        if (!srcFiles)
+            srcFiles = this.state.srcFiles;
+        if (!selectedFile)
+            selectedFile = this.state.selectedFile;
+        var outerOk = function() {
+            that.setState(
+                SKG.d("blocks", blocks)
+                    .i("srcFiles", srcFiles)
+                    .i("selectedFile", selectedFile).o());
+            if (onOk) onOk();
+        };
+        var projData = SKG.buildProjectJson(blocks, srcFiles, selectedFile);
+        SKG.writeProject(proj, projData, outerOk, onFail);
     },
     onFileRename: function(proj, block, file) {
         var oldFile = file;
@@ -553,24 +571,9 @@ var MainPanel = React.createClass({
             var nfiles = ofiles.map(function(file) {
                 return file==oldFileExt ? newFileExt : file;
             });
-            var failedMsg = function() {
+            var failed = function() {
                 that.openPromptDialog("Failed to change file name");
             };
-            var successProj = function() {
-                SKG.renameSrcFile(
-                    oldFileExt, newFileExt,
-                    function() {
-                        that.closeDialog();
-                        that.setState({srcFiles: nfiles});
-                    },
-                    function() {
-                        failedMsg();
-                        // roll back project change
-                        console.log("hope we never get here :(");
-                        SKG.writeProject({SKG_PROJECT_SRC: ofiles})}
-                );
-            };
-
             that.closeDialog();
             var srcFiles = SKG.util.deepCopy(that.state.srcFiles);
             srcFiles[block] = nfiles;
@@ -580,16 +583,16 @@ var MainPanel = React.createClass({
             delete srcContent[oldFileExt];
             srcContent[newFileExt] = src;
 
-            that.setState({srcFiles: srcFiles, srcContent: srcContent});
+            var successFile = function() {
+                that.updateProject(
+                    proj, null, srcFiles, null,
+                    function() { that.setState({srcContent: srcContent}); },
+                    failed
+                );
+            };
 
-            //successFile();
-            /*
-            SKG.writeProject(
-                {SKG_PROJECT_SRC: nfiles},
-                successProj,
-                failedMsg
-            );
-            */
+            SKG.renameSrcFile(proj, oldFileExt, newFileExt, successFile,
+                              failed);
         };
         this.openTextDialog(file, "New file name?", ok);
     },
@@ -599,7 +602,7 @@ var MainPanel = React.createClass({
         if (this.state.selectedFile[block] != ind) {
             var selectedFile = SKG.util.deepCopy(this.state.selectedFile);
             selectedFile[block] = ind;
-            this.setState({selectedFile: selectedFile});
+            this.updateProject(proj, null, null, selectedFile, null, null);
         }
     },
     onFileAdd: function(proj, block) {
@@ -712,7 +715,6 @@ var MainPanel = React.createClass({
                 failedMsg();
                 // roll back project change
                 console.log("hope we never get here :(");
-                SKG.writeProject({SKG_PROJECT_SRC: ofiles});
             };
 
             successFile();
@@ -832,7 +834,7 @@ var MainPanel = React.createClass({
         projectBlocks.forEach(function(block) {
             blocks.push(block.name);
             srcFiles[block.name] = block.src;
-            selectedFile[block.name] = block.defaultFile;
+            selectedFile[block.name] = block.currentFile;
         });
 
         var runq = function(q, func, onDoneQ) {
@@ -894,7 +896,7 @@ var MainPanel = React.createClass({
         SKG.readSolution(this.onLoadSolution);
     },
     render: function() {
-        var proj = this.state.projects && this.state.currentProj ?
+        var proj = this.state.projects && (this.state.currentProject != null) ?
             this.state.projects[this.state.currentProject] :
             null;
 

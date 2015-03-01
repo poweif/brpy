@@ -11,7 +11,7 @@ SKG_DICT.prototype.o = function(key, value) {
     return this.obj;
 };
 
-var skulptgl = {
+var SKG = {
     util: {
         indexOf: function(list, elem) {
             for (var i = 0; i < list.length; i++) {
@@ -154,6 +154,17 @@ var skulptgl = {
         this.util.xhrPost('/run/?write=' + filename + '&proj=' + proj,
                           text, onLoad, onFailed);
     },
+    buildProjectJson: function(blocks, srcFiles, selectedFile) {
+        var ret = [];
+        blocks.forEach(function(block) {
+            ret.push(
+                SKG.d(SKG_PROJECT_NAME, block)
+                    .i(SKG_PROJECT_SRC, srcFiles[block])
+                    .i(SKG_PROJECT_CURRENT_FILE, selectedFile[block]).o()
+            );
+        });
+        return ret;
+    },
     openDialog: function(text, prompt, onOK, onCancel) {
         this.closeDialog();
         React.render(
@@ -162,8 +173,7 @@ var skulptgl = {
             document.getElementById('dialog0'));
     },
     closeDialog: function() {
-        React.unmountComponentAtNode(
-            document.getElementById('dialog0'));
+        React.unmountComponentAtNode(document.getElementById('dialog0'));
     },
     builtinRead: function(x) {
         if (Sk.builtinFiles === undefined ||
@@ -174,13 +184,11 @@ var skulptgl = {
     }
 };
 
-var SKG = skulptgl;
-
 (function() {
     // Site-wide constants
     SKG_PROJECT_NAME = 'name';
     SKG_PROJECT_SRC = 'src';
-    SKG_PROJECT_DEFAULT_FILE = 'defaultFile';
+    SKG_PROJECT_CURRENT_FILE = 'currentFile';
     SKG_SOLUTION_PROJECTS = 'projects';
     SKG_SOLUTION_CURRENT_PROJECT = 'currentProject';    
 

@@ -84,27 +84,27 @@ var InputDialog = React.createClass({
 var DialogMixins = function(setDialogOpen) {
     return {
         openTextDialog: function(text, prompt, onOK) {
-            skulptgl.openDialog(text, prompt, onOK, this.closeDialog);
+            SKG.openDialog(text, prompt, onOK, this.closeDialog);
             if (setDialogOpen)
                 setDialogOpen.bind(this)(true);
         },
         openPromptDialog: function(prompt) {
-            skulptgl.openDialog(null, prompt, this.closeDialog, null);
+            SKG.openDialog(null, prompt, this.closeDialog, null);
             if (setDialogOpen)
                 setDialogOpen.bind(this)(true);
         },
         openBinaryDialog: function(prompt, onOK) {
-            skulptgl.openDialog(null, prompt, onOK, this.closeDialog);
+            SKG.openDialog(null, prompt, onOK, this.closeDialog);
             if (setDialogOpen)
                 setDialogOpen.bind(this)(true);
         },
         openWorkingDialog: function() {
-            skulptgl.openDialog(null, "Working...", null, null);
+            SKG.openDialog(null, "Working...", null, null);
             if (setDialogOpen)
                 setDialogOpen.bind(this)(true);
         },
         closeDialog: function() {
-            skulptgl.closeDialog();
+            SKG.closeDialog();
             if (setDialogOpen)
                 setDialogOpen.bind(this)(false);
         }
