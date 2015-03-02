@@ -38,9 +38,6 @@ var HeaderBar = React.createClass({
         if (!this.props.projects)
             return null;
 
-        var func = function() {
-            console.log("clicking!");
-        };
         var that = this;
         var current = this.props.projects[this.props.currentProject];
         var buttons = [{text: "Projects", hr: true}];
@@ -131,17 +128,31 @@ var EditorFileRow = React.createClass({
                 var del = function() {
                     that.props.onFileDelete(fileExt);
                 };
+                var blocks = that.props.onFileMoveToBlocks ?
+                    that.props.onFileMoveToBlocks.map(function(block) {
+                        return {
+                            text: block.name,
+                            click: function() {
+                                console.log("clicking!!!!");
+                                block.click(fileExt);
+                            }
+                        };
+                    }) : [];
 
-                var moveToBlocks =
-                    this.props.onFileMoveToBlocks.map(function(block) {
+                var newBlockClick = function() {
+                    that.props.onFileMoveToNewBlock(fileExt);
+                };
 
-                    });
+                blocks = blocks.concat([
+                    {hr: true, text: 'Options'},
+                    {text: 'new block', click: newBlockClick}
+                ]);
 
                 var left = {text: "move left", icon: "go10", click: moveLeft};
                 var right = {text: "move right", icon: "right244",
                              click: moveRight};
                 var rename = {text: "rename", icon: "rotate11", click: rename};
-                var del = {text: "delete",icon: "close47", click: del};
+                var del = {text: "delete", icon: "close47", click: del};
 
                 var buttons = [];
                 if (order != 0)
@@ -150,6 +161,9 @@ var EditorFileRow = React.createClass({
                     buttons.push(right);
                 buttons.push(rename);
                 buttons.push(del);
+                if (blocks) {
+                    buttons.push({text: "move to", icon: "forward18", items: blocks});
+                }
 
                 return <ButtonMenu addClass="file-item" text={fileExt}
                            items={buttons} key={order} selected="true" />
@@ -211,6 +225,7 @@ var EditorPane = React.createClass({
                     onFileDelete={this.props.onFileDelete}
                     onFileMove={this.props.onFileMove}
                     onFileMoveToBlocks={this.props.onFileMoveToBlocks}
+                    onFileMoveToNewBlock={this.props.onFileMoveToNewBlock}
                     currentFileInd={this.props.currentFileInd}
                     srcFiles={this.props.srcFiles} />
                 <SourceEditor ref="editor" src={src}
@@ -442,6 +457,7 @@ var WorksheetBlock = React.createClass({
                         onFileDelete={this.props.onFileDelete}
                         onFileMove={this.props.onFileMove}
                         onFileMoveToBlocks={this.props.onFileMoveToBlocks}
+                        onFileMoveToNewBlock={this.props.onFileMoveToNewBlock}
                         isDialogOpen={this.props.isDialogOpen}
                         srcTexts={this.props.srcTexts}
                         srcFiles={this.props.srcFiles}
@@ -750,7 +766,40 @@ var MainPanel = React.createClass({
         selectedFile[block] = target;
         this.updateProject(proj, null, srcFiles, selectedFile, null, failed);
     },
+    onFileMoveToNewBlock: function(proj, oldBlock, fileExt) {
+        var file = SKG.util.getFileName(fileExt);
+        var that = this;
+        var ok = function(newBlock) {
+            if (SKG.util.indexOf(that.state.blocks, newBlock) >= 0) {
+                that.openPromptDialog("Block name already exist");
+                return;
+            }
+            that.closeDialog();
+            var failed = function() {
+                that.openPromptDialog("Failed to add new block");
+            };
+
+            var blocks = SKG.util.deepCopy(that.state.blocks);
+            blocks.push(newBlock);
+            var srcFiles = SKG.util.deepCopy(that.state.srcFiles);
+            srcFiles[newBlock] = [];
+            var selectedFile = SKG.util.deepCopy(that.state.selectedFile);
+            selectedFile[newBlock] = -1;
+
+            var doms = that.state.contentPaneDoms;
+            doms[newBlock] = [];
+            that.setState({contentPaneDoms: doms});
+
+            var onOk = function() {
+                that.onFileMoveToBlock(proj, oldBlock, newBlock, fileExt);
+            };
+            that.updateProject(
+                proj, blocks, srcFiles, selectedFile, onOk, failed);
+        };
+        this.openTextDialog(file, "New Block?", ok);
+    },
     onFileMoveToBlock: function(proj, oldBlock, newBlock, file) {
+        console.log("moving " + file + " from " + oldBlock + " to " + newBlock);
         var oldBlockFiles = [];
         this.state.srcFiles[oldBlock].forEach(function(cfile) {
             if (file != cfile)
@@ -761,6 +810,8 @@ var MainPanel = React.createClass({
 
         var srcFiles = SKG.util.deepCopy(this.state.srcFiles);
         var selectedFile = SKG.util.deepCopy(this.state.selectedFile);
+        var blocks = null;
+        var that = this;
 
         srcFiles[newBlock] = newBlockFiles;
         selectedFile[newBlock] = newBlockFiles.length - 1;
@@ -769,15 +820,28 @@ var MainPanel = React.createClass({
             srcFiles[oldBlock] = oldBlockFiles;
             selectedFile[oldBlock] = 0;
         } else {
+            var doms = this.state.contentPaneDoms;
+            blocks = [];
+            this.state.blocks.forEach(function(block) {
+                if (block != oldBlock)
+                    blocks.push(block);
+            });
             delete srcFiles[oldBlock];
             delete selectedFile[oldBlock];
+            delete doms[oldBlock];
         }
 
         var failed = function() {
             that.openPromptDialog("Failed to move block");
         };
 
-        this.updateProject(proj, null, srcFiles, selectedFile, null, failed);
+        var onOk = function() {
+            that.runProg(newBlock);
+            if (oldBlockFiles.length > 0)
+                that.runProg(oldBlock);
+        };
+
+        this.updateProject(proj, blocks, srcFiles, selectedFile, onOk, failed);
     },
     onBlockRename: function(proj, oldBlock) {
         var that = this;
@@ -828,12 +892,13 @@ var MainPanel = React.createClass({
     onBlockMove: function(proj, origin, target) {
         var blocks = SKG.util.deepCopy(this.state.blocks);
         var blockName = blocks[origin];
+        var that = this;
         blocks[origin] = blocks[target];
         blocks[target] = blockName;
         var failed = function() {
             that.openPromptDialog("Failed to move block.");
         };
-        this.updateProject(proj, blocks, null, null, failed);
+        this.updateProject(proj, blocks, null, null, null, failed);
     },
     runProg: function(block) {
         // If files are missing, do not run program.
@@ -973,21 +1038,19 @@ var MainPanel = React.createClass({
         var that = this;
         var blocks = this.state.blocks.map(function(block, index) {
             var fileMoveToBlocks = [];
+
             this.state.blocks.forEach(function(iblock) {
-                if (iblock == block) continue;
+                if (iblock == block) return;
 
                 fileMoveToBlocks.push({
                     name: iblock,
-                    click: function() {
-                        return (
-                            that.onFileMoveToBlock(that, proj, block, iblock);
-                        );
-                    }
+                    click: that.onFileMoveToBlock.bind(that, proj, block, iblock)
                 });
             });
             fileMoveToBlocks = fileMoveToBlocks.length > 0 ?
-                fileMoveToBlocks.length > 0 : null;
-
+                fileMoveToBlocks : null;
+            var fileMoveToNewBlock =
+                this.onFileMoveToNewBlock.bind(this, proj, block);
             var srcFiles = this.state.srcFiles[block];
             var fileInd = this.state.selectedFile[block];
             var doms = this.state.contentPaneDoms[block];
@@ -1020,6 +1083,7 @@ var MainPanel = React.createClass({
                     onFileClick={fileClick} onBlockRename={blockRename}
                     onBlockMoveUp={blockMoveUp} onBlockMoveDown={blockMoveDown}
                     onFileMoveToBlocks={fileMoveToBlocks}
+                    onFileMoveToNewBlock={fileMoveToNewBlock}
                     onRun={run} onSave={save} />
             );
         }.bind(this));

@@ -15,11 +15,6 @@ var Button =  React.createClass({
             textCn += " font-small";
         }
 
-        if (this.props.selected) {
-            imgCn += " button-selected";
-        }
-
-
         var buttonText = !that.props.text ? null : function() {
             return (
                 <div className={textCn}>{that.props.text}</div>
@@ -38,12 +33,12 @@ var Button =  React.createClass({
                 if (that.props.addClass)
                     nclassName += " " + that.props.addClass;
             }
+
             return (
                 <img src={imgSrc} className={nclassName}
                     onClick={click} />
             );
         }();
-
 
         if (img && !buttonText)
             return img;
@@ -90,7 +85,10 @@ var ButtonMenu =  React.createClass({
         var rect = obj.refs.items.getDOMNode().getBoundingClientRect();
         if (e.clientX > rect.right || e.clientX < rect.left ||
             e.clientY < rect.top || e.clientY > rect.bottom) {
-            obj.setState({hidden: true});
+            setTimeout(function() {
+                if (obj.isMounted())
+                    obj.setState({hidden: true});
+            }, 100);
         }
     },
     componentDidUpdate: function() {
@@ -127,7 +125,7 @@ var ButtonMenu =  React.createClass({
         var that = this;
         var mainButton = function() {
             return (
-                <Button ref="main" rev large={that.props.large}
+                <Button ref="main" large={that.props.large}
                     selected={!that.state.hidden || that.props.selected}
                     mid={that.props.mid}
                     small={that.props.small}
@@ -169,6 +167,14 @@ var ButtonMenu =  React.createClass({
                     return (
                         <span className="vspace">
                             <MenuHr text={item.text} key={ind}/>
+                        </span>
+                    );
+                }
+                if (item.items) {
+                    return (
+                        <span className="vspace">
+                            <ButtonMenu text={item.text} items={item.items}
+                                icon={item.icon} key={ind} />
                         </span>
                     );
                 }

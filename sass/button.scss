@@ -16,7 +16,7 @@
   @include flex-direction(column);
 
   .main-button {
-    border-radius: $std-border-radius $std-border-radius 0 0;
+    border-radius: $std-border-radius;
   }
 
   .main-button-larger {
