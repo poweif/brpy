@@ -26,7 +26,7 @@
   .main-button-smaller {
     border-radius: $std-border-radius $std-border-radius 0 0;
     border-color: $prime-inv-color $prime-inv-color $prime-color $prime-inv-color;
-    z-index: 6;
+    z-index: 9;
   }
 
   .items {
@@ -36,7 +36,6 @@
     @include flex-direction(column);
     @include align-items(flex-stretch);
     position: absolute;
-    z-index: 5;
     background-color: $prime-color;
     border-color: $prime-color $prime-inv-color $prime-inv-color $prime-inv-color;
     border-radius: 0 0 $std-border-radius $std-border-radius;
@@ -44,6 +43,7 @@
     @include animation('fade-in ' + $std-duration);
     cursor: default;
     padding: 10px 5px 5px 5px;
+    z-index: 8;
   }
 
   .items-larger {

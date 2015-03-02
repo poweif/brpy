@@ -64,7 +64,7 @@ class SkSolution():
 
         with open('./sample/default/' + self._PROJ_JSON) as proj_json:
             self._update_text_file_impl(proj_folder_id, self._PROJ_JSON,
-                                       proj_json.read())        
+                                       proj_json.read())
         return True
 
     def _find_project_id(self, proj_name, create=False):
@@ -127,7 +127,6 @@ class SkSolution():
         return self._delete_file_impl(proj_id, fname) is not None
 
     def update_project(self, proj, proj_data):
-        print proj_data, len(proj_data)
         proj_id = self._find_project_id(proj)
         return self._update_text_file_impl(
             proj_id, self._PROJ_JSON, json.dumps(proj_data)) is not None
