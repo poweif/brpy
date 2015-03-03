@@ -200,6 +200,24 @@ var EditorFileRow = React.createClass({
     }
 });
 
+var BlockLinkPane = React.createClass({
+    maxHeight: function() {
+        return 40;
+    },
+    componentDidMount: function() {
+        if (this.props.resize)
+            this.props.resize();
+    },
+    render: function() {
+        var block = SKG.util.getFileName(this.props.block);
+        return (
+            <div className="block-link-pane">
+                the <b>{block}</b> block
+            </div>
+        );
+    }
+});
+
 var EditorPane = React.createClass({
     fileRowHeight: function() {
         if (!this.refs.fileRow)
@@ -216,11 +234,12 @@ var EditorPane = React.createClass({
         var that = this;
         var src = null;
         var run = this.props.onRun;
+        var fileName = null;
         if (this.props.currentFileInd >= 0 && this.props.srcTexts) {
-            var srcFileName = this.props.srcFiles[this.props.currentFileInd];
-            src = this.props.srcTexts[srcFileName];
+            fileName = this.props.srcFiles[this.props.currentFileInd];
+            src = this.props.srcTexts[fileName];
             run = function(code) {
-                that.props.onRun(srcFileName, code);
+                that.props.onRun(fileName, code);
             };
         }
 
@@ -239,7 +258,12 @@ var EditorPane = React.createClass({
                     height={realHeight} resize={that.props.resize}
                     onRun={run} onSave={that.props.onSave} />
             );
-        }() : null;
+        }() : function() {
+            return (
+                <BlockLinkPane ref="editor" resize={that.props.resize}
+                    block={fileName} />
+            );
+        }();
 
         return (
             <div className={editorPaneCn}>
@@ -753,7 +777,6 @@ var MainPanel = React.createClass({
             that.openPromptDialog("Failed to delete file");
         };
         var success = function() {
-            console.log("deleting file " + fname);
             if (SKG.util.getFileExt(fname) == 'bk')
                 that.runProg(block);
             that.closeDialog();
@@ -844,7 +867,6 @@ var MainPanel = React.createClass({
         this.openTextDialog(file, "New Block?", ok);
     },
     onFileMoveToBlock: function(proj, oldBlock, newBlock, file) {
-        console.log("moving " + file + " from " + oldBlock + " to " + newBlock);
         var oldBlockFiles = [];
         this.state.srcFiles[oldBlock].forEach(function(cfile) {
             if (file != cfile)

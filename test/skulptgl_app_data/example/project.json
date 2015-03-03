@@ -1,1 +1,1 @@
-[{"src": ["hello.py"], "currentFile": 0, "name": "main"}, {"src": ["main.bk", "new.py"], "currentFile": 1, "name": "new"}]
+[{"src": ["hello.py", "new.py"], "currentFile": 0, "name": "main"}]

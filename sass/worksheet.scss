@@ -202,6 +202,11 @@ $line-width: 2px;
   z-index: -1
 }
 
+.block-link-pane {
+  width: 650px;
+  text-align: center;
+}
+
 .main-panel {
   @extend %flexbox;
   @include flex-direction(column);

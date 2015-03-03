@@ -52,9 +52,12 @@ var SourceEditor = React.createClass({
                 cdm.scrollIntoView({line: cdm.getDoc().lastLine(), pos: 0});
                 cdm.scrollIntoView({line: 0, pos: 0});
             }
-            cdm.refresh();
             if (this.props.resize)
                 this.props.resize();
+            cdm.setSize(
+                650,
+                Math.max(1, this.props.height != null ? this.props.height : 0));
+            cdm.refresh();
         }
 
         if (this.props.height != prevProps.height && this.state.cdm) {
@@ -66,6 +69,8 @@ var SourceEditor = React.createClass({
             this.props.resize();
     },
     componentDidMount: function() {
+        this.setState({cdm: null});
+
         var keyMapParams = {
             type: 'keydown',
             propagate: false,
