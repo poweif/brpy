@@ -28,8 +28,7 @@ var StdoutConsole =  React.createClass({
         return (
             <div className={stdoutCn}>
                 <textarea ref="tarea" readOnly></textarea>
-                <img src={buttonImg}
-                     className={verticalButtonCn}
+                <img src={buttonImg} className={verticalButtonCn}
                      onClick={this.toggleConsole} />
             </div>
         )
@@ -212,7 +211,7 @@ var BlockLinkPane = React.createClass({
         var block = SKG.util.getFileName(this.props.block);
         return (
             <div className="block-link-pane">
-                the <b>{block}</b> block
+                <div className="content">the {block} block</div>
             </div>
         );
     }
