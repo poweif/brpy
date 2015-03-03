@@ -233,13 +233,17 @@ var EditorPane = React.createClass({
     render: function() {
         var that = this;
         var src = null;
-        var run = this.props.onRun;
+        var run = null;
+        var save = null;
         var fileName = null;
         if (this.props.currentFileInd >= 0 && this.props.srcTexts) {
             fileName = this.props.srcFiles[this.props.currentFileInd];
             src = this.props.srcTexts[fileName];
             run = function(code) {
                 that.props.onRun(fileName, code);
+            };
+            save = function(code) {
+                that.props.onSave(fileName, code);
             };
         }
 
@@ -256,7 +260,7 @@ var EditorPane = React.createClass({
             return (
                 <SourceEditor ref="editor" src={src}
                     height={realHeight} resize={that.props.resize}
-                    onRun={run} onSave={that.props.onSave} />
+                    onRun={run} onSave={save} />
             );
         }() : function() {
             return (
@@ -981,7 +985,7 @@ var MainPanel = React.createClass({
             delete doms[oldBlock];
             doms[newBlock] = dom;
 
-            block.forEach(function(block) {
+            blocks.forEach(function(block) {
                 srcFiles[block] = srcFiles[block].map(function(file) {
                     var ext = SKG.util.getFileExt(file);
                     var name = SKG.util.getFileName(file);
@@ -1060,8 +1064,9 @@ var MainPanel = React.createClass({
             console.log("python[ERROR]> " + e.toString());
         }
     },
-    onRun: function(block, file, code) {
-        this.clientSideSave(block, file, code);
+    onRun: function(proj, block, file, code) {
+        //this.clientSideSave(block, file, code);
+//        this.onSave(proj, block, file, code, null, null);
         this.runProg(block);
     },
     clientSideSave: function(block, file, code) {
@@ -1069,22 +1074,20 @@ var MainPanel = React.createClass({
             return;
         this.state.srcContent[file] = code;
     },
-    onSave: function(file, code, onSuccess, onFail) {
+    onSave: function(proj, block, file, code, onSuccess, onFail) {
         if (!file)
             return;
 
-        this.clientSideSave(file, code);
-        /*
+        this.clientSideSave(block, file, code);
         SKG.writeSrcFile(
-            fname, code,
+            proj, file, code,
             function() {
-                console.log("Successfully wrote " + fname);
+                console.log("Successfully wrote " + file);
                 if (onSuccess) onSuccess(); },
             function() {
-                console.log("Failed to write " + fname);
+                console.log("Failed to write " + file);
                 if (onFail) onFail(); }
         );
-        */
     },
     onLoadProject: function(projectName, text) {
         var projectBlocks = JSON.parse(text);
@@ -1216,8 +1219,8 @@ var MainPanel = React.createClass({
                     this.onBlockMove.bind(this, proj, index, index + 1);
             }
 
-            var run = this.onRun.bind(this, block);
-            var save = this.onSave;
+            var run = this.onRun.bind(this, proj, block);
+            var save = this.onSave.bind(this, proj, block);
             return (
                 <WorksheetBlock key={block} srcFiles={srcFiles} name={block}
                     srcTexts={this.state.srcContent} currentFileInd={fileInd}

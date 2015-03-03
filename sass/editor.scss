@@ -4,4 +4,11 @@
 .codearea {
   @extend .unselectable;
   @include flex(auto);
+  border: 1px solid rgba(0, 0, 0, 0);
+  transition: border-color $std-duration;
+}
+
+.unsaved {
+  border: 1px solid rgba(255, 0, 0, .3);
+  transition: border-color $std-duration;
 }

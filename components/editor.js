@@ -2,7 +2,8 @@ var SourceEditor = React.createClass({
     cdm: null,
     getInitialState: function() {
         return {
-            cdm: null
+            cdm: null,
+            unsaved: false
         };
     },
     getContent: function() {
@@ -17,6 +18,10 @@ var SourceEditor = React.createClass({
                          this.state.cdm.cursorCoords().bottom) / 2;
         var winHeight = window.innerHeight;
         window.scrollTo(0, cursorPos - (winHeight / 2));
+    },
+    onDocChange: function() {
+        if (!this.state.unsaved)
+            this.setState({unsaved: true});
     },
     componentDidUpdate: function(prevProps, prevState) {
         var that = this;
@@ -38,19 +43,25 @@ var SourceEditor = React.createClass({
                     }
                 );
                 var keymap = {
-                    "Ctrl-B" : function() {
-                        if (that.state.cdm)
+                    "Shift-Enter": function() {
+                        if (that.state.cdm) {
+                            if (that.state.unsaved)
+                                that.save(that.getContent(), true);
                             that.props.onRun(that.getContent());
+                        }
                     }
                 };
                 cdm.addKeyMap(CodeMirror.normalizeKeyMap(keymap));
                 this.setState({cdm: cdm});
             }
 
-            if (code) {
+            if (code && code != this.getContent()) {
+                cdm.getDoc().off('change', this.onDocChange);
                 cdm.getDoc().setValue(code);
                 cdm.scrollIntoView({line: cdm.getDoc().lastLine(), pos: 0});
                 cdm.scrollIntoView({line: 0, pos: 0});
+                that.save(that.getContent(), true);
+                cdm.getDoc().on('change', this.onDocChange);
             }
             if (this.props.resize)
                 this.props.resize();
@@ -78,21 +89,19 @@ var SourceEditor = React.createClass({
         };
         var that = this;
 
-        if (this.props.onSave) {
-            var save = function() {
-                if (that.state.cdm)
-                    that.props.onSave(that.state.cdm.getValue());
-            };
-            shortcut.add('Ctrl+S', save, keyMapParams);
-        }
-        // Technically this should be in codemirror's emacs keymap, but putting
-        // this here for now.
+        shortcut.add('Ctrl+S', function() {}, keyMapParams);
         shortcut.add('Ctrl+L', this.onScrollTo, keyMapParams);
     },
     componentWillUnmount: function() {
-        shortcut.remove('Ctrl+B');
         shortcut.remove('Ctrl+S');
         shortcut.remove('Ctrl+L');
+    },
+    save: function(text, setState) {
+        if (this.props.onSave && this.state.cdm && this.state.unsaved) {
+            this.props.onSave(text);
+            if (setState)
+                this.setState({unsaved: false});
+        }
     },
     maxHeight: function() {
         if (!this.state.cdm) {
@@ -104,6 +113,8 @@ var SourceEditor = React.createClass({
     },
     render: function() {
         var editorInnerCn = "codearea";
+        if (this.state.unsaved)
+            editorInnerCn += " unsaved";
         return (
             <div ref="editorInner" className={editorInnerCn}>
                 <textarea ref="textarea"></textarea>
