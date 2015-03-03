@@ -53,7 +53,12 @@ $console-button-size: 50px;
   left: 0px;
   opacity: .75;
   transition: left $std-duration, opacity $std-duration;
-  z-index: 4;
+  z-index: 6;
+}
+
+.stdout-console-backgrounded {
+  @extend .stdout-console;
+  z-index: -1;
 }
 
 .stdout-console-hide {
@@ -192,7 +197,7 @@ $line-width: 2px;
   }
 }
 
-.editor-pane-hidden {
+.editor-pane-backgrounded {
   @extend .editor-pane;
   z-index: -1
 }

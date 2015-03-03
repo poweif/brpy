@@ -79,9 +79,15 @@ var SKG = {
             contentReq.send(text);
         },
         getFileName: function(fname) {
-            if (fname.indexOf('.') < 0)
+            if (fname.lastIndexOf('.') < 0)
                 return null;
-            return fname.substring(0, fname.indexOf('.'));
+            return fname.substring(0, fname.lastIndexOf('.'));
+        },
+        getFileExt: function(fname) {
+            var ind = fname.lastIndexOf('.');
+            if (ind < 0 || ind >= fname.length - 1)
+                return null;
+            return fname.substring(ind + 1);
         },
         // http://stackoverflow.com/questions/10787782/
         // full-height-of-a-html-element-div-including-border-padding-and-margin
@@ -190,7 +196,7 @@ var SKG = {
     SKG_PROJECT_SRC = 'src';
     SKG_PROJECT_CURRENT_FILE = 'currentFile';
     SKG_SOLUTION_PROJECTS = 'projects';
-    SKG_SOLUTION_CURRENT_PROJECT = 'currentProject';    
+    SKG_SOLUTION_CURRENT_PROJECT = 'currentProject';
 
     window.addEventListener("beforeunload", function (e) {
         var confirmation = "Did you save? Are you sure you'd like to quit?"

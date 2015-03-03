@@ -17,6 +17,9 @@ var StdoutConsole =  React.createClass({
         var verticalButtonCn = "vertical-button";
         var buttonImg = "/img/keyboard54.png";
 
+        if (this.props.isDialogOpen)
+            stdoutCn += "-backgrounded";
+
         if (this.state.hidden) {
             stdoutCn += " stdout-console-hide";
             buttonImg = "/img/sort52.png";
@@ -40,7 +43,7 @@ var HeaderBar = React.createClass({
 
         var that = this;
         var current = this.props.projects[this.props.currentProject];
-        var buttons = [{text: "Projects", hr: true}];
+        var buttons = [{text: "Switch to project", hr: true}];
         buttons = buttons.concat(
             this.props.projects.map(function(proj) {
                 if (proj == current)
@@ -54,9 +57,8 @@ var HeaderBar = React.createClass({
         var rename = function() { return that.props.onProjectRename(current); };
         var del = function() { return that.props.onProjectDelete(current); };
         buttons = buttons.concat([
-            {text: "new...", click: this.props.onProjectNew,
-             icon: "add186"},
-            {text: "Options", hr: true},
+            {text: "Project options", hr: true},
+            {text: "new", click: this.props.onProjectNew, icon: "add186"},
             {text: "rename", click: rename, icon: "rotate11"},
             {text: "delete", click: del, icon: "close47"},
         ]);
@@ -105,6 +107,7 @@ var EditorFileRow = React.createClass({
         var that = this;
         var fileButtons = this.props.srcFiles.map(
             function(fileExt, order) {
+                var isBlockLink = SKG.util.getFileExt(fileExt) == 'bk';
                 var selected = order == that.props.currentFileInd;
                 if (!selected) {
                     var click = function() {
@@ -122,10 +125,11 @@ var EditorFileRow = React.createClass({
                     that.props.onFileMove(that.props.currentFileInd,
                                           that.props.currentFileInd + 1);
                 };
-                var rename = function() {
+                var renameFunc = function() {
                     that.props.onFileRename(SKG.util.getFileName(fileExt));
                 };
-                var del = function() {
+
+                var delFunc = function() {
                     that.props.onFileDelete(fileExt);
                 };
                 var blocks = that.props.onFileMoveToBlocks ?
@@ -133,7 +137,6 @@ var EditorFileRow = React.createClass({
                         return {
                             text: block.name,
                             click: function() {
-                                console.log("clicking!!!!");
                                 block.click(fileExt);
                             }
                         };
@@ -143,26 +146,32 @@ var EditorFileRow = React.createClass({
                     that.props.onFileMoveToNewBlock(fileExt);
                 };
 
-                blocks = blocks.concat([
-                    {hr: true, text: 'Options'},
-                    {text: 'new block', click: newBlockClick}
-                ]);
+                var nblocks =
+                    [{icon: 'crop13', text: 'new block', click: newBlockClick}];
+                if (blocks.length > 0) {
+                    nblocks.push({hr: true, text: 'blocks'});
+                    nblocks = nblocks.concat(blocks);
+                }
 
                 var left = {text: "move left", icon: "go10", click: moveLeft};
                 var right = {text: "move right", icon: "right244",
                              click: moveRight};
-                var rename = {text: "rename", icon: "rotate11", click: rename};
-                var del = {text: "delete", icon: "close47", click: del};
+                var rename = !isBlockLink ?
+                    {text: "rename", icon: "rotate11", click: renameFunc} :
+                    null;
+                var del = {text: "delete", icon: "close47", click: delFunc};
 
                 var buttons = [];
-                if (order != 0)
-                    buttons.push(left);
+                if (order != 0) buttons.push(left);
                 if (order != that.props.srcFiles.length - 1)
                     buttons.push(right);
+
                 buttons.push(rename);
                 buttons.push(del);
-                if (blocks) {
-                    buttons.push({text: "move to", icon: "forward18", items: blocks});
+
+                if (!isBlockLink) {
+                    buttons.push(
+                        {text: "move to", icon: "forward18", items: nblocks});
                 }
 
                 return <ButtonMenu addClass="file-item" text={fileExt}
@@ -170,9 +179,17 @@ var EditorFileRow = React.createClass({
             }
         );
         fileButtons.push(function() {
+            var items = [
+                {text: "add source", icon: "create3",
+                 click: that.props.onFileAdd}
+            ];
+            if (that.props.onBlockLinkAdds) {
+                items.push({text: "Link to block", hr: true});
+                items = items.concat(that.props.onBlockLinkAdds);
+            }
             return (
-                <Button icon="add186" addClass="file-item" key="add123"
-                    click={that.props.onFileAdd} />
+                <ButtonMenu icon="add186" addClass="file-item" key="add123"
+                    items={items} />
             );
         }());
         return (
@@ -209,12 +226,20 @@ var EditorPane = React.createClass({
 
         var editorPaneCn = "editor-pane";
         if (this.props.isDialogOpen)
-            editorPaneCn += "-hidden";
+            editorPaneCn += "-backgrounded";
 
         if (!this.props.highlightable)
             editorPaneCn += " unselectable";
 
         var realHeight = Math.max(0, this.props.height - this.fileRowHeight());
+
+        var sourceEditor = src ? function() {
+            return (
+                <SourceEditor ref="editor" src={src}
+                    height={realHeight} resize={that.props.resize}
+                    onRun={run} onSave={that.props.onSave} />
+            );
+        }() : null;
 
         return (
             <div className={editorPaneCn}>
@@ -226,11 +251,10 @@ var EditorPane = React.createClass({
                     onFileMove={this.props.onFileMove}
                     onFileMoveToBlocks={this.props.onFileMoveToBlocks}
                     onFileMoveToNewBlock={this.props.onFileMoveToNewBlock}
+                    onBlockLinkAdds={this.props.onBlockLinkAdds}
                     currentFileInd={this.props.currentFileInd}
                     srcFiles={this.props.srcFiles} />
-                <SourceEditor ref="editor" src={src}
-                    height={realHeight} resize={this.props.resize}
-                    onRun={run} onSave={this.props.onSave} />
+                {sourceEditor}
             </div>
         );
     }
@@ -393,7 +417,7 @@ var WorksheetBlock = React.createClass({
         window.removeEventListener("mouseup", this.mouseUp);
     },
     render: function() {
-        var rename = function() {};
+        var that = this;
         var blockMenu = function() {
             var items = [];
             if (this.props.onBlockMoveUp)
@@ -410,6 +434,7 @@ var WorksheetBlock = React.createClass({
                 <ButtonMenu right items={items} text={this.props.name} />
             );
         }.bind(this)();
+
         if (this.state.collapsed) {
             return (
                 <div className="worksheet-block">
@@ -424,21 +449,29 @@ var WorksheetBlock = React.createClass({
             );
         }
 
-        var sepUpper =
-            function(e) { this.separatorMouseDown(true, e); }.bind(this);
-        var sepLower =
-            function(e) { this.separatorMouseDown(false, e); }.bind(this);
-        return (
-            <div className="worksheet-block">
+        var makeSeparator = function(upper) {
+            var mouseDown = function(e) {
+                this.separatorMouseDown(upper, e);
+            }.bind(that);
+            return (
                 <div ref="separator" className="separator">
                     <div className="separator-line-wrapper"
-                        onMouseDown={sepUpper}>
+                        onMouseDown={mouseDown}>
                         <div className="separator-line"></div>
                     </div>
-                    {blockMenu}
-                    <Button icon="play107-n" click={this.blockCollapse} />
-                    <Button icon="play107-s" click={this.blockExpand} />
+                    {upper ? blockMenu : null}
+                    <Button icon="rounded56" click={that.blockCollapse} />
+                    <Button icon="add182" click={that.blockExpand} />
                 </div>
+            );
+        };
+
+        var sepUpper = makeSeparator(true);
+        var sepLower = makeSeparator(false);
+
+        return (
+            <div className="worksheet-block">
+                {sepUpper}
                 <div className="block-content">
                     <ContentPane ref="contentPane" resize={this.onContentUpdate}
                         contentDoms={this.props.contentDoms} block={this.props.name}/>
@@ -458,18 +491,13 @@ var WorksheetBlock = React.createClass({
                         onFileMove={this.props.onFileMove}
                         onFileMoveToBlocks={this.props.onFileMoveToBlocks}
                         onFileMoveToNewBlock={this.props.onFileMoveToNewBlock}
+                        onBlockLinkAdds={this.props.onBlockLinkAdds}
                         isDialogOpen={this.props.isDialogOpen}
                         srcTexts={this.props.srcTexts}
                         srcFiles={this.props.srcFiles}
                         currentFileInd={this.props.currentFileInd} />
                 </div>
-                <div className="separator">
-                    <div className="separator-line-wrapper" onMouseDown={sepLower}>
-                        <div className="separator-line"></div>
-                    </div>
-                    <Button icon="play107-n" click={this.blockCollapse} />
-                    <Button icon="play107-s" click={this.blockExpand} />
-                </div>
+                {sepLower}
             </div>
         );
     }
@@ -649,10 +677,11 @@ var MainPanel = React.createClass({
             var fnameExt = fname + ".py";
             var fileSrc = "# " + fnameExt;
             var ofiles = that.state.srcFiles[block];
-            if (that.state.srcContent[block] != null) {
+            if (that.state.srcContent[fnameExt] != null) {
                 that.openPromptDialog("File already exist");
                 return;
             }
+            that.closeDialog();
             var failed = function() {
                 that.openPromptDialog("Failed to add file");
             };
@@ -688,7 +717,20 @@ var MainPanel = React.createClass({
         delete selectedFile[block];
         delete contentPaneDoms[block];
         files.forEach(function(file) {
-            delete srcContent[file];
+            if (srcContent[file])
+                delete srcContent[file];
+        });
+
+        block.forEach(function(block) {
+            var nfiles = [];
+            srcFiles[block].forEach(function(file) {
+                var ext = SKG.util.getFileExt(file);
+                var name = SKG.util.getFileName(file);
+                if (ext == 'bk' && name == oldBlock)
+                    return;
+                nfiles.push(file);
+            });
+            srcFiles[block] = nfiles;
         });
 
         var that = this;
@@ -711,6 +753,9 @@ var MainPanel = React.createClass({
             that.openPromptDialog("Failed to delete file");
         };
         var success = function() {
+            console.log("deleting file " + fname);
+            if (SKG.util.getFileExt(fname) == 'bk')
+                that.runProg(block);
             that.closeDialog();
         };
 
@@ -843,6 +888,41 @@ var MainPanel = React.createClass({
 
         this.updateProject(proj, blocks, srcFiles, selectedFile, onOk, failed);
     },
+    checkCircularBlockLinks: function(block, srcFiles, checked) {
+        if (checked[block])
+            return true;
+        checked[block] = true;
+        var files = srcFiles[block];
+        var res = false;
+        for (var i = 0; i < files.length; i++) {
+            var ext = SKG.util.getFileExt(files[i]);
+            var name = SKG.util.getFileName(files[i]);
+            if (ext == 'bk')
+                res = res || this.checkCircularBlockLinks(name, srcFiles, checked);
+        }
+        return res;
+    },
+    onBlockLinkAdd: function(proj, block, blockLink) {
+        var that = this;
+        var blockLinkExt = blockLink + ".bk"
+        var srcFiles = SKG.util.deepCopy(this.state.srcFiles);
+        srcFiles[block].unshift(blockLinkExt);
+
+        if (this.checkCircularBlockLinks(block, srcFiles, {})) {
+            that.openPromptDialog("Failed because of circular dependency.");
+            return;
+        }
+        var failed = function() {
+            that.openPromptDialog("Failed to add block link");
+        };
+
+        var selectedFile = SKG.util.deepCopy(this.state.selectedFile);
+        selectedFile[block] = selectedFile[block] + 1;
+
+        this.updateProject(
+            proj, null, srcFiles, selectedFile, this.runProg.bind(this, block),
+            failed);
+    },
     onBlockRename: function(proj, oldBlock) {
         var that = this;
         var failed = function() {
@@ -879,6 +959,16 @@ var MainPanel = React.createClass({
             delete doms[oldBlock];
             doms[newBlock] = dom;
 
+            block.forEach(function(block) {
+                srcFiles[block] = srcFiles[block].map(function(file) {
+                    var ext = SKG.util.getFileExt(file);
+                    var name = SKG.util.getFileName(file);
+                    if (ext == 'bk' && name == oldBlock)
+                        return newBlock + '.bk';
+                    return file;
+                });
+            });
+
             var blockOk = function() {
                 that.setState({contentPaneDoms: doms});
                 that.closeDialog();
@@ -900,11 +990,28 @@ var MainPanel = React.createClass({
         };
         this.updateProject(proj, blocks, null, null, null, failed);
     },
+    collectSrc: function(block) {
+        var that = this;
+        var ret = [];
+        this.state.srcFiles[block].forEach(function(fileExt) {
+            var ext = SKG.util.getFileExt(fileExt);
+            if (ext == 'py') {
+                ret.push({name: fileExt, body: that.state.srcContent[fileExt]});
+            } else if (ext == 'bk') {
+                var block = SKG.util.getFileName(fileExt);
+                ret = ret.concat(that.collectSrc(block));
+            }
+        });
+        return ret;
+    },
     runProg: function(block) {
         // If files are missing, do not run program.
         var files = this.state.srcFiles[block];
         for (var i = 0; i < files.length; i++) {
-            if (!this.state.srcContent[files[i]])
+            var file = files[i];
+            if (SKG.util.getFileExt(file) == 'bk')
+                continue;
+            if (!this.state.srcContent[file])
                 return;
         }
         var that = this;
@@ -916,10 +1023,8 @@ var MainPanel = React.createClass({
             {"output": output, "debugout": output, "read": SKG.builtinRead}
         );
 
+        var progs = this.collectSrc(block);
         try {
-            var progs = this.state.srcFiles[block].map(function(file) {
-                return {name: file, body: that.state.srcContent[file]};
-            });
             Sk.importMainWithMultipleFiles(false, progs);
             var ndoms = Sk.progdomIds().map(function(elem) {
                 return elem.dom;
@@ -983,6 +1088,8 @@ var MainPanel = React.createClass({
             func(r, function() { runq(nextq, func, onDoneQ); });
         };
         var readFile = function(file, onDoneFile) {
+            if (SKG.util.getFileExt(file) == 'bk') return onDoneFile();
+
             SKG.readSrcFile(
                 projectName,
                 file,
@@ -994,13 +1101,18 @@ var MainPanel = React.createClass({
         var readBlock = function(block, onDoneBlock) {
             var files = SKG.util.deepCopy(srcFiles[block]);
             var runblock = function() {
-                that.runProg(block);
                 if (onDoneBlock)
                     onDoneBlock();
             };
             runq(files, readFile, runblock);
         };
-        runq(SKG.util.deepCopy(blocks), readBlock);
+        var allDone = function() {
+            blocks.forEach(function(block) {
+                that.runProg(block);
+            });
+        };
+
+        runq(SKG.util.deepCopy(blocks), readBlock, allDone);
 
         that.setState({
             projectName: projectName,
@@ -1037,18 +1149,28 @@ var MainPanel = React.createClass({
 
         var that = this;
         var blocks = this.state.blocks.map(function(block, index) {
-            var fileMoveToBlocks = [];
+            var fileMoveToBlocks = null;
+            var blockLinkAdds = null;
 
             this.state.blocks.forEach(function(iblock) {
                 if (iblock == block) return;
 
+                if (!fileMoveToBlocks) fileMoveToBlocks = [];
                 fileMoveToBlocks.push({
                     name: iblock,
                     click: that.onFileMoveToBlock.bind(that, proj, block, iblock)
                 });
+                if (SKG.util.indexOf(that.state.srcFiles[block],iblock + '.bk')
+                    < 0) {
+                    if (!blockLinkAdds) blockLinkAdds = [];
+                    blockLinkAdds.push({
+                        text: iblock,
+                        click: that.onBlockLinkAdd.bind(
+                            that, proj, block, iblock)
+                    });
+                }
             });
-            fileMoveToBlocks = fileMoveToBlocks.length > 0 ?
-                fileMoveToBlocks : null;
+
             var fileMoveToNewBlock =
                 this.onFileMoveToNewBlock.bind(this, proj, block);
             var srcFiles = this.state.srcFiles[block];
@@ -1084,6 +1206,7 @@ var MainPanel = React.createClass({
                     onBlockMoveUp={blockMoveUp} onBlockMoveDown={blockMoveDown}
                     onFileMoveToBlocks={fileMoveToBlocks}
                     onFileMoveToNewBlock={fileMoveToNewBlock}
+                    onBlockLinkAdds={blockLinkAdds}
                     onRun={run} onSave={save} />
             );
         }.bind(this));
@@ -1096,7 +1219,8 @@ var MainPanel = React.createClass({
                     onProjectNew={this.onProjectNew}
                     onProjectClick={this.onProjectClick}
                     onProjectRename={this.onProjectRename} />
-                <StdoutConsole ref="stdoutConsole" />
+                <StdoutConsole ref="stdoutConsole"
+                    isDialogOpen={this.state.isDialogOpen}/>
                 {blocks}
            </div>
         );
