@@ -9,6 +9,10 @@ import shutil
 
 from abc import ABCMeta, abstractmethod
 
+import tornado.web, tornado.ioloop
+from tornado import gen
+import motor
+
 class SkSolution():
     __metaclass__ = ABCMeta
     _SOLUTION_JSON = 'solution.json'
@@ -342,3 +346,220 @@ class DevSkSolution(SkSolution):
             if self.__read_only:
                 self.__file_cache[file_path] = content
             return content
+
+class MongoDBSkSolution(SkSolution):
+    """Encapsulation of a Skulptgl Solution on Google Drive"""
+
+    def __init__(self, user, db):
+        super(MongoDBSkSolution, self).__init__()
+        self.__user = user
+        self.__db = db
+        future = self.read_project(self._DEFAULT_PROJ,
+                                   create_if_not_found=True)
+        future.add_done_callback(lambda f: True)
+
+    def _remove_key(self, parent_path, file_name):
+        self._files.pop(self._key(parent_path, file_name), None)
+
+    @gen.coroutine
+    def _app(self):
+        app_id = yield self._find_file_id(self._root(), self._SKULPT_GL_APP_DIR)
+        if app_id is None:
+            app_id = yield self._create_folder(
+                self._root(), self._SKULPT_GL_APP_DIR)
+        raise gen.Return(app_id)
+
+    @gen.coroutine
+    def _create_folder(self, parent_id, folder_name):
+        key = self._key(parent_id, folder_name)
+        res = yield self._create_folder_impl(parent_id, folder_name)
+        self._files[key] = res
+        raise gen.Return(res)
+
+    @gen.coroutine
+    def create_project(self, proj_name):
+        proj_folder_id = yield self._create_folder(
+            (yield self._app()), proj_name)
+
+        with open('./sample/default/' + self._MAIN_PY) as main_py:
+            yield self._update_text_file_impl(proj_folder_id, self._MAIN_PY,
+                                              main_py.read())
+
+        with open('./sample/default/' + self._PROJ_JSON) as proj_json:
+            yield self._update_text_file_impl(proj_folder_id, self._PROJ_JSON,
+                                              proj_json.read())
+
+        print('creating------------ project ' + proj_folder_id)
+
+        raise gen.Return(proj_folder_id)
+
+    @gen.coroutine
+    def _find_project_id(self, proj_name, create=False):
+        proj_folder_id = yield self._find_file_id(
+            (yield self._app()), proj_name)
+        if proj_folder_id is None and create:
+            res = yield self.create_project(proj_name)
+            raise gen.Return(res)
+        raise gen.Return(proj_folder_id)
+
+    @gen.coroutine
+    def _find_file_id(self, folder_id, title):
+        key = self._key(folder_id, title)
+        if key in self._files:
+            raise gen.Return(self._files[key])
+        res = yield self._find_file_id_impl(folder_id, title)
+        raise gen.Return(res)
+
+    @gen.coroutine
+    def read_solution(self):
+        solution_file_id = yield self._find_file_id(
+            (yield self._app()), self._SOLUTION_JSON)
+        if solution_file_id is None:
+            with open('./sample/' + self._SOLUTION_JSON, 'r') as solution_json:
+                solution = json.loads(solution_json.read())
+                yield self._update_text_file_impl(
+                    (yield self._app()), self._SOLUTION_JSON,
+                    json.dumps(solution))
+                raise gen.Return(solution)
+        print '0000000000000 ' + str(solution_file_id)
+        solution = json.loads((yield self._read_text_file_impl(solution_file_id)))
+        raise gen.Return(solution)
+
+    @gen.coroutine
+    def update_solution(self, new_sol):
+        solution = yield self.read_solution()
+        print 'solution', solution
+        for key in (x for x in new_sol if x in solution):
+            solution[key] = new_sol[key]
+
+        res = yield self._update_text_file_impl(
+            (yield self._app()), self._SOLUTION_JSON, json.dumps(solution))
+        raise gen.Return(res)
+
+    @gen.coroutine
+    def rename_project(self, old_name, new_name):
+        res = yield self._rename_file_impl(
+            (yield self._app()), old_name, new_name)
+        raise gen.Return(res is not None)
+
+    @gen.coroutine
+    def delete_project(self, proj):
+        res = yield self._delete_file_impl(
+            (yield self._app()), proj)
+        raise gen.Return(res is not None)
+
+    @gen.coroutine
+    def read_file(self, proj, fname):
+        proj_id = yield self._find_project_id(proj)
+        if proj_id is None:
+            raise gen.Return(None)
+
+        file_id = yield self._find_file_id(proj_id, fname)
+        if file_id is None:
+            raise gen.Return(None)
+
+        res = yield self._read_text_file_impl(file_id)
+        raise gen.Return(res)
+
+    @gen.coroutine
+    def write_file(self, proj, fname, text):
+        proj_id = yield self._find_project_id(proj)
+        if proj_id is None:
+            raise gen.Return(False)
+        res = yield self._update_text_file_impl(proj_id, fname, text)
+        raise gen.Return(res is not None)
+
+    @gen.coroutine
+    def rename_file(self, proj, old_name, new_name):
+        proj_id = yield self._find_project_id(proj)
+        if proj_id is None:
+            raise gen.Return(False)
+        res = yield self._rename_file_impl(proj_id, old_name, new_name)
+        raise gen.Return(res is not None)
+
+    @gen.coroutine
+    def delete_file(self, proj, fname):
+        proj_id = yield self._find_project_id(proj)
+        if proj_id is None:
+            raise gen.Return(False)
+        res = self._delete_file_impl(proj_id, fname)
+        raise gen.Return(res is not None)
+
+    @gen.coroutine
+    def update_project(self, proj, proj_data):
+        proj_id = yield self._find_project_id(proj)
+        print '++++++++++++++++ ' + str(proj_id) + ' 333333333333333 ' + str(proj_data)
+        res = yield self._update_text_file_impl(
+            proj_id, self._PROJ_JSON, json.dumps(proj_data))
+        print 'rrrrrrrrrrrrrrrrrr ' + str(res)
+        raise gen.Return(res is not None)
+
+    @gen.coroutine
+    def read_project(self, proj, create_if_not_found=False):
+        proj_id = yield self._find_project_id(proj, create=create_if_not_found)
+        if proj_id is None:
+            raise gen.Return(None)
+
+        print '----------------------- '  + str(proj_id)
+        proj_file_id = yield self._find_file_id(proj_id, self._PROJ_JSON)
+        if proj_file_id is None:
+            raise gen.Return(None)
+
+        res = json.loads((yield self._read_text_file_impl(proj_file_id)))
+        raise gen.Return(res)
+
+    def _root_impl(self):
+        self._files['root'] = 'root'
+        return self._files['root']
+
+    @gen.coroutine
+    def _find_file_id_impl(self, parent_id, title):
+        cursor = self.__db.files.find(
+            {'user': self.__user, 'parent': parent_id,
+             'title': title}, {'_id' : 1})
+
+        if not (yield cursor.fetch_next):
+            raise gen.Return(None)
+        obj = cursor.next_object()
+        print '33333333333333333333' + str(obj)
+        iid = obj['_id']
+        self._files[self._key(parent_id, title)] = iid
+        raise gen.Return(iid)
+
+    @gen.coroutine
+    def _create_folder_impl(self, parent_id, folder):
+        raise gen.Return(folder)
+
+    @gen.coroutine
+    def _update_text_file_impl(self, parent_id, title, text):
+        iid = yield self._find_file_id_impl(parent_id, title)
+        content = {'user': self.__user, 'parent': parent_id,
+                   'title': title, 'text': text}
+        if iid is not None:
+            content['_id'] = iid
+
+        result = yield self.__db.files.save(content)
+        if result is not None:
+            self._files[self._key(parent_id, title)] = result
+
+        raise gen.Return(result)
+
+    @gen.coroutine
+    def _rename_file_impl(self, parent_id, old_name, new_name):
+        iid = yield self._find_file_id_impl(parent_id, old_name)
+        spec = {'_id': iid}
+        yield self.__db.files.update(spec, {'$set': {'title': new_name}})
+        self._remove_key(parent_id, old_name)
+        self._files[self._key(parent_id, new_name)] = iid
+        raise gen.Return(iid)
+
+    @gen.coroutine
+    def _delete_file_impl(self, parent_id, file_name):
+        iid = yield self._find_file_id_impl(parent_id, old_name)
+        yield self.__db.files.remove(iid)
+        raise gen.Return(True)
+
+    @gen.coroutine
+    def _read_text_file_impl(self, file_id):
+        res = yield self.__db.files.find_one({'_id': file_id}, {'text': 1})
+        raise gen.Return(res['text'])

@@ -9,7 +9,7 @@ import simplejson as json
 
 from apiclient.discovery import build
 
-from sk_solution import GdriveSkSolution, DevSkSolution
+from sk_solution import GdriveSkSolution, DevSkSolution, MongoDBSkSolution
 from easy_oauth2 import EasyOAuth2
 
 def get_user_info(credentials):
@@ -53,17 +53,27 @@ DEV_PATH = None
 g_solution = None
 
 
-if len(sys.argv) >= 3 and os.access(sys.argv[1], os.F_OK):
-    DEV_PATH = sys.argv[1]
-    g_solution = DevSkSolution(DEV_PATH)
-elif len(sys.argv) >= 2 and os.access(sys.argv[1], os.F_OK):
-    DEV_PATH = sys.argv[1]
-    g_solution = DevSkSolution(DEV_PATH, read_only=True)
+#if len(sys.argv) >= 3 and os.access(sys.argv[1], os.F_OK):
+#    DEV_PATH = sys.argv[1]
+#    g_solution = DevSkSolution(DEV_PATH)
+#elif len(sys.argv) >= 2 and os.access(sys.argv[1], os.F_OK):
+#    DEV_PATH = sys.argv[1]
+#    g_solution = DevSkSolution(DEV_PATH, read_only=True)
 
 #g_auth = EasyOAuth2(CLIENTSECRETS_LOCATION, SCOPES)
 
 import tornado.ioloop
 import tornado.web
+from tornado import gen
+import motor
+
+motor.MotorClient().drop_database('test')
+g_db = motor.MotorClient().test
+
+document = {'_id': 1}
+g_db.files.insert(document, callback=(lambda a, b: True))
+
+g_solution = MongoDBSkSolution(user='poweif@gmail.com', db=g_db)
 
 ERR_PARAM = -3498314
 
@@ -71,72 +81,97 @@ class RunHandler(tornado.web.RequestHandler):
     def argshort(self, a, default=None):
         return self.get_argument(a, default=default)
 
+    @gen.coroutine
     def get(self):
         if self.argshort('solution', default=ERR_PARAM) != ERR_PARAM:
-            sol = json.dumps(g_solution.read_solution())
+            res = yield g_solution.read_solution()
+            sol = json.dumps(res)
             if sol is not None:
                 self.write(sol)
+                self.finish()
                 return
 
         proj = self.argshort('read-proj')
         if proj is not None:
-            self.write(json.dumps(g_solution.read_project(proj)))
+            res = yield g_solution.read_project(proj)
+            self.write(json.dumps(res))
+            self.finish()
             return
 
         fname = self.argshort('read')
         proj = self.argshort('proj')
         if fname is not None and proj is not None:
-            self.write(g_solution.read_file(proj, fname))
+            res = yield g_solution.read_file(proj, fname)
+            self.write(res)
+            self.finish()
             return
 
         self.send_error()
 
+    @gen.coroutine
     def post(self):
+        self.set_status(200)
         if self.argshort('update-solution', default=ERR_PARAM) != ERR_PARAM:
+            print('updating solution');
             body = json.loads(self.request.body)
-            if g_solution.update_solution(body) is not None:
+            if (yield g_solution.update_solution(body)) is not None:
+                self.finish()
                 return
 
         val = self.argshort('rename-proj')
         if val is not None:
             old_name, new_name = tuple(val.split(','))
-            g_solution.rename_project(old_name=old_name, new_name=new_name)
+            yield g_solution.rename_project(old_name=old_name,
+                                            new_name=new_name)
+            self.finish()
             return
 
         proj = self.argshort('new-proj')
-        if proj is not None and\
-           g_solution.create_project(proj_name=proj) is not None:
-            return
+        if proj is not None:
+            print('new project');
+            res = yield g_solution.create_project(proj_name=proj) 
+            print 'new project res: ' + str(res)
+            if res is not None:
+                self.finish()
+                return
 
         proj = self.argshort('write-proj')
         if proj is not None:
             body = json.loads(self.request.body)
-            if g_solution.update_project(proj, body):
+            res = yield g_solution.update_project(proj, body)
+            if res:
+                self.finish()
                 return
 
         proj = self.argshort('delete-proj')
-        if proj is not None and g_solution.delete_project(proj):
+        if proj is not None and (yield g_solution.delete_project(proj)):
+            self.finish()
             return
 
         val = self.argshort('rename')
         proj = self.argshort('proj')
         if val is not None and proj is not None:
             (old_name, new_name) = tuple(val.split(','))
-            if g_solution.rename_file(proj, old_name, new_name):
+            res = yield g_solution.rename_file(proj, old_name, new_name)
+            if res:
+                self.finish()
                 return
 
         fname = self.argshort('delete')
         if fname is not None and proj is not None and\
-           g_solution.delete_file(proj, fname):
+           (yield g_solution.delete_file(proj, fname)):
+            self.finish()
             return
 
         fname = self.argshort('write')
         if fname is not None and proj is not None:
             body = self.request.body
-            if (g_solution.write_file(proj, fname, body)):
+            if (yield g_solution.write_file(proj, fname, body)):
+                self.finish()
                 return
 
         self.send_error()
+        self.finish()
 
 if __name__ == "__main__":
     app = tornado.web.Application([

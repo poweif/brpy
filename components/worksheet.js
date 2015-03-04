@@ -1152,6 +1152,7 @@ var MainPanel = React.createClass({
     },
     onLoadSolution: function(text) {
         var solution = JSON.parse(text);
+        console.log(solution);
         this.setState(
             SKG.d(SKG_SOLUTION_PROJECTS, solution.projects)
                 .i(SKG_SOLUTION_CURRENT_PROJECT, solution.currentProject).o());
