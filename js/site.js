@@ -50,7 +50,7 @@ var SKG = {
         },
         xhrGet: function(url, onLoad, onFailed) {
             console.log('making a request for ' + url);
-            var contentReq = new XMLHttpRequest();
+            var contentReq = new XMLHttpRequest("a=b&c=d");
             var readyStateChange = function() {
                 if (contentReq.readyState == 4 && contentReq.status == 200 &&
                     onLoad) {
@@ -61,7 +61,7 @@ var SKG = {
             }
             contentReq.onreadystatechange = readyStateChange;
             contentReq.open('GET', url, true);
-            contentReq.send();
+            contentReq.send()
         },
         xhrPost: function(url, text, onLoad, onFailed) {
             console.log('making a request for ' + url);
@@ -118,46 +118,46 @@ var SKG = {
         return new SKG_DICT();
     },
     readSolution: function(onLoad, onFailed) {
-        this.util.xhrGet('/run/?solution', onLoad, onFailed);
+        this.util.xhrGet('/run?solution', onLoad, onFailed);
     },
     updateSolution: function(solData, onLoad, onFailed) {
         var solDataStr = JSON.stringify(solData)
         this.util.xhrPost(
-            '/run/?update-solution', solDataStr, onLoad, onFailed);
+            '/run?update-solution', solDataStr, onLoad, onFailed);
     },
     readProject: function(proj, onLoad, onFailed) {
-        this.util.xhrGet('/run/?read-proj=' + proj, onLoad, onFailed);
+        this.util.xhrGet('/run?read-proj=' + proj, onLoad, onFailed);
     },
     writeProject: function(proj, projData, onLoad, onFailed) {
         var projDataStr = JSON.stringify(projData);
         this.util.xhrPost(
-            '/run/?write-proj=' + proj, projDataStr, onLoad, onFailed);
+            '/run?write-proj=' + proj, projDataStr, onLoad, onFailed);
     },
     renameProject: function(oldName, newName, onLoad, onFailed) {
-        this.util.xhrGet(
-            '/run/?rename-proj=' + oldName + ',' + newName, onLoad, onFailed);
+        this.util.xhrPost(
+            '/run?rename-proj=' + oldName + ',' + newName, onLoad, onFailed);
     },
     newProject: function(proj, onLoad, onFailed) {
-        this.util.xhrGet('/run/?new-proj=' + proj, onLoad, onFailed);
+        this.util.xhrPost('/run?new-proj=' + proj, onLoad, onFailed);
     },
     deleteProject: function(proj, onLoad, onFailed) {
-        this.util.xhrGet('/run/?delete-proj=' + proj, onLoad, onFailed);
+        this.util.xhrPost('/run?delete-proj=' + proj, onLoad, onFailed);
     },
     renameSrcFile: function(proj, oldname, newname, onLoad, onFailed) {
-        this.util.xhrGet(
-            '/run/?rename=' + oldname + "," + newname + '&proj=' + proj,
+        this.util.xhrPost(
+            '/run?rename=' + oldname + "," + newname + '&proj=' + proj,
             onLoad, onFailed);
     },
     deleteSrcFile: function(proj, filename, onLoad, onFailed) {
-        this.util.xhrGet('/run/?delete=' + filename + '&proj=' + proj,
+        this.util.xhrPost('/run?delete=' + filename + '&proj=' + proj,
                          onLoad, onFailed);
     },
     readSrcFile: function(proj, filename, onLoad, onFailed) {
-        this.util.xhrGet('/run/?read=' + filename + '&proj=' + proj,
+        this.util.xhrGet('/run?read=' + filename + '&proj=' + proj,
                          onLoad, onFailed);
     },
     writeSrcFile: function(proj, filename, text, onLoad, onFailed) {
-        this.util.xhrPost('/run/?write=' + filename + '&proj=' + proj,
+        this.util.xhrPost('/run?write=' + filename + '&proj=' + proj,
                           text, onLoad, onFailed);
     },
     buildProjectJson: function(blocks, srcFiles, selectedFile) {

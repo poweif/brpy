@@ -99,7 +99,6 @@ class SkSolution():
         return self._delete_file_impl(self._app(), proj) is not None
 
     def read_file(self, proj, fname):
-        print "read file: " + fname
         proj_id = self._find_project_id(proj)
         if proj_id is None:
             return None
@@ -266,6 +265,7 @@ class DevSkSolution(SkSolution):
         super(DevSkSolution, self).__init__()
         self.__root_dir = root_dir
         self.__read_only = read_only
+        self.__file_cache = {}
         # The root directory must exist
         assert os.access(root_dir, os.F_OK)
         self.read_project(self._DEFAULT_PROJ, create_if_not_found=True)
@@ -288,7 +288,7 @@ class DevSkSolution(SkSolution):
         return self._write_key(parent_path, title)
 
     def _create_folder_impl(self, parent_path, folder_name):
-        if self.__read_only: return None
+        if self.__read_only: return True
 
         path = parent_path + "/" + folder_name
         if os.access(path, os.F_OK):
@@ -297,7 +297,7 @@ class DevSkSolution(SkSolution):
         return self._write_key(parent_path, folder_name)
 
     def _update_text_file_impl(self, parent_path, file_name, text):
-        if self.__read_only: return None
+        if self.__read_only: return True
 
         path = parent_path + "/" + file_name
         if not os.access(path, os.F_OK):
@@ -307,7 +307,7 @@ class DevSkSolution(SkSolution):
         return path
 
     def _rename_file_impl(self, parent_path, old_name, new_name):
-        if self.__read_only: return None
+        if self.__read_only: return True
 
         old_path = self._find_file_id(parent_path, old_name)
         if old_path is None:
@@ -318,7 +318,7 @@ class DevSkSolution(SkSolution):
         return self._write_key(parent_path, new_name)
 
     def _delete_file_impl(self, parent_path, file_name):
-        if self.__read_only: return None
+        if self.__read_only: return True
 
         file_path = self._find_file_id(parent_path, file_name)
         if file_path is None:
@@ -333,5 +333,12 @@ class DevSkSolution(SkSolution):
     def _read_text_file_impl(self, file_path):
         if not os.access(file_path, os.F_OK):
             return None
+
+        if self.__read_only and file_path in self.__file_cache:
+            return self.__file_cache[file_path]
+
         with open(file_path, "r") as f:
-            return f.read()
+            content = f.read()
+            if self.__read_only:
+                self.__file_cache[file_path] = content
+            return content
