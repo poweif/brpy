@@ -203,8 +203,19 @@ $line-width: 2px;
 }
 
 .block-link-pane {
+  @include flex-direction(column);
+  @extend %flexbox;
+  @include flex-grow(1);
+  @include align-items(center);
+  @include justify-content(center);
   width: 650px;
-  text-align: center;
+  .content {
+    position: relative;
+    transform: translateY(-50%);
+    height: auto;
+    font-weight: 600;
+    top: 50%;
+  }
 }
 
 .main-panel {
