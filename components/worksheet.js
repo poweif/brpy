@@ -1,16 +1,54 @@
 var StdoutConsole =  React.createClass({
+    hideTimeout: null,
     getInitialState: function() {
         return {
+            autoHide: false,
             hidden: true,
+            content: []
         };
     },
     toggleConsole: function() {
         this.setState({hidden: !this.state.hidden});
     },
-    write: function(s) {
-        var textarea = this.refs.tarea.getDOMNode();
-        textarea.value += (s + '\n');
-        textarea.scrollTop = textarea.scrollHeight;
+    write: function(block, s) {
+        if (!s) return;
+
+        var ks = kramed(s);
+        var content = this.state.content;
+        var contentCn = "content ";
+        contentCn += content.length % 2 == 0 ? "content-dark" : "content-light";
+
+        var time = new Date();
+        var infoStr = block + " [" + time.getHours() + ":" + time.getMinutes() +
+            ":" + time.getSeconds() +  "] > ";
+
+        content.unshift(function() {
+            return (
+                <div key={content.length} className="single-output">
+                    <div className="info">{infoStr}</div>
+                    <div className={contentCn}
+                        dangerouslySetInnerHTML={{__html: ks}} />
+                </div>
+            );
+        }());
+        this.setState({content: content});
+    },
+    onClear: function() {
+        this.setState({content: []});
+    },
+    componentDidUpdate: function(prevProps, prevState) {
+        if (this.state.autoHide != prevState.autoHide &&
+            this.state.autoHide) {
+            var that = this;
+            if (this.hideTimeout) {
+                clearTimeout(hideTimeout);
+                this.hideTimeout = null;
+            }
+            this.hideTimeout = setTimeout(function() {
+                that.setState({ hidden: true, autoHide: false });
+                that.hideTimeout = null;
+            }, 6000);
+        }
     },
     render: function() {
         var stdoutCn = "stdout-console";
@@ -26,8 +64,15 @@ var StdoutConsole =  React.createClass({
             verticalButtonCn += " vertical-button-hide";
         }
         return (
-            <div className={stdoutCn}>
-                <textarea ref="tarea" readOnly></textarea>
+           <div className={stdoutCn}>
+                <div className="stdout-content">
+                   <div className="stdout-content-buttons">
+                       <Button icon="do10" click={this.onClear} text="Clear" />
+                   </div>
+                   <div className="content-wrapper">
+                       {this.state.content}
+                   </div>
+                </div>
                 <img src={buttonImg} className={verticalButtonCn}
                      onClick={this.toggleConsole} />
             </div>
@@ -1047,8 +1092,16 @@ var MainPanel = React.createClass({
         }
         var that = this;
         var output = function(s) {
-            if (s.trim().length > 0)
-                that.refs.stdoutConsole.write(block + "> " + s);
+            if (s.trim().length > 0) {
+                var stdconsole = that.refs.stdoutConsole;
+                stdconsole.write(block, s);
+                if (stdconsole.state.hidden) {
+                    stdconsole.setState({
+                        hidden: false,
+                        autoHide: true
+                    });
+                }
+            }
         };
         Sk.configure(
             {"output": output, "debugout": output, "read": SKG.builtinRead}

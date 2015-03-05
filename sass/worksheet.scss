@@ -15,18 +15,6 @@ $console-button-size: 50px;
   @include justify-content(flex-end);
   width: $stdout-console-width;
 
-  textarea {
-    border-style: solid solid solid none;
-    border-width: 1px;
-    border-color: $prime-inv-color;
-
-    width: $stdout-console-width - 65;
-    padding: 8px 8px 8px 15px;
-    resize: none;
-    z-index: 0;
-    border-radius: 0 $std-border-radius 0 0;
-  }
-
   .vertical-button {
     @include align-self(flex-end);
     width: $console-button-size;
@@ -48,6 +36,55 @@ $console-button-size: 50px;
   .vertical-button-hide:hover {
     border-color: $prime-inv-color $prime-inv-color $prime-inv-color $prime-color;
     transition: border-color 0;
+  }
+
+  .stdout-content {
+    @extend %flexbox;
+    @include flex-direction(column);
+    @include align-items(stretch);
+    @include flex-grow(1);
+
+    border-style: solid solid solid none;
+    border-width: 1px;
+    border-color: $prime-inv-color;
+    border-radius: 0 $std-border-radius 0 0;
+
+    .content-wrapper {
+      overflow: auto;
+      p { margin: 0; }
+      .single-output {
+        @extend %flexbox;
+        @include flex-direction(row);
+      }
+    }
+
+    .info {
+      color: rgb(135, 40, 50);
+      @include flex-grow(0);
+      margin: 0 5px;
+    }
+
+    .content {
+      @include flex-grow(1);
+      background-color: rgb(200, 150, 150);
+    }
+
+    .content-dark {
+      background-color: $prime-color * .8;
+      @include animation('fade-in ' + ($std-duration * 2.5));
+    }
+
+    .content-light {
+      background-color: $prime-color;
+      @include animation('fade-in ' + ($std-duration * 2.5));
+    }
+  }
+
+  .stdout-content-buttons {
+    @extend %flexbox;
+    @include flex-direction(row);
+    @include justify-content(flex-end);
+    padding: 5px;
   }
 
   left: 0px;
