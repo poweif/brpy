@@ -29,8 +29,13 @@ var StdoutConsole =  React.createClass({
         contentCn += content.length % 2 == 0 ? "content-dark" : "content-light";
 
         var time = new Date();
-        var infoStr = block + " [" + time.getHours() + ":" + time.getMinutes() +
-            ":" + time.getSeconds() +  "] > ";
+        var hours = time.getHours();
+        var mins = time.getMinutes();
+        var secs = time.getSeconds();
+        var infoStr = block + " [" +
+            ((hours < 10) ? "0" + hours : hours) + ":" +
+            ((mins < 10) ? "0" + mins : mins) + ":" +
+            ((secs < 10) ? "0" + secs : secs) + "] > ";
 
         content.unshift(function() {
             return (
@@ -1210,6 +1215,7 @@ var MainPanel = React.createClass({
     },
     componentDidUpdate: function(prevProps, prevState) {
         if (prevState.currentProject != this.state.currentProject && this.state.projects) {
+            this.refs.stdoutConsole.onClear();
             var project = this.state.projects[this.state.currentProject];
             SKG.readProject(
                 project, this.onLoadProject.bind(this, project));

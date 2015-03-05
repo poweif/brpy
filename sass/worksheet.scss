@@ -67,6 +67,7 @@ $console-button-size: 50px;
     .content {
       @include flex-grow(1);
       background-color: rgb(200, 150, 150);
+      font-family:  "source-sans-pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
     }
 
     .content-dark {
@@ -84,6 +85,7 @@ $console-button-size: 50px;
     @extend %flexbox;
     @include flex-direction(row);
     @include justify-content(flex-end);
+    @include flex-shrink(0);
     padding: 5px;
   }
 
