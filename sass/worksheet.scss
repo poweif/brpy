@@ -48,6 +48,7 @@ $console-button-size: 50px;
     border-width: 1px;
     border-color: $prime-inv-color;
     border-radius: 0 $std-border-radius 0 0;
+    background-color: $prime-color;
 
     .content-wrapper {
       overflow: auto;
@@ -90,7 +91,7 @@ $console-button-size: 50px;
   }
 
   left: 0px;
-  opacity: .85;
+  opacity: .9;
   transition: left $std-duration, opacity $std-duration;
   z-index: 6;
 }
