@@ -13,6 +13,16 @@ var StdoutConsole =  React.createClass({
     write: function(block, s) {
         if (!s) return;
 
+        if (this.hideTimeout || this.state.hidden) {
+            var that = this;
+            clearTimeout(this.hideTimeout);
+            this.hideTimeout = null;
+            this.hideTimeout = setTimeout(function() {
+                that.setState({ hidden: true, autoHide: false });
+                that.hideTimeout = null;
+            }, 6000);
+        }
+
         var ks = kramed(s);
         var content = this.state.content;
         var contentCn = "content ";
@@ -31,24 +41,13 @@ var StdoutConsole =  React.createClass({
                 </div>
             );
         }());
-        this.setState({content: content});
+
+        this.setState({
+            hidden: false,
+            content: content});
     },
     onClear: function() {
         this.setState({content: []});
-    },
-    componentDidUpdate: function(prevProps, prevState) {
-        if (this.state.autoHide != prevState.autoHide &&
-            this.state.autoHide) {
-            var that = this;
-            if (this.hideTimeout) {
-                clearTimeout(hideTimeout);
-                this.hideTimeout = null;
-            }
-            this.hideTimeout = setTimeout(function() {
-                that.setState({ hidden: true, autoHide: false });
-                that.hideTimeout = null;
-            }, 6000);
-        }
     },
     render: function() {
         var stdoutCn = "stdout-console";
@@ -1095,12 +1094,6 @@ var MainPanel = React.createClass({
             if (s.trim().length > 0) {
                 var stdconsole = that.refs.stdoutConsole;
                 stdconsole.write(block, s);
-                if (stdconsole.state.hidden) {
-                    stdconsole.setState({
-                        hidden: false,
-                        autoHide: true
-                    });
-                }
             }
         };
         Sk.configure(
