@@ -248,7 +248,6 @@ class GdriveSkSolution(SkSolution):
 
     def _read_text_file_impl(self, file_id):
         tfile = self.__drive.files().get(fileId=file_id).execute()
-        print "reading: " + tfile['title']
         download_url = tfile['downloadUrl']
         if download_url is None:
             print "Cannot download " + tfile['title']
@@ -389,8 +388,6 @@ class MongoDBSkSolution(SkSolution):
             yield self._update_text_file_impl(proj_folder_id, self._PROJ_JSON,
                                               proj_json.read())
 
-        print('creating------------ project ' + proj_folder_id)
-
         raise gen.Return(proj_folder_id)
 
     @gen.coroutine
@@ -421,14 +418,12 @@ class MongoDBSkSolution(SkSolution):
                     (yield self._app()), self._SOLUTION_JSON,
                     json.dumps(solution))
                 raise gen.Return(solution)
-        print '0000000000000 ' + str(solution_file_id)
         solution = json.loads((yield self._read_text_file_impl(solution_file_id)))
         raise gen.Return(solution)
 
     @gen.coroutine
     def update_solution(self, new_sol):
         solution = yield self.read_solution()
-        print 'solution', solution
         for key in (x for x in new_sol if x in solution):
             solution[key] = new_sol[key]
 
@@ -488,10 +483,8 @@ class MongoDBSkSolution(SkSolution):
     @gen.coroutine
     def update_project(self, proj, proj_data):
         proj_id = yield self._find_project_id(proj)
-        print '++++++++++++++++ ' + str(proj_id) + ' 333333333333333 ' + str(proj_data)
         res = yield self._update_text_file_impl(
             proj_id, self._PROJ_JSON, json.dumps(proj_data))
-        print 'rrrrrrrrrrrrrrrrrr ' + str(res)
         raise gen.Return(res is not None)
 
     @gen.coroutine
@@ -500,7 +493,6 @@ class MongoDBSkSolution(SkSolution):
         if proj_id is None:
             raise gen.Return(None)
 
-        print '----------------------- '  + str(proj_id)
         proj_file_id = yield self._find_file_id(proj_id, self._PROJ_JSON)
         if proj_file_id is None:
             raise gen.Return(None)
@@ -521,18 +513,18 @@ class MongoDBSkSolution(SkSolution):
         if not (yield cursor.fetch_next):
             raise gen.Return(None)
         obj = cursor.next_object()
-        print '33333333333333333333' + str(obj)
         iid = obj['_id']
         self._files[self._key(parent_id, title)] = iid
         raise gen.Return(iid)
 
     @gen.coroutine
     def _create_folder_impl(self, parent_id, folder):
+        self._files[self._key(parent_id, folder)] = folder
         raise gen.Return(folder)
 
     @gen.coroutine
     def _update_text_file_impl(self, parent_id, title, text):
-        iid = yield self._find_file_id_impl(parent_id, title)
+        iid = yield self._find_file_id(parent_id, title)
         content = {'user': self.__user, 'parent': parent_id,
                    'title': title, 'text': text}
         if iid is not None:
@@ -546,16 +538,22 @@ class MongoDBSkSolution(SkSolution):
 
     @gen.coroutine
     def _rename_file_impl(self, parent_id, old_name, new_name):
-        iid = yield self._find_file_id_impl(parent_id, old_name)
-        spec = {'_id': iid}
-        yield self.__db.files.update(spec, {'$set': {'title': new_name}})
+        iid = yield self._find_file_id(parent_id, old_name)
+        if old_name != iid:
+            spec = {'_id': iid}
+            yield self.__db.files.update(spec, {'$set': {'title': new_name}})
+        else: # renaming a parent
+            spec = {'user': self.__user, 'parent': old_name}
+            iid = new_name
+            yield self.__db.files.update(
+                spec, {'$set': {'parent': new_name}}, multi=True)
         self._remove_key(parent_id, old_name)
         self._files[self._key(parent_id, new_name)] = iid
         raise gen.Return(iid)
 
     @gen.coroutine
     def _delete_file_impl(self, parent_id, file_name):
-        iid = yield self._find_file_id_impl(parent_id, old_name)
+        iid = yield self._find_file_id(parent_id, old_name)
         yield self.__db.files.remove(iid)
         raise gen.Return(True)
 

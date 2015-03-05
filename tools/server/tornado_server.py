@@ -112,7 +112,6 @@ class RunHandler(tornado.web.RequestHandler):
     def post(self):
         self.set_status(200)
         if self.argshort('update-solution', default=ERR_PARAM) != ERR_PARAM:
-            print('updating solution');
             body = json.loads(self.request.body)
             if (yield g_solution.update_solution(body)) is not None:
                 self.finish()
@@ -128,9 +127,7 @@ class RunHandler(tornado.web.RequestHandler):
 
         proj = self.argshort('new-proj')
         if proj is not None:
-            print('new project');
             res = yield g_solution.create_project(proj_name=proj) 
-            print 'new project res: ' + str(res)
             if res is not None:
                 self.finish()
                 return

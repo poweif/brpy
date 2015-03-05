@@ -135,21 +135,22 @@ var SKG = {
     },
     renameProject: function(oldName, newName, onLoad, onFailed) {
         this.util.xhrPost(
-            '/run?rename-proj=' + oldName + ',' + newName, onLoad, onFailed);
+            '/run?rename-proj=' + oldName + ',' + newName, null, onLoad,
+            onFailed);
     },
     newProject: function(proj, onLoad, onFailed) {
-        this.util.xhrPost('/run?new-proj=' + proj, onLoad, onFailed);
+        this.util.xhrPost('/run?new-proj=' + proj, null, onLoad, onFailed);
     },
     deleteProject: function(proj, onLoad, onFailed) {
-        this.util.xhrPost('/run?delete-proj=' + proj, onLoad, onFailed);
+        this.util.xhrPost('/run?delete-proj=' + proj, null, onLoad, onFailed);
     },
     renameSrcFile: function(proj, oldname, newname, onLoad, onFailed) {
         this.util.xhrPost(
-            '/run?rename=' + oldname + "," + newname + '&proj=' + proj,
+            '/run?rename=' + oldname + "," + newname + '&proj=' + proj, null,
             onLoad, onFailed);
     },
     deleteSrcFile: function(proj, filename, onLoad, onFailed) {
-        this.util.xhrPost('/run?delete=' + filename + '&proj=' + proj,
+        this.util.xhrPost('/run?delete=' + filename + '&proj=' + proj, null,
                          onLoad, onFailed);
     },
     readSrcFile: function(proj, filename, onLoad, onFailed) {

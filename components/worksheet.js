@@ -245,6 +245,11 @@ var EditorPane = React.createClass({
                 that.props.onSave(fileName, code);
             };
         }
+        if (!fileName) {
+            return (
+                <div></div>
+            );
+        }
 
         var editorPaneCn = "editor-pane";
         if (this.props.isDialogOpen)
@@ -668,6 +673,7 @@ var MainPanel = React.createClass({
             var failed = function() {
                 that.openPromptDialog("Failed to change file name");
             };
+            that.closeDialog();
             var srcFiles = SKG.util.deepCopy(that.state.srcFiles);
             srcFiles[block] = nfiles;
 
@@ -1152,7 +1158,6 @@ var MainPanel = React.createClass({
     },
     onLoadSolution: function(text) {
         var solution = JSON.parse(text);
-        console.log(solution);
         this.setState(
             SKG.d(SKG_SOLUTION_PROJECTS, solution.projects)
                 .i(SKG_SOLUTION_CURRENT_PROJECT, solution.currentProject).o());
