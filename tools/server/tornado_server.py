@@ -9,7 +9,7 @@ import simplejson as json
 
 from apiclient.discovery import build
 
-from sk_solution import MongoDBSkSolution
+from sk_solution import DevSkSolution, MongoDBSkSolution
 from easy_oauth2 import EasyOAuth2
 
 def get_user_info(credentials):
@@ -49,31 +49,21 @@ SESSION_KEY = 'skulpt-gl-key'
 g_session = {}
 
 INDEX_HTML = open(CURRENT_DIR + '/index.html').read()
-DEV_PATH = None
 g_solution = None
-
-
-#if len(sys.argv) >= 3 and os.access(sys.argv[1], os.F_OK):
-#    DEV_PATH = sys.argv[1]
-#    g_solution = DevSkSolution(DEV_PATH)
-#elif len(sys.argv) >= 2 and os.access(sys.argv[1], os.F_OK):
-#    DEV_PATH = sys.argv[1]
-#    g_solution = DevSkSolution(DEV_PATH, read_only=True)
-
-#g_auth = EasyOAuth2(CLIENTSECRETS_LOCATION, SCOPES)
 
 import tornado.ioloop
 import tornado.web
 from tornado import gen
 import motor
 
-motor.MotorClient().drop_database('test')
-g_db = motor.MotorClient().test
+if len(sys.argv) >= 2 and os.access(sys.argv[1], os.F_OK):
+    g_solution = DevSkSolution(sys.argv[1])
+else:
+    motor.MotorClient().drop_database('test')
+    g_solution = MongoDBSkSolution(
+        user='poweif@gmail.com', db=motor.MotorClient().test)
 
-document = {'_id': 1}
-g_db.files.insert(document, callback=(lambda a, b: True))
-
-g_solution = MongoDBSkSolution(user='poweif@gmail.com', db=g_db)
+#g_auth = EasyOAuth2(CLIENTSECRETS_LOCATION, SCOPES)
 
 ERR_PARAM = -3498314
 
@@ -122,8 +112,8 @@ class RunHandler(tornado.web.RequestHandler):
         val = self.argshort('rename-proj')
         if val is not None:
             old_name, new_name = tuple(val.split(','))
-            res = yield g_solution.rename_project(old_name=old_name,
-                                                  new_name=new_name)
+            res = yield g_solution.rename_project(
+                old_name=old_name, new_name=new_name)
             if res is not None:
                 self.finish()
                 return

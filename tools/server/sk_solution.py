@@ -13,17 +13,9 @@ import tornado.web, tornado.ioloop
 from tornado import gen
 import motor
 
-EXAMPLE_MAIN_PY = """
-print 'hello world'
-"""
-
-EXAMPLE_PROJ_JSON = """
-[{"src": ["main.py"], "currentFile": 0, "name": "block"}]
-"""
-
-EXAMPLE_SOLUTION_JSON = """
-{"currentProject": 0, "projects": ["example"]}
-"""
+EXAMPLE_MAIN_PY = """print 'hello world'"""
+EXAMPLE_PROJ_JSON = """[{"src": ["main.py"], "currentFile": 0, "name": "block"}]"""
+EXAMPLE_SOLUTION_JSON = """{"currentProject": 0, "projects": ["example"]}"""
 
 class SkSolution():
     __metaclass__ = ABCMeta
@@ -73,6 +65,7 @@ class SkSolution():
         key = self._key(folder_id, title)
         if key in self._files:
             raise gen.Return(self._files[key])
+
         res = yield self._find_file_id_impl(folder_id, title)
         raise gen.Return(res)
 
@@ -331,16 +324,16 @@ class DevSkSolution(SkSolution):
         return self._files[key]
 
     def _root_impl(self):
-        self._files['root'] = self.__root_dir
+        self._files['root'] = './' #self.__root_dir
         return self._files['root']
 
     def _app_impl(self):
-        return '.'
+        return self.__root_dir
 
     @gen.coroutine
     def _find_file_id_impl(self, parent_path, title):
         if parent_path is None or not title in os.listdir(parent_path):
-            return gen.Return(None)
+            raise gen.Return(None)
         raise gen.Return(self._write_key(parent_path, title))
 
     @gen.coroutine
