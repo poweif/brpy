@@ -77,8 +77,8 @@ var StdoutConsole =  React.createClass({
                        {this.state.content}
                    </div>
                 </div>
-                <img src={buttonImg} className={verticalButtonCn}
-                     onClick={this.toggleConsole} />
+                <Button click={this.toggleConsole} icon="show5"
+                    addClass={verticalButtonCn} />
             </div>
         )
     }
