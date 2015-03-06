@@ -13,13 +13,25 @@ import tornado.web, tornado.ioloop
 from tornado import gen
 import motor
 
+EXAMPLE_MAIN_PY = """
+print 'hello world'
+"""
+
+EXAMPLE_PROJ_JSON = """
+[{"src": ["main.py"], "currentFile": 0, "name": "block"}]
+"""
+
+EXAMPLE_SOLUTION_JSON = """
+{"currentProject": 0, "projects": ["example"]}
+"""
+
 class SkSolution():
     __metaclass__ = ABCMeta
     _SOLUTION_JSON = 'solution.json'
     _DEFAULT_PROJ = 'default'
     _PROJ_JSON = 'project.json'
     _MAIN_PY = 'main.py'
-    _SKULPT_GL_APP_DIR = 'skulptgl_app_data'
+    _SKULPTGL_APP_DIR = 'skulptgl_app_data'
     _TEXT_MIME = "text/plain"
 
     _PROJ_BLOCK_NAME = "name"
@@ -34,117 +46,158 @@ class SkSolution():
     def _key(self, parent_id, file_name):
         return parent_id + '_' +  file_name
 
+    def _remove_key(self, parent_path, file_name):
+        self._files.pop(self._key(parent_path, file_name), None)
+
+    def _add_key(self, key, value):
+        self._files[key] = value
+        return value
+
     def _root(self):
         if 'root' in self._files:
             return self._files['root']
         return self._root_impl()
 
     def _app(self):
-        app_id = self._find_file_id(self._root(), self._SKULPT_GL_APP_DIR)
-        if app_id is None:
-            app_id = self._create_folder(self._root(), self._SKULPT_GL_APP_DIR)
-        return app_id
+        return self._app_impl()
 
-    # Find the first file (id) matching [title] in a folder.  Return None if
-    # not found.
+    @gen.coroutine
+    def _create_folder(self, parent_id, folder_name):
+        key = self._key(parent_id, folder_name)
+        res = yield self._create_folder_impl(parent_id, folder_name)
+        self._add_key(key, res)
+        raise gen.Return(res)
+
+    @gen.coroutine
     def _find_file_id(self, folder_id, title):
         key = self._key(folder_id, title)
         if key in self._files:
-            return self._files[key]
-        return self._find_file_id_impl(folder_id, title)
+            raise gen.Return(self._files[key])
+        res = yield self._find_file_id_impl(folder_id, title)
+        raise gen.Return(res)
 
-    def _create_folder(self, parent_id, folder_name):
-        key = self._key(parent_id, folder_name)
-        res = self._files[key] =\
-            self._create_folder_impl(parent_id, folder_name)
-        return res
-
+    @gen.coroutine
     def create_project(self, proj_name):
-        proj_folder_id = self._create_folder(self._app(), proj_name)
+        folder_id = yield self._create_folder(self._app(), proj_name)
+        proj_id = yield self._update_text_file_impl(
+            folder_id, self._PROJ_JSON, EXAMPLE_PROJ_JSON)
+        main_id = yield self._update_text_file_impl(
+            folder_id, self._MAIN_PY, EXAMPLE_MAIN_PY)
+        raise gen.Return(folder_id)
 
-        with open('./sample/default/' + self._MAIN_PY) as main_py:
-            self._update_text_file_impl(proj_folder_id, self._MAIN_PY,
-                                       main_py.read())
+    @gen.coroutine
+    def _find_project_id(self, proj_name):
+        proj_folder_id = yield self._find_file_id(self._app(), proj_name)
+        if proj_folder_id is None:
+            res = yield self.create_project(proj_name)
+            raise gen.Return(res)
+        raise gen.Return(proj_folder_id)
 
-        with open('./sample/default/' + self._PROJ_JSON) as proj_json:
-            self._update_text_file_impl(proj_folder_id, self._PROJ_JSON,
-                                       proj_json.read())
-        return True
+    @gen.coroutine
+    def read_solution(self, create=True):
+        solution_file_id = yield self._find_file_id(
+            self._app(), self._SOLUTION_JSON)
+        if solution_file_id is None and create:
+            solution_json = EXAMPLE_SOLUTION_JSON
+            yield self._update_text_file_impl(
+                self._app(), self._SOLUTION_JSON, solution_json)
+            solution = json.loads(solution_json)
+            yield self.create_project(solution['projects'][0])
+            raise gen.Return(solution)
+        elif solution_file_id is not None:
+            solution = json.loads(
+                (yield self._read_text_file_impl(solution_file_id)))
+            raise gen.Return(solution)
+        raise gen.Return(None)
 
-    def _find_project_id(self, proj_name, create=False):
-        proj_folder_id = self._find_file_id(self._app(), proj_name)
-        if proj_folder_id is None and create:
-            return self.create_project(proj_name)
-        return proj_folder_id
-
-    def read_solution(self):
-        solution_file_id = self._find_file_id(self._app(), self._SOLUTION_JSON)
-        if solution_file_id is None:
-            with open('./sample/' + self._SOLUTION_JSON, 'r') as solution_json:
-                solution = json.loads(solution_json.read())
-                self._update_text_file_impl(self._app(), self._SOLUTION_JSON,
-                                            json.dumps(solution))
-                return solution
-        return json.loads(self._read_text_file_impl(solution_file_id))
-
+    @gen.coroutine
     def update_solution(self, new_sol):
-        solution = self.read_solution()
+        solution = yield self.read_solution()
+        if solution is None:
+            raise gen.Return(None)
+
         for key in (x for x in new_sol if x in solution):
             solution[key] = new_sol[key]
 
-        return self._update_text_file_impl(self._app(), self._SOLUTION_JSON,
-                                           json.dumps(solution))
+        res = yield self._update_text_file_impl(
+            self._app(), self._SOLUTION_JSON, json.dumps(solution))
+        raise gen.Return(res)
 
+    @gen.coroutine
     def rename_project(self, old_name, new_name):
-        return self._rename_file_impl(self._app(), old_name, new_name)\
-            is not None
+        res = yield self._rename_file_impl(self._app(), old_name, new_name)
+        raise gen.Return(res)
 
+    @gen.coroutine
     def delete_project(self, proj):
-        return self._delete_file_impl(self._app(), proj) is not None
+        res = yield self._delete_file_impl(self._app(), proj)
+        raise gen.Return(res)
 
+    @gen.coroutine
     def read_file(self, proj, fname):
-        proj_id = self._find_project_id(proj)
+        proj_id = yield self._find_project_id(proj)
         if proj_id is None:
-            return None
-        file_id = self._find_file_id(proj_id, fname)
+            raise gen.Return(None)
+
+        file_id = yield self._find_file_id(proj_id, fname)
         if file_id is None:
-            return None
-        return self._read_text_file_impl(file_id)
+            raise gen.Return(None)
 
+        res = yield self._read_text_file_impl(file_id)
+        raise gen.Return(res)
+
+    @gen.coroutine
     def write_file(self, proj, fname, text):
-        proj_id = self._find_project_id(proj)
+        proj_id = yield self._find_project_id(proj)
         if proj_id is None:
-            return False
-        return self._update_text_file_impl(proj_id, fname, text) is not None
+            raise gen.Return(None)
+        res = yield self._update_text_file_impl(proj_id, fname, text)
+        raise gen.Return(res)
 
+    @gen.coroutine
     def rename_file(self, proj, old_name, new_name):
-        proj_id = self._find_project_id(proj)
+        proj_id = yield self._find_project_id(proj)
         if proj_id is None:
-            return False
-        return self._rename_file_impl(proj_id, old_name, new_name) is not None
+            raise gen.Return(None)
+        res = yield self._rename_file_impl(proj_id, old_name, new_name)
+        raise gen.Return(res)
 
+    @gen.coroutine
     def delete_file(self, proj, fname):
-        proj_id = self._find_project_id(proj)
+        proj_id = yield self._find_project_id(proj)
         if proj_id is None:
-            return False
-        return self._delete_file_impl(proj_id, fname) is not None
+            raise gen.Return(False)
+        res = self._delete_file_impl(proj_id, fname)
+        raise gen.Return(res is not None)
 
+    @gen.coroutine
     def update_project(self, proj, proj_data):
-        proj_id = self._find_project_id(proj)
-        return self._update_text_file_impl(
-            proj_id, self._PROJ_JSON, json.dumps(proj_data)) is not None
-
-    def read_project(self, proj, create_if_not_found=False):
-        proj_id = self._find_project_id(proj, create=create_if_not_found)
+        proj_id = yield self._find_project_id(proj)
         if proj_id is None:
-            return None
-        proj_file_id = self._find_file_id(proj_id, self._PROJ_JSON)
+            raise gen.Return(None)
+
+        res = yield self._update_text_file_impl(
+            proj_id, self._PROJ_JSON, json.dumps(proj_data))
+        raise gen.Return(res)
+
+    @gen.coroutine
+    def read_project(self, proj):
+        proj_id = yield self._find_project_id(proj)
+        if proj_id is None:
+            raise gen.Return(None)
+
+        proj_file_id = yield self._find_file_id(proj_id, self._PROJ_JSON)
         if proj_file_id is None:
-            return None
-        return json.loads(self._read_text_file_impl(proj_file_id))
+            raise gen.Return(None)
+
+        res = json.loads((yield self._read_text_file_impl(proj_file_id)))
+        raise gen.Return(res)
 
     @abstractmethod
     def _root_impl(self): pass
+
+    @abstractmethod
+    def _app_impl(self): pass
 
     @abstractmethod
     def _find_file_id_impl(self, folder_id, title): pass
@@ -164,15 +217,13 @@ class SkSolution():
     @abstractmethod
     def _read_text_file_impl(self, file_id): pass
 
-
+"""
 def _build_drive_service(credentials):
     return build(
         serviceName = 'drive', version='v2',
         http = credentials.authorize(httplib2.Http()))
 
 class GdriveSkSolution(SkSolution):
-    """Encapsulation of a Skulptgl Solution on Google Drive"""
-
     def __init__(self, cred):
         super(GdriveSkSolution, self).__init__()
         self.__cred = cred
@@ -260,6 +311,8 @@ class GdriveSkSolution(SkSolution):
 
         print 'An error occurred: %s' % resp
         return None
+"""
+
 
 class DevSkSolution(SkSolution):
     """Encapsulation of a Skulptgl Solution for developers"""
@@ -271,84 +324,86 @@ class DevSkSolution(SkSolution):
         self.__file_cache = {}
         # The root directory must exist
         assert os.access(root_dir, os.F_OK)
-        self.read_project(self._DEFAULT_PROJ, create_if_not_found=True)
 
     def _write_key(self, parent_path, file_name):
         key = self._key(parent_path, file_name)
         self._files[key] = parent_path + "/" + file_name
         return self._files[key]
 
-    def _remove_key(self, parent_path, file_name):
-        self._files.pop(self._key(parent_path, file_name), None)
-
     def _root_impl(self):
         self._files['root'] = self.__root_dir
         return self._files['root']
 
+    def _app_impl(self):
+        return '.'
+
+    @gen.coroutine
     def _find_file_id_impl(self, parent_path, title):
         if parent_path is None or not title in os.listdir(parent_path):
-            return None
-        return self._write_key(parent_path, title)
+            return gen.Return(None)
+        raise gen.Return(self._write_key(parent_path, title))
 
+    @gen.coroutine
     def _create_folder_impl(self, parent_path, folder_name):
-        if self.__read_only: return True
+        if self.__read_only: raise gen.Return({})
 
         path = parent_path + "/" + folder_name
-        if os.access(path, os.F_OK):
-            return self._write_key(parent_path, folder_name)
-        os.mkdir(path)
-        return self._write_key(parent_path, folder_name)
+        if not os.access(path, os.F_OK):
+            os.mkdir(path)
+        raise gen.Return(self._write_key(parent_path, folder_name))
 
+    @gen.coroutine
     def _update_text_file_impl(self, parent_path, file_name, text):
-        if self.__read_only: return True
+        if self.__read_only: raise gen.Return({})
 
         path = parent_path + "/" + file_name
         if not os.access(path, os.F_OK):
             self._write_key(parent_path, file_name)
         with open(path, "w") as fout:
             fout.write(text)
-        return path
+        raise gen.Return(path)
 
+    @gen.coroutine
     def _rename_file_impl(self, parent_path, old_name, new_name):
-        if self.__read_only: return True
+        if self.__read_only: raise gen.Return({})
 
-        old_path = self._find_file_id(parent_path, old_name)
+        old_path = yield self._find_file_id(parent_path, old_name)
         if old_path is None:
-            return None
+            raise gen.Return(None)
         new_path = parent_path + "/" + new_name
         os.rename(old_path, new_path)
         self._remove_key(parent_path, old_name)
-        return self._write_key(parent_path, new_name)
+        raise gen.Return(self._write_key(parent_path, new_name))
 
+    @gen.coroutine
     def _delete_file_impl(self, parent_path, file_name):
-        if self.__read_only: return True
+        if self.__read_only: raise gen.Return({})
 
         file_path = self._find_file_id(parent_path, file_name)
         if file_path is None:
-            return False
+            raise gen.Return(None)
         if os.path.isfile(file_path):
             os.remove(file_path)
         else:
             shutil.rmtree(file_path)
         self._remove_key(parent_path, file_name)
-        return True
+        raise gen.Return({})
 
+    @gen.coroutine
     def _read_text_file_impl(self, file_path):
         if not os.access(file_path, os.F_OK):
-            return None
+            raise gen.Return(None)
 
         if self.__read_only and file_path in self.__file_cache:
-            return self.__file_cache[file_path]
+            raise gen.Return(self.__file_cache[file_path])
 
         with open(file_path, "r") as f:
             content = f.read()
             if self.__read_only:
                 self.__file_cache[file_path] = content
-            return content
+            raise gen.Return(content)
 
 class MongoDBSkSolution(SkSolution):
-    """Encapsulation of a Skulptgl Solution on Google Drive"""
-
     def __init__(self, user, db):
         super(MongoDBSkSolution, self).__init__()
         self.__user = user
@@ -357,152 +412,11 @@ class MongoDBSkSolution(SkSolution):
                                    create_if_not_found=True)
         future.add_done_callback(lambda f: True)
 
-    def _remove_key(self, parent_path, file_name):
-        self._files.pop(self._key(parent_path, file_name), None)
-
-    @gen.coroutine
-    def _app(self):
-        app_id = yield self._find_file_id(self._root(), self._SKULPT_GL_APP_DIR)
-        if app_id is None:
-            app_id = yield self._create_folder(
-                self._root(), self._SKULPT_GL_APP_DIR)
-        raise gen.Return(app_id)
-
-    @gen.coroutine
-    def _create_folder(self, parent_id, folder_name):
-        key = self._key(parent_id, folder_name)
-        res = yield self._create_folder_impl(parent_id, folder_name)
-        self._files[key] = res
-        raise gen.Return(res)
-
-    @gen.coroutine
-    def create_project(self, proj_name):
-        proj_folder_id = yield self._create_folder(
-            (yield self._app()), proj_name)
-
-        with open('./sample/default/' + self._MAIN_PY) as main_py:
-            yield self._update_text_file_impl(proj_folder_id, self._MAIN_PY,
-                                              main_py.read())
-
-        with open('./sample/default/' + self._PROJ_JSON) as proj_json:
-            yield self._update_text_file_impl(proj_folder_id, self._PROJ_JSON,
-                                              proj_json.read())
-
-        raise gen.Return(proj_folder_id)
-
-    @gen.coroutine
-    def _find_project_id(self, proj_name, create=False):
-        proj_folder_id = yield self._find_file_id(
-            (yield self._app()), proj_name)
-        if proj_folder_id is None and create:
-            res = yield self.create_project(proj_name)
-            raise gen.Return(res)
-        raise gen.Return(proj_folder_id)
-
-    @gen.coroutine
-    def _find_file_id(self, folder_id, title):
-        key = self._key(folder_id, title)
-        if key in self._files:
-            raise gen.Return(self._files[key])
-        res = yield self._find_file_id_impl(folder_id, title)
-        raise gen.Return(res)
-
-    @gen.coroutine
-    def read_solution(self):
-        solution_file_id = yield self._find_file_id(
-            (yield self._app()), self._SOLUTION_JSON)
-        if solution_file_id is None:
-            with open('./sample/' + self._SOLUTION_JSON, 'r') as solution_json:
-                solution = json.loads(solution_json.read())
-                yield self._update_text_file_impl(
-                    (yield self._app()), self._SOLUTION_JSON,
-                    json.dumps(solution))
-                raise gen.Return(solution)
-        solution = json.loads((yield self._read_text_file_impl(solution_file_id)))
-        raise gen.Return(solution)
-
-    @gen.coroutine
-    def update_solution(self, new_sol):
-        solution = yield self.read_solution()
-        for key in (x for x in new_sol if x in solution):
-            solution[key] = new_sol[key]
-
-        res = yield self._update_text_file_impl(
-            (yield self._app()), self._SOLUTION_JSON, json.dumps(solution))
-        raise gen.Return(res)
-
-    @gen.coroutine
-    def rename_project(self, old_name, new_name):
-        res = yield self._rename_file_impl(
-            (yield self._app()), old_name, new_name)
-        raise gen.Return(res is not None)
-
-    @gen.coroutine
-    def delete_project(self, proj):
-        res = yield self._delete_file_impl(
-            (yield self._app()), proj)
-        raise gen.Return(res is not None)
-
-    @gen.coroutine
-    def read_file(self, proj, fname):
-        proj_id = yield self._find_project_id(proj)
-        if proj_id is None:
-            raise gen.Return(None)
-
-        file_id = yield self._find_file_id(proj_id, fname)
-        if file_id is None:
-            raise gen.Return(None)
-
-        res = yield self._read_text_file_impl(file_id)
-        raise gen.Return(res)
-
-    @gen.coroutine
-    def write_file(self, proj, fname, text):
-        proj_id = yield self._find_project_id(proj)
-        if proj_id is None:
-            raise gen.Return(False)
-        res = yield self._update_text_file_impl(proj_id, fname, text)
-        raise gen.Return(res is not None)
-
-    @gen.coroutine
-    def rename_file(self, proj, old_name, new_name):
-        proj_id = yield self._find_project_id(proj)
-        if proj_id is None:
-            raise gen.Return(False)
-        res = yield self._rename_file_impl(proj_id, old_name, new_name)
-        raise gen.Return(res is not None)
-
-    @gen.coroutine
-    def delete_file(self, proj, fname):
-        proj_id = yield self._find_project_id(proj)
-        if proj_id is None:
-            raise gen.Return(False)
-        res = self._delete_file_impl(proj_id, fname)
-        raise gen.Return(res is not None)
-
-    @gen.coroutine
-    def update_project(self, proj, proj_data):
-        proj_id = yield self._find_project_id(proj)
-        res = yield self._update_text_file_impl(
-            proj_id, self._PROJ_JSON, json.dumps(proj_data))
-        raise gen.Return(res is not None)
-
-    @gen.coroutine
-    def read_project(self, proj, create_if_not_found=False):
-        proj_id = yield self._find_project_id(proj, create=create_if_not_found)
-        if proj_id is None:
-            raise gen.Return(None)
-
-        proj_file_id = yield self._find_file_id(proj_id, self._PROJ_JSON)
-        if proj_file_id is None:
-            raise gen.Return(None)
-
-        res = json.loads((yield self._read_text_file_impl(proj_file_id)))
-        raise gen.Return(res)
-
     def _root_impl(self):
-        self._files['root'] = 'root'
-        return self._files['root']
+        return self._add_key('root', 'root')
+
+    def _app_impl(self):
+        return self._SKULPTGL_APP_DIR
 
     @gen.coroutine
     def _find_file_id_impl(self, parent_id, title):
@@ -514,12 +428,11 @@ class MongoDBSkSolution(SkSolution):
             raise gen.Return(None)
         obj = cursor.next_object()
         iid = obj['_id']
-        self._files[self._key(parent_id, title)] = iid
-        raise gen.Return(iid)
+        raise gen.Return(self._add_key(self._key(parent_id, title), iid))
 
     @gen.coroutine
     def _create_folder_impl(self, parent_id, folder):
-        self._files[self._key(parent_id, folder)] = folder
+        self._add_key(self._key(parent_id, folder), folder)
         raise gen.Return(folder)
 
     @gen.coroutine
@@ -532,8 +445,7 @@ class MongoDBSkSolution(SkSolution):
 
         result = yield self.__db.files.save(content)
         if result is not None:
-            self._files[self._key(parent_id, title)] = result
-
+            self._add_key(self._key(parent_id, title), result)
         raise gen.Return(result)
 
     @gen.coroutine
@@ -548,8 +460,7 @@ class MongoDBSkSolution(SkSolution):
             yield self.__db.files.update(
                 spec, {'$set': {'parent': new_name}}, multi=True)
         self._remove_key(parent_id, old_name)
-        self._files[self._key(parent_id, new_name)] = iid
-        raise gen.Return(iid)
+        raise gen.Return(self._add_key(self._key(parent_id, new_name), iid))
 
     @gen.coroutine
     def _delete_file_impl(self, parent_id, file_name):

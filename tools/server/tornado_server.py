@@ -9,7 +9,7 @@ import simplejson as json
 
 from apiclient.discovery import build
 
-from sk_solution import GdriveSkSolution, DevSkSolution, MongoDBSkSolution
+from sk_solution import MongoDBSkSolution
 from easy_oauth2 import EasyOAuth2
 
 def get_user_info(credentials):
@@ -94,17 +94,19 @@ class RunHandler(tornado.web.RequestHandler):
         proj = self.argshort('read-proj')
         if proj is not None:
             res = yield g_solution.read_project(proj)
-            self.write(json.dumps(res))
-            self.finish()
-            return
+            if (res is not None):
+                self.write(json.dumps(res))
+                self.finish()
+                return
 
         fname = self.argshort('read')
         proj = self.argshort('proj')
         if fname is not None and proj is not None:
             res = yield g_solution.read_file(proj, fname)
-            self.write(res)
-            self.finish()
-            return
+            if res is not None:
+                self.write(res)
+                self.finish()
+                return
 
         self.send_error()
 
@@ -120,14 +122,15 @@ class RunHandler(tornado.web.RequestHandler):
         val = self.argshort('rename-proj')
         if val is not None:
             old_name, new_name = tuple(val.split(','))
-            yield g_solution.rename_project(old_name=old_name,
-                                            new_name=new_name)
-            self.finish()
-            return
+            res = yield g_solution.rename_project(old_name=old_name,
+                                                  new_name=new_name)
+            if res is not None:
+                self.finish()
+                return
 
         proj = self.argshort('new-proj')
         if proj is not None:
-            res = yield g_solution.create_project(proj_name=proj) 
+            res = yield g_solution.create_project(proj_name=proj)
             if res is not None:
                 self.finish()
                 return
@@ -135,13 +138,13 @@ class RunHandler(tornado.web.RequestHandler):
         proj = self.argshort('write-proj')
         if proj is not None:
             body = json.loads(self.request.body)
-            res = yield g_solution.update_project(proj, body)
-            if res:
+            if (yield g_solution.update_project(proj, body)) is not None:
                 self.finish()
                 return
 
         proj = self.argshort('delete-proj')
-        if proj is not None and (yield g_solution.delete_project(proj)):
+        if proj is not None and\
+           (yield g_solution.delete_project(proj)) is not None:
             self.finish()
             return
 
@@ -149,21 +152,21 @@ class RunHandler(tornado.web.RequestHandler):
         proj = self.argshort('proj')
         if val is not None and proj is not None:
             (old_name, new_name) = tuple(val.split(','))
-            res = yield g_solution.rename_file(proj, old_name, new_name)
-            if res:
+            if (yield g_solution.rename_file(proj, old_name, new_name))\
+               is not None:
                 self.finish()
                 return
 
         fname = self.argshort('delete')
         if fname is not None and proj is not None and\
-           (yield g_solution.delete_file(proj, fname)):
+           (yield g_solution.delete_file(proj, fname)) is not None:
             self.finish()
             return
 
         fname = self.argshort('write')
         if fname is not None and proj is not None:
             body = self.request.body
-            if (yield g_solution.write_file(proj, fname, body)):
+            if (yield g_solution.write_file(proj, fname, body)) is not None:
                 self.finish()
                 return
 
