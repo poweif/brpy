@@ -31,23 +31,6 @@ var SKG = {
                     Math.floor(Math.random() * possible.length));
             return text;
         },
-        deepCopy: function(obj) {
-            if (typeof obj === "string" || typeof obj === "number" ||
-                typeof obj === "boolean")
-                return obj;
-
-            if (obj.length !== undefined) {
-                var ret = [];
-                for (var i = 0; i < obj.length; i++)
-                    ret.push(this.deepCopy(obj[i]));
-                return ret;
-            }
-
-            var ret = {};
-            for (var k in obj)
-                ret[k] = this.deepCopy(obj[k]);
-            return ret;
-        },
         xhrGet: function(url, onLoad, onFailed) {
             console.log('making a request for ' + url);
             var contentReq = new XMLHttpRequest("a=b&c=d");
@@ -111,6 +94,46 @@ var SKG = {
             }
             return elmHeight + elmMargin;
         },
+        deepCopy: function(obj) {
+            if (typeof obj === "string" || typeof obj === "number" ||
+                typeof obj === "boolean")
+                return obj;
+
+            if (obj.length !== undefined) {
+                var ret = [];
+                for (var i = 0; i < obj.length; i++)
+                    ret.push(this.deepCopy(obj[i]));
+                return ret;
+            }
+
+            var ret = {};
+            for (var k in obj)
+                ret[k] = this.deepCopy(obj[k]);
+            return ret;
+        },
+        copyAndReplace: function(copy, obj, data) {
+            var ret = copy(obj);
+            for (var i in data) {
+                ret[i] = data[i];
+            }
+            return ret;
+        },
+        softCopy: function(obj) {
+            if (typeof obj === "string" || typeof obj === "number" ||
+                typeof obj === "boolean")
+                return obj;
+
+            if (obj.length !== undefined) {
+                return obj.map(function(o) {
+                    return o;
+                });
+            }
+
+            var ret = {};
+            for (var k in obj)
+                ret[k] = obj[k];
+            return ret;
+        }
     },
     d: function(key, val) {
         if (key)
@@ -161,17 +184,6 @@ var SKG = {
         this.util.xhrPost('/run?write=' + filename + '&proj=' + proj,
                           text, onLoad, onFailed);
     },
-    buildProjectJson: function(blocks, srcFiles, selectedFile) {
-        var ret = [];
-        blocks.forEach(function(block) {
-            ret.push(
-                SKG.d(SKG_PROJECT_NAME, block)
-                    .i(SKG_PROJECT_SRC, srcFiles[block])
-                    .i(SKG_PROJECT_CURRENT_FILE, selectedFile[block]).o()
-            );
-        });
-        return ret;
-    },
     openDialog: function(text, prompt, onOK, onCancel) {
         this.closeDialog();
         React.render(
@@ -193,11 +205,16 @@ var SKG = {
 
 (function() {
     // Site-wide constants
-    SKG_PROJECT_NAME = 'name';
-    SKG_PROJECT_SRC = 'src';
-    SKG_PROJECT_CURRENT_FILE = 'currentFile';
+    SKG_BLOCK_NAME = 'name';
+    SKG_BLOCK_SRC = 'src';
+    SKG_BLOCK_CURRENT_FILE = 'currentFile';
+    SKG_BLOCK_COLLAPSED = "collapsed";
+    SKG_FILE_NAME = "file";
+    SKG_FILE_HEIGHT = "height";
     SKG_SOLUTION_PROJECTS = 'projects';
     SKG_SOLUTION_CURRENT_PROJECT = 'currentProject';
+    SKG_DEEP_COPY = SKG.util.deepCopy;
+    SKG_SOFT_COPY = SKG.util.softCopy;
 
     window.addEventListener("beforeunload", function (e) {
         var confirmation = "Did you save? Are you sure you'd like to quit?"

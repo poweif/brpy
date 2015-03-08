@@ -153,8 +153,9 @@ var ContentPane = React.createClass({
 var EditorFileRow = React.createClass({
     render: function() {
         var that = this;
-        var fileButtons = this.props.srcFiles.map(
-            function(fileExt, order) {
+        var fileButtons = this.props.files.map(
+            function(fileData, order) {
+                var fileExt = fileData[SKG_FILE_NAME];
                 var isBlockLink = SKG.util.getFileExt(fileExt) == 'bk';
                 var selected = order == that.props.currentFileInd;
                 if (!selected) {
@@ -211,7 +212,7 @@ var EditorFileRow = React.createClass({
 
                 var buttons = [];
                 if (order != 0) buttons.push(left);
-                if (order != that.props.srcFiles.length - 1)
+                if (order != that.props.files.length - 1)
                     buttons.push(right);
 
                 buttons.push(rename);
@@ -285,7 +286,8 @@ var EditorPane = React.createClass({
         var save = null;
         var fileName = null;
         if (this.props.currentFileInd >= 0 && this.props.srcTexts) {
-            fileName = this.props.srcFiles[this.props.currentFileInd];
+            fileName =
+                this.props.files[this.props.currentFileInd][SKG_FILE_NAME];
             src = this.props.srcTexts[fileName];
             run = function(code) {
                 that.props.onRun(fileName, code);
@@ -334,7 +336,7 @@ var EditorPane = React.createClass({
                     onFileMoveToNewBlock={this.props.onFileMoveToNewBlock}
                     onBlockLinkAdds={this.props.onBlockLinkAdds}
                     currentFileInd={this.props.currentFileInd}
-                    srcFiles={this.props.srcFiles} />
+                    files={this.props.files} />
                 {sourceEditor}
             </div>
         );
@@ -575,7 +577,7 @@ var WorksheetBlock = React.createClass({
                         onBlockLinkAdds={this.props.onBlockLinkAdds}
                         isDialogOpen={this.props.isDialogOpen}
                         srcTexts={this.props.srcTexts}
-                        srcFiles={this.props.srcFiles}
+                        files={this.props.files}
                         currentFileInd={this.props.currentFileInd} />
                 </div>
                 {sepLower}
@@ -591,9 +593,8 @@ var MainPanel = React.createClass({
     getInitialState: function() {
         return {
             blocks: [],
-            srcFiles: {},
-            srcContent: {},
-            selectedFile: {},
+            blockContent: {},
+            srcTexts: {},
             contentPaneDoms: {},
             projects: [],
             currentProject: -1,
@@ -689,23 +690,48 @@ var MainPanel = React.createClass({
         };
         this.openBinaryDialog("Delete project?", ok);
     },
-    updateProject: function(proj, blocks, srcFiles, selectedFile, onOk, onFail) {
+    updateProject: function(projName, blocks, blockContent, onOk, onFail) {
         var that = this;
         if (!blocks)
             blocks = this.state.blocks;
-        if (!srcFiles)
-            srcFiles = this.state.srcFiles;
-        if (!selectedFile)
-            selectedFile = this.state.selectedFile;
+        if (!blockContent)
+            blockContent = this.state.blockContent;
         var outerOk = function() {
             that.setState(
                 SKG.d("blocks", blocks)
-                    .i("srcFiles", srcFiles)
-                    .i("selectedFile", selectedFile).o());
+                    .i("blockContent", blockContent).o());
             if (onOk) onOk();
         };
-        var projData = SKG.buildProjectJson(blocks, srcFiles, selectedFile);
-        SKG.writeProject(proj, projData, outerOk, onFail);
+        var projData = blocks.map(function(block) {
+            return blockContent[block];
+        })
+        SKG.writeProject(projName, projData, outerOk, onFail);
+    },
+    replaceInFile: function(block, fileName, data, blockContent) {
+        if (!blockContent)
+            blockContent = this.state.blockContent;
+        var content = blockContent[block];
+        var files = content[SKG_BLOCK_SRC];
+        var nfiles = files.map(function(file) {
+            if (file[SKG_FILE_NAME] == fileName) {
+                return SKG.util.copyAndReplace(SKG_SOFT_COPY, file, data);
+            }
+            return file;
+        });
+        if (!nfile) return blockContent;
+        
+        var newContent = SKG.util.copyAndReplace(
+            SKG_SOFT_COPY, content, SKG.d(SRC_BLOCK_SRC, nfiles).o());
+        return SKG.util.copyAndReplace(
+            SKG_SOFT_COPY, blockContent, SKG.d(block, newContent).o());
+    },
+    replaceInBlock: function(block, data, blockContent) {
+        if (!blockContent)
+            blockContent = this.state.blockContent;
+        var content = blockContent[block];
+        var newContent = SKG.util.copyAndReplace(SKG_SOFT_COPY, content, data);
+        return SKG.util.copyAndReplace(
+            SKG_SOFT_COPY, blockContent, SKG.d(block, newContent).o());
     },
     onFileRename: function(proj, block, file) {
         var oldFile = file;
@@ -713,44 +739,54 @@ var MainPanel = React.createClass({
         var ok = function(newFile) {
             if (newFile === oldFile) return;
 
+            that.closeDialog();
+
             var oldFileExt = oldFile + ".py";
             var newFileExt = newFile + ".py";
-            var ofiles = SKG.util.deepCopy(that.state.srcFiles[block]);
-            var nfiles = ofiles.map(function(file) {
-                return file==oldFileExt ? newFileExt : file;
-            });
+
             var failed = function() {
                 that.openPromptDialog("Failed to change file name");
             };
-            that.closeDialog();
-            var srcFiles = SKG.util.deepCopy(that.state.srcFiles);
-            srcFiles[block] = nfiles;
-
-            var srcContent = SKG.util.deepCopy(that.state.srcContent);
-            var src = srcContent[oldFileExt];
-            delete srcContent[oldFileExt];
-            srcContent[newFileExt] = src;
 
             var successFile = function() {
+                var srcTexts = SKG.util.deepCopy(that.state.srcTexts);
+                var src = srcTexts[oldFileExt];
+                delete srcTexts[oldFileExt];
+                srcTexts[newFileExt] = src;
+
+                var blockContent  =
+                    that.replaceInFile(
+                        block, oldFileExt,
+                        SKG.d(SKG_FILE_NAME, newFileExt).o());
+
                 that.updateProject(
-                    proj, null, srcFiles, null,
-                    function() { that.setState({srcContent: srcContent}); },
+                    proj, null, blockContent,
+                    function() { that.setState({srcTexts: srcTexts}); },
                     failed
                 );
             };
 
-            SKG.renameSrcFile(proj, oldFileExt, newFileExt, successFile,
-                              failed);
+            SKG.renameSrcFile(
+                proj, oldFileExt, newFileExt, successFile, failed);
         };
         this.openTextDialog(file, "New file name?", ok);
     },
     onFileClick: function(proj, block, file) {
-        var ind =
-            SKG.util.indexOf(this.state.srcFiles[block], file);
-        if (this.state.selectedFile[block] != ind) {
-            var selectedFile = SKG.util.deepCopy(this.state.selectedFile);
-            selectedFile[block] = ind;
-            this.updateProject(proj, null, null, selectedFile, null, null);
+        var ind = -1;
+        this.state.blockContent[block][SKG_BLOCK_SRC].forEach(
+            function(file, ii) {
+                if (file[SKG_FILE_NAME] == file)
+                    ind = ii;
+            }
+        );
+        if (ind < 0) return;
+
+        var currentFile =
+            this.state.blockContent[block][SKG_BLOCK_CURRENT_FILE];
+        if (currentFile != ind) {
+            var blockContent = this.replaceInBlock(
+                block, SKG.d(SKG_BLOCK_CURRENT_FILE, ind).o());
+            this.updateProject(proj, null, blockContent);
         }
     },
     onFileAdd: function(proj, block) {
@@ -758,29 +794,32 @@ var MainPanel = React.createClass({
         var ok = function(fname) {
             var fnameExt = fname + ".py";
             var fileSrc = "# " + fnameExt;
-            var ofiles = that.state.srcFiles[block];
-            if (that.state.srcContent[fnameExt] != null) {
+            if (that.state.srcTexts[fnameExt] != null) {
                 that.openPromptDialog("File already exist");
                 return;
             }
             that.closeDialog();
+
             var failed = function() {
                 that.openPromptDialog("Failed to add file");
             };
-            var nfiles = SKG.util.deepCopy(ofiles).concat([fnameExt]);
-
             var successFile = function() {
-                var srcFiles = SKG.util.deepCopy(that.state.srcFiles);
-                var srcContent = SKG.util.deepCopy(that.state.srcContent);
-                var selectedFile =
-                    SKG.util.deepCopy(that.state.selectedFile);
-                srcFiles[block] = nfiles;
-                srcContent[fnameExt] = fileSrc;
-                selectedFile[block] = nfiles.length -1;
-                var projOk =
-                    function() { that.setState({srcContent: srcContent}); };
+                var srcTexts = SKG.util.deepCopy(that.state.srcTexts);
+                srcTexts[fnameExt] = fileSrc;
+
+                var nfiles = SKG.util.deepCopy(
+                    that.state.blockContent[block][SKG_BLOCK_SRC]);
+                nfiles.push(SKG.d(SKG_FILE_NAME, fnameExt)
+                          .i(SKG_FILE_HEIGHT, 100).o());
+
+                var blockContent = that.replaceInBlock(
+                    block, SKG.d(SKG_BLOCK_SRC, nfiles)
+                        .i(SKG_BLOCK_CURRENT_FILE, nfiles.length - 1).o());
+
                 that.updateProject(
-                    proj, null, srcFiles, selectedFile, projOk, failed);
+                    proj, null, blockContent,
+                    function() { that.setState({srcTexts: srcTexts}); },
+                    failed);
             };
             SKG.writeSrcFile(proj, fnameExt, fileSrc, successFile, failed);
         };
@@ -789,48 +828,49 @@ var MainPanel = React.createClass({
     deleteBlock: function(proj, block, onOk, onFail) {
         var ind = SKG.util.indexOf(this.state.blocks, block);
         var blocks = SKG.util.deepCopy(this.state.blocks);
-        var srcFiles = SKG.util.deepCopy(this.state.srcFiles);
-        var srcContent = SKG.util.deepCopy(this.state.srcContent);
-        var selectedFile = SKG.util.deepCopy(this.state.selectedFile);
+        var blockContent = SKG.util.softCopy(this.state.blockContent);
+        var srcTexts = SKG.util.deepCopy(this.state.srcTexts);
         var contentPaneDoms = this.state.contentPaneDoms;
-        blocks.splice(ind, 1);
-        var files = srcFiles[block];
-        delete srcFiles[block];
-        delete selectedFile[block];
-        delete contentPaneDoms[block];
-        files.forEach(function(file) {
-            if (srcContent[file])
-                delete srcContent[file];
+        blockContent[block][SRC_BLOCK_SRC].forEach(function(file) {
+            var fileName = file[SKG_FILE_NAME];
+            if (srcTexts[fileName])
+                delete srcTexts[fileName];
         });
 
-        block.forEach(function(block) {
+        var ncontent = {};
+        var that = this;
+        blocks.forEach(function(block) {
             var nfiles = [];
-            srcFiles[block].forEach(function(file) {
-                var ext = SKG.util.getFileExt(file);
-                var name = SKG.util.getFileName(file);
+            blockContent[block][SRC_BLOCK_SRC].forEach(function(file) {
+                var fileName = file[SKG_FILE_NAME];
+                var ext = SKG.util.getFileExt(fileName);
+                var name = SKG.util.getFileName(fileName);
                 if (ext == 'bk' && name == oldBlock)
                     return;
                 nfiles.push(file);
             });
-            srcFiles[block] = nfiles;
+            ncontent[block] =
+                that.replaceInBlock(block, SKG.d(SKG_BLOCK_SRC, nfiles).o());
         });
+
+        delete ncontent[block];
+        blocks.splice(ind, 1);
+        delete contentPaneDoms[block];
 
         var that = this;
         var onOkInner = function() {
             that.setState({
-                srcContent: srcContent,
+                srcTexts: srcTexts,
                 contentPaneDoms: contentPaneDoms
             });
 
             if (onOk) onOk();
         };
 
-        this.updateProject(
-            proj, blocks, srcFiles, selectedFile, onOkInner, onFail);
+        this.updateProject(proj, blocks, ncontent, onOkInner, onFail);
     },
     onFileDelete: function(proj, block, fname) {
         var that = this;
-
         var failed = function() {
             that.openPromptDialog("Failed to delete file");
         };
@@ -841,23 +881,25 @@ var MainPanel = React.createClass({
         };
 
         var ok = function() {
-            var ofiles = that.state.srcFiles[block];
-            var ind = SKG.util.indexOf(ofiles, fname);
+            var ind = -1;
+            that.state.blockContent[block][SKG_BLOCK_SRC].forEach(
+                function(file, fileInd) {
+                    if (file[SKG_FILE_NAME] == fname)
+                        ind = fileInd;
+                }
+            );
             if (ind < 0) return success();
-
-            var nfiles = SKG.util.deepCopy(ofiles);
-            nfiles.splice(ind, 1);
 
             var successFile = function() {
                 that.closeDialog();
-                var srcFiles = SKG.util.deepCopy(that.state.srcFiles);
-                var selectedFile =
-                    SKG.util.deepCopy(that.state.selectedFile);
-                srcFiles[block] = nfiles;
-                selectedFile[block] = 0;
-
-                that.updateProject(
-                    proj, null, srcFiles, selectedFile, success, failed);
+                var nfiles =
+                    SKG.util.deepCopy(
+                        that.state.blockContent[block][SKG_BLOCK_SRC]);
+                nfiles.splice(ind, 1);
+                var blockContent = that.replaceInBlock(
+                    block, SKG.d(SKG_BLOCK_SRC, nfiles)
+                        .i(SKG_BLOCK_CURRENT_FILE, 0).o());
+                that.updateProject(proj, null, blockContent, success, failed);
             };
 
             if (nfiles.length == 0) {
@@ -872,25 +914,24 @@ var MainPanel = React.createClass({
             "Are you sure you'd like to delete " + (fname) + "?", ok);
     },
     onFileMove: function(proj, block, origin, target) {
-        if (target < 0 || target >= this.state.srcFiles[block].length)
+        if (target < 0 || 
+            target >= this.state.blockContent[block][SKG_BLOCK_SRC].length)
             return;
 
         var that = this;
-        var ofiles = this.state.srcFiles[block];
-        var nfiles = SKG.util.deepCopy(ofiles);
+        var nfiles = SKG.util.softCopy(
+            that.state.blockContent[block][SKG_BLOCK_SRC]);
 
         var tmp = nfiles[origin];
         nfiles[origin] = nfiles[target];
         nfiles[target] = tmp;
 
-        var failed = function() {
-            that.openPromptDialog("Failed to change file order");
-        };
-        var srcFiles = SKG.util.deepCopy(this.state.srcFiles);
-        srcFiles[block] = nfiles;
-        var selectedFile = SKG.util.deepCopy(this.state.selectedFile);
-        selectedFile[block] = target;
-        this.updateProject(proj, null, srcFiles, selectedFile, null, failed);
+        var blockContent = this.replaceInBlock(
+            block,
+            SKG.d(SRC_BLOCK_SRC, nfiles)
+                .i(SRC_BLOCK_CURRENT_FILE, target).o());
+        this.updateProject(proj, blockContent, null,
+            that.openPromptDialog("Failed to change file order"));
     },
     onFileMoveToNewBlock: function(proj, oldBlock, fileExt) {
         var file = SKG.util.getFileName(fileExt);
@@ -901,114 +942,111 @@ var MainPanel = React.createClass({
                 return;
             }
             that.closeDialog();
-            var failed = function() {
-                that.openPromptDialog("Failed to add new block");
-            };
 
             var blocks = SKG.util.deepCopy(that.state.blocks);
             blocks.push(newBlock);
-            var srcFiles = SKG.util.deepCopy(that.state.srcFiles);
-            srcFiles[newBlock] = [];
-            var selectedFile = SKG.util.deepCopy(that.state.selectedFile);
-            selectedFile[newBlock] = -1;
+
+            var blockContent = SKG.util.softCopy(that.state.blockContent);
+            blockContent[newBlock] = SKG
+                .d(SRC_BLOCK_SRC, [])
+                .i(SRC_BLOCK_NAME, newBlock)
+                .i(SRC_CURRENT_FILE, -1)
+                .I(SRC_COLLAPSED, false);
 
             var doms = that.state.contentPaneDoms;
             doms[newBlock] = [];
             that.setState({contentPaneDoms: doms});
 
-            var onOk = function() {
-                that.onFileMoveToBlock(proj, oldBlock, newBlock, fileExt);
-            };
             that.updateProject(
-                proj, blocks, srcFiles, selectedFile, onOk, failed);
+                proj, blocks, blockContent,
+                that.onFileMoveToBlock(proj, oldBlock, newBlock, fileExt),
+                that.openPromptDialog("Failed to add new block"));
         };
         this.openTextDialog(file, "New Block?", ok);
     },
     onFileMoveToBlock: function(proj, oldBlock, newBlock, file) {
-        var oldBlockFiles = [];
-        this.state.srcFiles[oldBlock].forEach(function(cfile) {
-            if (file != cfile)
-                oldBlockFiles.push(cfile);
-        });
-        var newBlockFiles = SKG.util.deepCopy(this.state.srcFiles[newBlock]);
-        newBlockFiles.push(file);
-
-        var srcFiles = SKG.util.deepCopy(this.state.srcFiles);
-        var selectedFile = SKG.util.deepCopy(this.state.selectedFile);
-        var blocks = null;
         var that = this;
+        var oldBlockFiles = [];
+        var fileData = null;
+        var blocks = null;
+        this.state.blockContent[oldBlock][SKG_BLOCK_SRC].forEach(
+            function(cfile) {
+                if (file != cfile[SKG_FILE_NAME])
+                    oldBlockFiles.push(cfile);
+                else
+                    fileData = cfile;
+            }
+        );
+        var newBlockFiles = SKG.util.softCopy(
+            this.state.blockContent[newBlock][SKG_BLOCK_SRC]);
+        newBlockFiles.push(fileData);
 
-        srcFiles[newBlock] = newBlockFiles;
-        selectedFile[newBlock] = newBlockFiles.length - 1;
-
+        var blockContent = SKG.util.softCopy(this.state.blockContent);
         if (oldBlockFiles.length > 0) {
-            srcFiles[oldBlock] = oldBlockFiles;
-            selectedFile[oldBlock] = 0;
+            blockContent[oldBlock] = this.replaceInBlock(
+                oldBlock, SKG.d(SKG_BLOCK_SRC, oldBlockFiles).o());
+            blockContent[newBlock] = this.replaceInBlock(
+                newBlock, SKG.d(SKG_BLOCK_SRC, newBlockFiles).o());
         } else {
             var doms = this.state.contentPaneDoms;
-            blocks = [];
-            this.state.blocks.forEach(function(block) {
-                if (block != oldBlock)
-                    blocks.push(block);
-            });
-            delete srcFiles[oldBlock];
-            delete selectedFile[oldBlock];
+            blocks = SKG.util.softCopy(this.state.blocks);
+            var blockInd = SKG.util.indexOf(blocks, oldBlock);
+            blocks.splice(blockInd, 1);
+            delete blockContent[oldBlock];
             delete doms[oldBlock];
         }
-
-        var failed = function() {
-            that.openPromptDialog("Failed to move block");
-        };
-
         var onOk = function() {
             that.runProg(newBlock);
             if (oldBlockFiles.length > 0)
                 that.runProg(oldBlock);
         };
-
-        this.updateProject(proj, blocks, srcFiles, selectedFile, onOk, failed);
+        this.updateProject(
+            proj, blocks, blockContent, onOk,
+            that.openPromptDialog("Failed to move block"));
     },
-    checkCircularBlockLinks: function(block, srcFiles, checked) {
+    checkCircularBlockLinks: function(block, blockContent, checked) {
         if (checked[block])
             return true;
         checked[block] = true;
-        var files = srcFiles[block];
+        var files = blockContent[block][SKG_BLOCK_SRC];
         var res = false;
         for (var i = 0; i < files.length; i++) {
-            var ext = SKG.util.getFileExt(files[i]);
-            var name = SKG.util.getFileName(files[i]);
+            var fname = files[i][SKG_FILE_NAME];
+            var ext = SKG.util.getFileExt(fname);
+            var name = SKG.util.getFileName(fname);
             if (ext == 'bk')
-                res = res || this.checkCircularBlockLinks(name, srcFiles, checked);
+                res = res || this.checkCircularBlockLinks(name, blockContent, checked);
         }
         return res;
     },
     onBlockLinkAdd: function(proj, block, blockLink) {
         var that = this;
         var blockLinkExt = blockLink + ".bk"
-        var srcFiles = SKG.util.deepCopy(this.state.srcFiles);
-        srcFiles[block].unshift(blockLinkExt);
+        var nfiles = SKG.util.softCopy(
+            this.state.blockContent[block][SRC_BLOCK_SRC]);
+        nfiles.unshift(SKG.d(SKG_FILE_NAME, blockLinkExt).o());
+        var srcFileNames = nfiles.map(function(file) {
+            return file[SKG_FILE_NAME];
+        });
 
-        if (this.checkCircularBlockLinks(block, srcFiles, {})) {
+        if (this.checkCircularBlockLinks(block, this.state.blockContent, {})) {
             that.openPromptDialog("Failed because of circular dependency.");
             return;
         }
-        var failed = function() {
-            that.openPromptDialog("Failed to add block link");
-        };
-
-        var selectedFile = SKG.util.deepCopy(this.state.selectedFile);
-        selectedFile[block] = selectedFile[block] + 1;
+        var currentFile =
+            this.state.blockContent[block][SKG_BLOCK_CURRENT_FILE];
+        var blockContent = this.replaceInBlock(
+            block,
+            SKG.d(SKG_BLOCK_CURRENT_FILE, currentFile + 1)
+                .i(SKG_BLOCK_SRC, nfiles).o());
 
         this.updateProject(
-            proj, null, srcFiles, selectedFile, this.runProg.bind(this, block),
-            failed);
+            proj, null, blockContent,
+            this.runProg.bind(this, block),
+            that.openPromptDialog("Failed to add block link"));
     },
     onBlockRename: function(proj, oldBlock) {
         var that = this;
-        var failed = function() {
-            that.openPromptDialog("Failed to rename block.");
-        };
-
         var ok = function(newBlock) {
             if (newBlock === oldBlock) return;
 
@@ -1016,90 +1054,86 @@ var MainPanel = React.createClass({
                 that.openPromptDialog("Block name already exists");
                 return;
             }
+            var blocks = SKG.util.deepCopy(that.state.blocks).map(
+                function(b) { return b == oldBlock ? newBlock : b; });
+            var blockContent = SKG.softCopy(that.state.blockContent);
+            var files = blockContent[oldBlock];
+            delete blockContent[oldBlock];
+            blockContent[newBlock] = files;
 
-            var blocks = SKG.util.deepCopy(that.state.blocks);
-            var srcFiles = SKG.util.deepCopy(that.state.srcFiles);
-            var selectedFile = SKG.util.deepCopy(that.state.selectedFile);
             var doms = that.state.contentPaneDoms;
-
-            blocks = blocks.map(function(b) {
-                if (b == oldBlock)
-                    return newBlock;
-                return b;
-            });
-            var files = srcFiles[oldBlock];
-            delete srcFiles[oldBlock];
-            srcFiles[newBlock] = files;
-
-            var selected = selectedFile[oldBlock];
-            delete selectedFile[oldBlock];
-            selectedFile[newBlock] = selected;
-
             var dom = doms[oldBlock];
             delete doms[oldBlock];
             doms[newBlock] = dom;
 
             blocks.forEach(function(block) {
-                srcFiles[block] = srcFiles[block].map(function(file) {
-                    var ext = SKG.util.getFileExt(file);
-                    var name = SKG.util.getFileName(file);
-                    if (ext == 'bk' && name == oldBlock)
-                        return newBlock + '.bk';
-                    return file;
-                });
+                var nfiles = blockContent[block][SKG_BLOCK_SRC].map(
+                    function(file) {
+                        var nfile = SKG.util.softCopy(file);
+                        var fileName = file[SKG_FILE_NAME];
+                        var ext = SKG.util.getFileExt(fileName);
+                        var name = SKG.util.getFileName(fileName);
+                        if (ext == 'bk' && name == oldBlock) {
+                            nfile[SKG_FILE_NAME] = newBlock + '.bk';
+                            return nfile;
+                        }
+                        return file;
+                    });
+                blockContent[block][SKG_BLOCK_SRC] = nfiles;
             });
 
             var blockOk = function() {
                 that.setState({contentPaneDoms: doms});
                 that.closeDialog();
             };
-
             that.updateProject(
-                proj, blocks, srcFiles, selectedFile, blockOk, failed);
+                proj, blocks, blockContent, blockOk, 
+                that.openPromptDialog("Failed to rename block."));
         };
         this.openTextDialog(oldBlock, "Rename block?", ok);
     },
     onBlockMove: function(proj, origin, target) {
+        var that = this;
         var blocks = SKG.util.deepCopy(this.state.blocks);
         var blockName = blocks[origin];
-        var that = this;
         blocks[origin] = blocks[target];
         blocks[target] = blockName;
-        var failed = function() {
-            that.openPromptDialog("Failed to move block.");
-        };
-        this.updateProject(proj, blocks, null, null, null, failed);
+        this.updateProject(proj, blocks, null, null, 
+            that.openPromptDialog("Failed to move block."));
     },
     collectSrc: function(block) {
         var that = this;
         var ret = [];
-        this.state.srcFiles[block].forEach(function(fileExt) {
-            var ext = SKG.util.getFileExt(fileExt);
-            if (ext == 'py') {
-                ret.push({name: fileExt, body: that.state.srcContent[fileExt]});
-            } else if (ext == 'bk') {
-                var block = SKG.util.getFileName(fileExt);
-                ret = ret.concat(that.collectSrc(block));
+        this.state.blockContent[block][SKG_BLOCK_SRC].forEach(
+            function(file) {
+                var fileName = file[SKG_FILE_NAME];
+                var ext = SKG.util.getFileExt(fileName);
+                if (ext == 'py') {
+                    ret.push(
+                        { name: fileName, 
+                          body: that.state.srcTexts[fileName] });
+                } else if (ext == 'bk') {
+                    var block = SKG.util.getFileName(fileExt);
+                    ret = ret.concat(that.collectSrc(block));
+                }
             }
-        });
+        );
         return ret;
     },
     runProg: function(block) {
+        var that = this;
         // If files are missing, do not run program.
-        var files = this.state.srcFiles[block];
+        var files = this.state.blockContent[block][SKG_BLOCK_SRC];
         for (var i = 0; i < files.length; i++) {
             var file = files[i];
-            if (SKG.util.getFileExt(file) == 'bk')
+            var fileName = file[SKG_FILE_NAME];
+            if (SKG.util.getFileExt(fileName) == 'bk')
                 continue;
-            if (!this.state.srcContent[file])
+            if (!this.state.srcTexts[fileName])
                 return;
         }
-        var that = this;
         var output = function(s) {
-            if (s.trim().length > 0) {
-                var stdconsole = that.refs.stdoutConsole;
-                stdconsole.write(block, s);
-            }
+            that.refs.stdoutConsole.write(block, s);
         };
         Sk.configure(
             {"output": output, "debugout": output, "read": SKG.builtinRead}
@@ -1121,14 +1155,12 @@ var MainPanel = React.createClass({
         }
     },
     onRun: function(proj, block, file, code) {
-        //this.clientSideSave(block, file, code);
-//        this.onSave(proj, block, file, code, null, null);
         this.runProg(block);
     },
     clientSideSave: function(block, file, code) {
         if (!file)
             return;
-        this.state.srcContent[file] = code;
+        this.state.srcTexts[file] = code;
     },
     onSave: function(proj, block, file, code, onSuccess, onFail) {
         if (!file)
@@ -1148,29 +1180,31 @@ var MainPanel = React.createClass({
     onLoadProject: function(projectName, text) {
         var projectBlocks = JSON.parse(text);
         var blocks = [];
-        var srcFiles = {};
-        var selectedFile = {};
+        var blockContent = {};
         var that = this;
 
+        console.log(text);
+        console.log(projectBlocks);
+
         projectBlocks.forEach(function(block) {
-            blocks.push(block.name);
-            srcFiles[block.name] = block.src;
-            selectedFile[block.name] = block.currentFile;
+            var blockName = block.name;
+            blocks.push(blockName);
+            delete block['name'];
+            blockContent[blockName] = SKG.util.deepCopy(block);
         });
 
+        console.log(blockContent);
         var runq = function(q, func, onDoneQ) {
             if (q.length < 1) {
                 if (onDoneQ) return onDoneQ();
                 return null;
             }
-
             var r = q.splice(0, 1)[0];
             var nextq = q;
             func(r, function() { runq(nextq, func, onDoneQ); });
         };
         var readFile = function(file, onDoneFile) {
             if (SKG.util.getFileExt(file) == 'bk') return onDoneFile();
-
             SKG.readSrcFile(
                 projectName,
                 file,
@@ -1180,7 +1214,12 @@ var MainPanel = React.createClass({
                 function() { console.log("failed to read " + file); });
         };
         var readBlock = function(block, onDoneBlock) {
-            var files = SKG.util.deepCopy(srcFiles[block]);
+            console.log(block, blockContent[block], SKG_BLOCK_SRC);
+            console.log(blockContent[block][SKG_BLOCK_SRC]);
+            var files = blockContent[block][SKG_BLOCK_SRC].map(function(file) {
+                return file[SKG_FILE_NAME];
+            });
+            console.log(files);
             var runblock = function() {
                 if (onDoneBlock)
                     onDoneBlock();
@@ -1192,20 +1231,18 @@ var MainPanel = React.createClass({
                 that.runProg(block);
             });
         };
-
         runq(SKG.util.deepCopy(blocks), readBlock, allDone);
 
         that.setState({
             projectName: projectName,
             blocks: blocks,
-            srcFiles: srcFiles,
-            selectedFile: selectedFile
+            blockContent: blockContent
         });
     },
     onLoadSource: function(file, text) {
-        var content = SKG.util.deepCopy(this.state.srcContent);
+        var content = SKG.util.deepCopy(this.state.srcTexts);
         content[file] = text;
-        this.setState({srcContent: content});
+        this.setState({srcTexts: content});
     },
     onLoadSolution: function(text) {
         var solution = JSON.parse(text);
@@ -1240,10 +1277,12 @@ var MainPanel = React.createClass({
                 if (!fileMoveToBlocks) fileMoveToBlocks = [];
                 fileMoveToBlocks.push({
                     name: iblock,
-                    click: that.onFileMoveToBlock.bind(that, proj, block, iblock)
+                    click: that.onFileMoveToBlock.bind(
+                        that, proj, block, iblock)
                 });
-                if (SKG.util.indexOf(that.state.srcFiles[block],iblock + '.bk')
-                    < 0) {
+                var fileNames = that.state.blockContent[SKG_BLOCK_SRC].map(
+                    function(file) { return file[SKG_FILE_NAME]; });
+                if (SKG.util.indexOf(fileNames, iblock + '.bk') < 0) {
                     if (!blockLinkAdds) blockLinkAdds = [];
                     blockLinkAdds.push({
                         text: iblock,
@@ -1255,8 +1294,8 @@ var MainPanel = React.createClass({
 
             var fileMoveToNewBlock =
                 this.onFileMoveToNewBlock.bind(this, proj, block);
-            var srcFiles = this.state.srcFiles[block];
-            var fileInd = this.state.selectedFile[block];
+            var files = this.state.blockContent[block][SKG_BLOCK_SRC];
+            var fileInd = this.state.blockContent[block][SKG_BLOCK_CURRENT_FILE];
             var doms = this.state.contentPaneDoms[block];
             var fileClick = this.onFileClick.bind(this, proj, block);
             var fileRename = this.onFileRename.bind(this, proj, block);
@@ -1279,8 +1318,8 @@ var MainPanel = React.createClass({
             var run = this.onRun.bind(this, proj, block);
             var save = this.onSave.bind(this, proj, block);
             return (
-                <WorksheetBlock key={block} srcFiles={srcFiles} name={block}
-                    srcTexts={this.state.srcContent} currentFileInd={fileInd}
+                <WorksheetBlock key={block} files={files} name={block}
+                    srcTexts={this.state.srcTexts} currentFileInd={fileInd}
                     contentDoms={doms} isDialogOpen={this.state.isDialogOpen}
                     onFileRename={fileRename} onFileAdd={fileAdd}
                     onFileDelete={fileDel} onFileMove={fileMove}
