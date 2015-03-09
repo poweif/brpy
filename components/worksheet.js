@@ -285,7 +285,6 @@ var EditorPane = React.createClass({
         var run = null;
         var save = null;
         var fileName = null;
-        console.log(this.props.files, " ", this.props.currentFileInd);
         if (this.props.currentFileInd >= 0 && this.props.srcTexts) {
             fileName =
                 this.props.files[this.props.currentFileInd][SKG_FILE_NAME];
@@ -380,7 +379,7 @@ var WorksheetBlock = React.createClass({
         var srcY = e.clientY;
         var srcHeight = this.height();
         this.separatorDrag = function(f) {
-            this.setHeight(srcHeight - (srcY - f.clientY) * (upper ? -1 : 1));
+            this.setHeight(srcHeight - (srcY - f.clientY) * (upper ? -1 : 1), false);
         }.bind(this);
         window.addEventListener("mousemove", this.separatorDrag);
         this.setState({editorHighlightable: false});
@@ -399,6 +398,8 @@ var WorksheetBlock = React.createClass({
             this.setState({editorHighlightable: true});
     },
     defaultHeight: function() {
+        if (this.props.fileHeight)
+            return this.props.fileHeight;
         return window.innerHeight - 100;
     },
     height: function() {
@@ -450,13 +451,11 @@ var WorksheetBlock = React.createClass({
             that.setState(
                 {editorHeight: clippedHeight - that.separatorHeight()}
             );
-
         }
-        var nh = Math.min(h, this.maxHeight());
-        this.getDOMNode().style.height = nh + "px";
+        this.getDOMNode().style.height = clippedHeight + "px";
     },
     onContentUpdate: function() {
-        this.setHeight(this.defaultHeight(), true);
+        this.setHeight(this.defaultHeight());
     },
     collapseTransitionEnd: function() {
         this.getDOMNode().removeEventListener(
@@ -469,19 +468,19 @@ var WorksheetBlock = React.createClass({
             if (this.state.collapsed) {
                this.setState({collapsed: false});
             }
-            this.setHeight(this.defaultHeight(), true);
+            this.setHeight(this.defaultHeight());
             return
         }
         var maxHeight = this.maxHeight();
         if (this.height() < maxHeight)
-            this.setHeight(maxHeight, true);
+            this.setHeight(maxHeight);
     },
     blockCollapse: function() {
         if (this.height() > this.defaultHeight()) {
-            this.setHeight(this.defaultHeight(), true);
+            this.setHeight(this.defaultHeight());
             return;
         }
-        this.setHeight(30, true, this.collapseTransitionEnd);
+        this.setHeight(30);
     },
     componentDidUpdate: function(prevProps, prevState) {
         if (this.props.srcTexts !== prevProps.srcTexts &&
@@ -996,13 +995,12 @@ var MainPanel = React.createClass({
             this.state.blockContent[newBlock][SKG_BLOCK_SRC]);
         newBlockFiles.push(fileData);
 
+        var blockContent = SKG.util.softCopy(this.state.blockContent);
         blockContent = this.replaceInBlock(
             newBlock,
             SKG.d(SKG_BLOCK_SRC, newBlockFiles)
                 .i(SKG_BLOCK_CURRENT_FILE, newBlockFiles.length - 1).o(),
             blockContent);
-
-        var blockContent = SKG.util.softCopy(this.state.blockContent);
         if (oldBlockFiles.length > 0) {
             blockContent = this.replaceInBlock(
                 oldBlock,
@@ -1078,7 +1076,7 @@ var MainPanel = React.createClass({
             }
             var blocks = SKG.util.deepCopy(that.state.blocks).map(
                 function(b) { return b == oldBlock ? newBlock : b; });
-            var blockContent = SKG.softCopy(that.state.blockContent);
+            var blockContent = SKG.util.softCopy(that.state.blockContent);
             var files = blockContent[oldBlock];
             delete blockContent[oldBlock];
             blockContent[newBlock] = files;
@@ -1301,7 +1299,6 @@ var MainPanel = React.createClass({
                     click: that.onFileMoveToBlock.bind(
                         that, proj, block, iblock)
                 });
-                console.log('iblock', iblock);
                 var fileNames =
                     that.state.blockContent[iblock][SKG_BLOCK_SRC].map(
                         function(file) { return file[SKG_FILE_NAME]; });

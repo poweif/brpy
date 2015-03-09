@@ -457,7 +457,10 @@ class MongoDBSkSolution(SkSolution):
 
     @gen.coroutine
     def _delete_file_impl(self, parent_id, file_name):
-        iid = yield self._find_file_id(parent_id, old_name)
+        iid = yield self._find_file_id(parent_id, file_name)
+        if iid == file_name:
+            yield self.__db.files.remove({'parent': file_name})
+            raise gen.Return(True)
         yield self.__db.files.remove(iid)
         raise gen.Return(True)
 
