@@ -51,7 +51,7 @@ var SKG = {
             var contentReq = new XMLHttpRequest();
             var readyStateChange = function() {
                 if (contentReq.readyState == 4 && contentReq.status == 200 &&
-                   onLoad) {
+                    onLoad) {
                     onLoad(contentReq.responseText);
                 } else if (contentReq.readyState == 4 && onFailed) {
                     onFailed(contentReq.status);
