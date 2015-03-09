@@ -45,8 +45,10 @@ var SourceEditor = React.createClass({
                 var keymap = {
                     "Shift-Enter": function() {
                         if (that.state.cdm) {
-                            if (that.state.unsaved)
-                                that.save(that.getContent(), true);
+                            var scrollY = that.state.cdm.getScrollInfo().top;
+                            console.log('scroll y: ' + scrollY);
+//                            if (that.state.unsaved)
+                            that.save(that.getContent(), scrollY, true);
                             that.props.onRun(that.getContent());
                         }
                     }
@@ -60,8 +62,14 @@ var SourceEditor = React.createClass({
                 cdm.getDoc().setValue(code);
                 cdm.scrollIntoView({line: cdm.getDoc().lastLine(), pos: 0});
                 cdm.scrollIntoView({line: 0, pos: 0});
-                that.save(that.getContent(), true);
+                that.save(that.getContent(), cdm.getScrollInfo().top, true);
+
+                console.log(cdm.getScrollInfo().top);
+
                 cdm.getDoc().on('change', this.onDocChange);
+//                console.log('scroll to : ', this.props.scrollY, " ", code.substring(0, 10));
+                cdm.scrollTo(null, this.props.scrollY);
+                console.log(cdm.getViewport());
             }
             if (this.props.resize)
                 this.props.resize();
@@ -74,6 +82,12 @@ var SourceEditor = React.createClass({
         if (this.props.height != prevProps.height && this.state.cdm) {
             this.state.cdm.setSize(650, Math.max(1, this.props.height));
             this.state.cdm.refresh();
+        }
+
+        if (this.props.scrollY != prevProps.scrollY && this.state.cdm) {
+            this.state.cdm.scrollTo(null, this.props.scrollY);
+        } else {
+            //console.log('bah: ', this.props.scrollY);
         }
 
         if (this.state.cdm != prevState.cdm && this.props.resize)
@@ -91,14 +105,20 @@ var SourceEditor = React.createClass({
 
         shortcut.add('Ctrl+S', function() {}, keyMapParams);
         shortcut.add('Ctrl+L', this.onScrollTo, keyMapParams);
+
+        if (this.props.scrollY && this.state.cdm) {
+            console.log(this.props.scrollY);
+            this.state.cdm.scrollTo({y: this.props.scrollY});
+        }
+        console.log('c: ', this.props.scrollY);
     },
     componentWillUnmount: function() {
         shortcut.remove('Ctrl+S');
         shortcut.remove('Ctrl+L');
     },
-    save: function(text, setState) {
-        if (this.props.onSave && this.state.cdm && this.state.unsaved) {
-            this.props.onSave(text);
+    save: function(text, scrollY, setState) {
+        if (this.props.onSave && this.state.unsaved) {
+            this.props.onSave(text, scrollY);
             if (setState)
                 this.setState({unsaved: false});
         }

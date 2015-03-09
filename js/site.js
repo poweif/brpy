@@ -211,6 +211,7 @@ var SKG = {
     SKG_BLOCK_COLLAPSED = "collapsed";
     SKG_FILE_NAME = "file";
     SKG_FILE_HEIGHT = "height";
+    SKG_FILE_SCROLL_Y = "scrollY";
     SKG_SOLUTION_PROJECTS = 'projects';
     SKG_SOLUTION_CURRENT_PROJECT = 'currentProject';
     SKG_DEEP_COPY = SKG.util.deepCopy;
