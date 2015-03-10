@@ -2,20 +2,20 @@ var SourceEditor = React.createClass({
     cdm: null,
     getInitialState: function() {
         return {
-            cdm: null,
-            unsaved: false
+            unsaved: false,
+            extended: false
         };
     },
     getContent: function() {
-        if (!this.state.cdm)
+        if (!this.cdm)
             return null;
-        return this.state.cdm.getValue();
+        return this.cdm.getValue();
     },
     onScrollTo: function() {
-        if (!this.state.cdm)
+        if (!this.cdm)
             return;
-        var cursorPos = (this.state.cdm.cursorCoords().top +
-                         this.state.cdm.cursorCoords().bottom) / 2;
+        var cursorPos = (this.cdm.cursorCoords().top +
+                         this.cdm.cursorCoords().bottom) / 2;
         var winHeight = window.innerHeight;
         window.scrollTo(0, cursorPos - (winHeight / 2));
     },
@@ -23,79 +23,77 @@ var SourceEditor = React.createClass({
         if (!this.state.unsaved)
             this.setState({unsaved: true});
     },
+    attachKeyMap: function(cdm) {
+        var that = this;
+        var keymap = {
+            "Shift-Enter": function() {
+                if (that.cdm) {
+                    that.save(that.getContent(), true);
+                    that.props.onRun(that.getContent());
+                }
+            }
+        };
+        cdm.addKeyMap(CodeMirror.normalizeKeyMap(keymap));
+    },
+    createCDM: function() {
+        console.log("create cdm");
+        var cdm = CodeMirror.fromTextArea(
+            this.refs.textarea.getDOMNode(),
+            {
+                lineNumbers: true,
+                lineWrapping: true,
+                mode: "python",
+                keyMap: "emacs",
+                autoCloseBrackets: true,
+                matchBrackets: true,
+                showCursorWhenSelecting: true,
+                theme: "monokai"
+            }
+        );
+        this.attachKeyMap(cdm);
+        return cdm;
+    },
     componentDidUpdate: function(prevProps, prevState) {
         var that = this;
-        if (this.props.src != prevProps.src || !this.state.cdm) {
-            var code = this.props.src;
-            var cdm = this.state.cdm;
-            if (!cdm) {
-                cdm = CodeMirror.fromTextArea(
-                    this.refs.textarea.getDOMNode(),
-                    {
-                        lineNumbers: true,
-                        lineWrapping: true,
-                        mode: "python",
-                        keyMap: "emacs",
-                        autoCloseBrackets: true,
-                        matchBrackets: true,
-                        showCursorWhenSelecting: true,
-                        theme: "monokai"
-                    }
-                );
-                var keymap = {
-                    "Shift-Enter": function() {
-                        if (that.state.cdm) {
-                            var scrollY = that.state.cdm.getScrollInfo().top;
-                            console.log('scroll y: ' + scrollY);
-//                            if (that.state.unsaved)
-                            that.save(that.getContent(), scrollY, true);
-                            that.props.onRun(that.getContent());
-                        }
-                    }
-                };
-                cdm.addKeyMap(CodeMirror.normalizeKeyMap(keymap));
-                this.setState({cdm: cdm});
-            }
+        var cdm = this.cdm ? this.cdm : this.createCDM();
 
+        var inputCodeDiffer = this.props.src != prevProps.src;
+        var contentCodeDiffer = this.props.src != this.getContent();
+        if (inputCodeDiffer || (this.cdm != cdm)) {
+//            if (contentCodeDiffer && this.props.onOffsetY) {
+//                this.props.onOffsetY(cdm.getScrollInfo().top);
+//            }
+
+            var code = this.props.src;
             if (code && code != this.getContent()) {
                 cdm.getDoc().off('change', this.onDocChange);
                 cdm.getDoc().setValue(code);
                 cdm.scrollIntoView({line: cdm.getDoc().lastLine(), pos: 0});
                 cdm.scrollIntoView({line: 0, pos: 0});
-                that.save(that.getContent(), cdm.getScrollInfo().top, true);
-
-                console.log(cdm.getScrollInfo().top);
-
+                that.save(that.getContent(), true);
                 cdm.getDoc().on('change', this.onDocChange);
-//                console.log('scroll to : ', this.props.scrollY, " ", code.substring(0, 10));
-                cdm.scrollTo(null, this.props.scrollY);
-                console.log(cdm.getViewport());
             }
-            if (this.props.resize)
-                this.props.resize();
             cdm.setSize(
-                650,
-                Math.max(1, this.props.height != null ? this.props.height : 0));
+                650, this.props.height ? Math.max(1, this.props.height) : 100);
             cdm.refresh();
         }
 
-        if (this.props.height != prevProps.height && this.state.cdm) {
-            this.state.cdm.setSize(650, Math.max(1, this.props.height));
-            this.state.cdm.refresh();
+
+        if (this.props.height != prevProps.height && cdm) {
+            cdm.setSize(650, Math.max(1, this.props.height));
+            cdm.refresh();
         }
 
-        if (this.props.scrollY != prevProps.scrollY && this.state.cdm) {
-            this.state.cdm.scrollTo(null, this.props.scrollY);
-        } else {
-            //console.log('bah: ', this.props.scrollY);
+        if (cdm != this.cdm) {
+            this.cdm = cdm;
         }
 
-        if (this.state.cdm != prevState.cdm && this.props.resize)
-            this.props.resize();
+        if (this.props.offsetY != prevProps.offsetY) {
+            console.log(this.props.offsetY);
+            cdm.scrollTo(null, this.props.offsetY);
+        }
     },
     componentDidMount: function() {
-        this.setState({cdm: null});
-
         var keyMapParams = {
             type: 'keydown',
             propagate: false,
@@ -104,31 +102,30 @@ var SourceEditor = React.createClass({
         var that = this;
 
         shortcut.add('Ctrl+S', function() {}, keyMapParams);
-        shortcut.add('Ctrl+L', this.onScrollTo, keyMapParams);
-
-        if (this.props.scrollY && this.state.cdm) {
-            console.log(this.props.scrollY);
-            this.state.cdm.scrollTo({y: this.props.scrollY});
-        }
-        console.log('c: ', this.props.scrollY);
     },
     componentWillUnmount: function() {
         shortcut.remove('Ctrl+S');
-        shortcut.remove('Ctrl+L');
     },
-    save: function(text, scrollY, setState) {
+    save: function(text, setState) {
         if (this.props.onSave && this.state.unsaved) {
-            this.props.onSave(text, scrollY);
+            console.log('save state');
+            this.props.onSave(text);
             if (setState)
                 this.setState({unsaved: false});
         }
+        if (this.props.onOffsetY && this.cdm) {
+            console.log("saving: " + this.cdm.getScrollInfo().top);
+            this.props.onOffsetY(this.cdm.getScrollInfo().top);
+        }
     },
     maxHeight: function() {
-        if (!this.state.cdm) {
+        if (!this.cdm) {
+            console.log("max height: ~100");
             return 100;
         }
-        var height = this.state.cdm.heightAtLine(
-            this.state.cdm.getDoc().lastLine(), "local") + 20;
+        var height = this.cdm.heightAtLine(
+            this.cdm.getDoc().lastLine(), "local") + 20;
+        console.log("max height: " + height);
         return height;
     },
     render: function() {

@@ -292,8 +292,8 @@ var EditorPane = React.createClass({
             run = function(code) {
                 that.props.onRun(fileName, code);
             };
-            save = function(code, scrollY) {
-                that.props.onSave(fileName, code, scrollY);
+            save = function(code) {
+                that.props.onSave(fileName, code);
             };
         }
         if (!fileName) {
@@ -301,6 +301,10 @@ var EditorPane = React.createClass({
                 <div></div>
             );
         }
+
+        var onFileOffsetY = function(offsetY) {
+            that.props.onFileOffsetY(fileName, offsetY);
+        };
 
         var editorPaneCn = "editor-pane";
         if (this.props.isDialogOpen)
@@ -314,7 +318,8 @@ var EditorPane = React.createClass({
         var sourceEditor = src ? function() {
             return (
                 <SourceEditor ref="editor" src={src}
-                    scrollY={that.props.fileScrollY}
+                    offsetY={that.props.fileOffsetY}
+                    onOffsetY={onFileOffsetY}
                     height={realHeight} resize={that.props.resize}
                     onRun={run} onSave={save} />
             );
@@ -368,8 +373,6 @@ var WorksheetBlock = React.createClass({
         }.bind(this);
         window.addEventListener("mousemove", this.verticalDrag);
         this.setState({editorHighlightable: false});
-/*
-*/
     },
     separatorMouseDown: function(upper, e) {
         if (this.separatorDrag) {
@@ -436,7 +439,7 @@ var WorksheetBlock = React.createClass({
         this.setHeight(height, true);
     },
     onContentUpdate: function() {
-        //this.setHeightAndUpdate(this.defaultHeight());
+//        this.setHeightAndUpdate(this.defaultHeight());
     },
     blockExpand: function() {
         if (this.height() < this.defaultHeight()) {
@@ -541,7 +544,7 @@ var WorksheetBlock = React.createClass({
                     </div>
                     <EditorPane ref="editorPane" resize={this.onContentUpdate}
                         height={editorHeight}
-                        fileScrollY={this.props.fileScrollY}
+                        fileOffsetY={this.props.fileOffsetY}
                         highlightable={this.state.editorHighlightable}
                         onSave={this.props.onSave}
                         onRun={this.props.onRun}
@@ -552,6 +555,7 @@ var WorksheetBlock = React.createClass({
                         onFileMove={this.props.onFileMove}
                         onFileMoveToBlocks={this.props.onFileMoveToBlocks}
                         onFileMoveToNewBlock={this.props.onFileMoveToNewBlock}
+                        onFileOffsetY={this.props.onFileOffsetY}
                         onBlockLinkAdds={this.props.onBlockLinkAdds}
                         isDialogOpen={this.props.isDialogOpen}
                         srcTexts={this.props.srcTexts}
@@ -684,9 +688,7 @@ var MainPanel = React.createClass({
             bc["name"] = block;
             return bc;
         });
-        console.log('updating', projData);
         if (!holdWrite) {
-            console.log('updating inner', projData);
             SKG.writeProject(projName, projData, outerOk, onFail);
         } else {
             outerOk();
@@ -1010,10 +1012,15 @@ var MainPanel = React.createClass({
     onFileSetHeight: function(proj, block, file, height, update) {
         var blockContent = this.replaceInFile(
             block, file, SKG.d(SKG_FILE_HEIGHT, height).o());
-        if (update) {
-            console.log('writing file height: ' + file + " " + height);
-        }
         this.updateProject(proj, null, blockContent, null, null, !update);
+    },
+    onFileOffsetY: function(proj, block, file, offsetY) {
+        if (offsetY !== null) {
+            console.log('offset y is: ' + offsetY);
+            var blockContent =
+                this.replaceInFile(block, file, SKG.d(SKG_FILE_OFFSET_Y, offsetY).o());
+            this.updateProject(proj, null, blockContent);
+        }
     },
     onBlockCollapse: function(proj, block, collapsed) {
         var blockContent = this.replaceInBlock(
@@ -1161,41 +1168,30 @@ var MainPanel = React.createClass({
         var progs = this.collectSrc(block);
         try {
             Sk.importMainWithMultipleFiles(false, progs);
-            var ndoms = Sk.progdomIds().map(function(elem) {
-                return elem.dom;
-            });
-            var contentPaneDoms = {};
-            for (var i in this.state.contentPaneDoms)
-                contentPaneDoms[i] = this.state.contentPaneDoms[i];
-            contentPaneDoms[block] = ndoms;
-            this.setState({contentPaneDoms: contentPaneDoms});
         } catch (e) {
             console.log("python[ERROR]> " + e.toString());
         }
+
+        var ndoms = Sk.progdomIds().map(function(elem) { return elem.dom; });
+        var contentPaneDoms = {};
+        for (var i in this.state.contentPaneDoms)
+            contentPaneDoms[i] = this.state.contentPaneDoms[i];
+        contentPaneDoms[block] = ndoms;
+        this.setState({contentPaneDoms: contentPaneDoms});
     },
     onRun: function(proj, block, file, code) {
         this.runProg(block);
     },
-    clientSideSave: function(proj, block, file, code, scrollY) {
-        console.log('here !');
+    clientSideSave: function(proj, block, file, code) {
         if (!file)
             return;
         this.state.srcTexts[file] = code;
-
-        if (scrollY !== null) {
-            console.log('scroll y is: ' + scrollY);
-            var blockContent =
-                this.replaceInFile(block, file, SKG.d(SKG_FILE_SCROLL_Y, scrollY).o());
-            console.log(blockContent);
-            this.updateProject(proj, null, blockContent);
-        }
     },
-    onSave: function(proj, block, file, code, scrollY) {
-        console.log('here ! ' + file + ' ' + scrollY);
+    onSave: function(proj, block, file, code) {
         if (!file)
             return;
 
-        this.clientSideSave(proj, block, file, code, scrollY);
+        this.clientSideSave(proj, block, file, code);
         SKG.writeSrcFile(
             proj, file, code,
             function() { console.log("Successfully wrote " + file); },
@@ -1215,7 +1211,6 @@ var MainPanel = React.createClass({
             blockContent[blockName] = SKG.util.deepCopy(block);
         });
 
-        console.log("blockcontent", blockContent);
         var runq = function(q, func, onDoneQ) {
             if (q.length < 1) {
                 if (onDoneQ) return onDoneQ();
@@ -1270,7 +1265,8 @@ var MainPanel = React.createClass({
                 .i(SKG_SOLUTION_CURRENT_PROJECT, solution.currentProject).o());
     },
     componentDidUpdate: function(prevProps, prevState) {
-        if (prevState.currentProject != this.state.currentProject && this.state.projects) {
+        if (prevState.currentProject != this.state.currentProject &&
+            this.state.projects) {
             this.refs.stdoutConsole.onClear();
             var project = this.state.projects[this.state.currentProject];
             SKG.readProject(
@@ -1324,14 +1320,12 @@ var MainPanel = React.createClass({
             var fileDel = this.onFileDelete.bind(this, proj, block);
             var fileMove = this.onFileMove.bind(this, proj, block);
             var fileSetHeight = this.onFileSetHeight.bind(this, proj, block, fileName);
+            var offsetYVal = files[fileInd][SKG_FILE_OFFSET_Y];
+            var fileOffsetY = this.onFileOffsetY.bind(this, proj, block);
             var blockRename = this.onBlockRename.bind(this, proj, block);
             var blockMoveUp = null;
             var blockMoveDown = null;
             var blockCollapse = this.onBlockCollapse.bind(this, proj, block);
-            var fileScrollY = files[fileInd][SKG_FILE_SCROLL_Y];
-
-            console.log(files[fileInd]);
-            console.log("y: ",fileScrollY);
 
             var blockHeight = files[fileInd][SKG_FILE_HEIGHT];
             if (index >= 1 && this.state.blocks.length > 1) {
@@ -1346,11 +1340,10 @@ var MainPanel = React.createClass({
 
             var run = this.onRun.bind(this, proj, block);
             var save = this.onSave.bind(this, proj, block);
-//            var onSetScrollY
             return (
                 <WorksheetBlock key={block} files={files} name={block}
                     height={blockHeight} collapsed={false}
-                    fileScrollY={fileScrollY}
+                    fileOffsetY={offsetYVal}
                     srcTexts={this.state.srcTexts} currentFileInd={fileInd}
                     contentDoms={doms} isDialogOpen={this.state.isDialogOpen}
                     onFileRename={fileRename} onFileAdd={fileAdd}
@@ -1360,6 +1353,7 @@ var MainPanel = React.createClass({
                     onFileMoveToBlocks={fileMoveToBlocks}
                     onFileMoveToNewBlock={fileMoveToNewBlock}
                     onFileSetHeight={fileSetHeight}
+                    onFileOffsetY={fileOffsetY}
                     onBlockCollapse={blockCollapse}
                     onBlockLinkAdds={blockLinkAdds}
                     onRun={run} onSave={save} />
