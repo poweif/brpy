@@ -36,7 +36,6 @@ var SourceEditor = React.createClass({
         cdm.addKeyMap(CodeMirror.normalizeKeyMap(keymap));
     },
     createCDM: function() {
-        console.log("create cdm");
         var cdm = CodeMirror.fromTextArea(
             this.refs.textarea.getDOMNode(),
             {
@@ -56,14 +55,15 @@ var SourceEditor = React.createClass({
     componentDidUpdate: function(prevProps, prevState) {
         var that = this;
         var cdm = this.cdm ? this.cdm : this.createCDM();
-
+        var isNewCdm = this.cdm != cdm;
         var inputCodeDiffer = this.props.src != prevProps.src;
-        var contentCodeDiffer = this.props.src != this.getContent();
-        if (inputCodeDiffer || (this.cdm != cdm)) {
-//            if (contentCodeDiffer && this.props.onOffsetY) {
-//                this.props.onOffsetY(cdm.getScrollInfo().top);
-//            }
 
+        if (inputCodeDiffer && prevProps.onOffsetY) {
+            prevProps.onOffsetY(cdm.getScrollInfo().top);
+        }
+
+        if (inputCodeDiffer || isNewCdm) {
+            var contentCodeDiffer = this.props.src != this.getContent();
             var code = this.props.src;
             if (code && code != this.getContent()) {
                 cdm.getDoc().off('change', this.onDocChange);
@@ -73,24 +73,21 @@ var SourceEditor = React.createClass({
                 that.save(that.getContent(), true);
                 cdm.getDoc().on('change', this.onDocChange);
             }
-            cdm.setSize(
-                650, this.props.height ? Math.max(1, this.props.height) : 100);
+            cdm.setSize(650, this.props.height);
             cdm.refresh();
         }
 
-
-        if (this.props.height != prevProps.height && cdm) {
+        if (this.props.height != prevProps.height || isNewCdm) {
             cdm.setSize(650, Math.max(1, this.props.height));
             cdm.refresh();
         }
 
-        if (cdm != this.cdm) {
-            this.cdm = cdm;
+        if (this.props.offsetY != prevProps.offsetY || isNewCdm) {
+            cdm.scrollTo(null, this.props.offsetY);
         }
 
-        if (this.props.offsetY != prevProps.offsetY) {
-            console.log(this.props.offsetY);
-            cdm.scrollTo(null, this.props.offsetY);
+        if (isNewCdm) {
+            this.cdm = cdm;
         }
     },
     componentDidMount: function() {
@@ -99,8 +96,6 @@ var SourceEditor = React.createClass({
             propagate: false,
             target: document
         };
-        var that = this;
-
         shortcut.add('Ctrl+S', function() {}, keyMapParams);
     },
     componentWillUnmount: function() {
@@ -108,24 +103,18 @@ var SourceEditor = React.createClass({
     },
     save: function(text, setState) {
         if (this.props.onSave && this.state.unsaved) {
-            console.log('save state');
             this.props.onSave(text);
             if (setState)
                 this.setState({unsaved: false});
         }
-        if (this.props.onOffsetY && this.cdm) {
-            console.log("saving: " + this.cdm.getScrollInfo().top);
-            this.props.onOffsetY(this.cdm.getScrollInfo().top);
-        }
     },
     maxHeight: function() {
         if (!this.cdm) {
-            console.log("max height: ~100");
-            return 100;
+            console.log('returning 200');
+            return 200;
         }
         var height = this.cdm.heightAtLine(
             this.cdm.getDoc().lastLine(), "local") + 20;
-        console.log("max height: " + height);
         return height;
     },
     render: function() {

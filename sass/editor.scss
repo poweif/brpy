@@ -2,13 +2,16 @@
 @import 'flexbox';
 
 .codearea {
+  @extend %flexbox;
   @extend .unselectable;
   @include flex(auto);
-  border: 1px solid rgba(0, 0, 0, 0);
+  border: 4px rgba(0, 0, 0, 0);
+  border-style: none none none solid;
   transition: border-color $std-duration;
 }
 
 .unsaved {
-  border: 1px solid rgba(255, 0, 0, .3);
+  border: 4px rgba(255, 0, 0, .2);
+  border-style: none none none solid;
   transition: border-color $std-duration;
 }

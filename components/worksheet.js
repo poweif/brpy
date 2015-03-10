@@ -119,7 +119,7 @@ var HeaderBar = React.createClass({
 
 var ContentPane = React.createClass({
     mountContentDoms: function() {
-        if (!this.props.contentDoms)
+        if (!this.props.contentDoms || this.props.contentDoms.length == 0)
             return;
 
         var wrapper = this.refs.main.getDOMNode();
@@ -129,9 +129,6 @@ var ContentPane = React.createClass({
         this.props.contentDoms.forEach(function(elem) {
             wrapper.appendChild(elem);
         });
-        if (this.props.resize) {
-            this.props.resize();
-        }
     },
     componentDidUpdate: function(prevProps, prevState) {
         if (prevProps.contentDoms !== this.props.contentDoms)
@@ -323,12 +320,15 @@ var EditorPane = React.createClass({
                     height={realHeight} resize={that.props.resize}
                     onRun={run} onSave={save} />
             );
-        }() : function() {
-            return (
-                <BlockLinkPane ref="editor" resize={that.props.resize}
+        }() : null;
+        if (SKG.util.getFileExt(fileName) == 'bk') {
+            sourceEditor = function() {
+                return (
+                        <BlockLinkPane ref="editor" resize={that.props.resize}
                     block={fileName} />
-            );
-        }();
+                );
+            }();
+        }
 
         return (
             <div className={editorPaneCn}>
@@ -386,6 +386,7 @@ var WorksheetBlock = React.createClass({
             this.setHeight(srcHeight - (srcY - f.clientY) * (upper ? -1 : 1));
         }.bind(this);
         window.addEventListener("mousemove", this.separatorDrag);
+        this.getDOMNode().classList.remove('worksheet-block-trans');
         this.setState({editorHighlightable: false});
     },
     mouseUp: function() {
@@ -398,6 +399,7 @@ var WorksheetBlock = React.createClass({
             window.removeEventListener("mousemove", this.separatorDrag);
             this.separatorDrag = null;
             this.setHeightAndUpdate(this.height());
+            this.getDOMNode().classList.add('worksheet-block-trans');
         }
         if (!this.state.editorHighlightable)
             this.setState({editorHighlightable: true});
@@ -439,7 +441,7 @@ var WorksheetBlock = React.createClass({
         this.setHeight(height, true);
     },
     onContentUpdate: function() {
-//        this.setHeightAndUpdate(this.defaultHeight());
+        this.setHeightAndUpdate(this.defaultHeight());
     },
     blockExpand: function() {
         if (this.height() < this.defaultHeight()) {
@@ -458,7 +460,6 @@ var WorksheetBlock = React.createClass({
             this.setHeightAndUpdate(this.defaultHeight());
             return;
         }
-//        this.setHeight(30);
         this.getDOMNode().style.height = null;
         this.setState({collapsed: true});
     },
@@ -474,6 +475,7 @@ var WorksheetBlock = React.createClass({
     componentDidMount: function() {
         window.addEventListener("mouseup", this.mouseUp);
         this.getDOMNode().style.height = this.props.height + "px";
+        this.getDOMNode().classList.add('worksheet-block-trans');
     },
     compnentWillUnmount: function() {
         window.removeEventListener("mouseup", this.mouseUp);
@@ -1016,7 +1018,6 @@ var MainPanel = React.createClass({
     },
     onFileOffsetY: function(proj, block, file, offsetY) {
         if (offsetY !== null) {
-            console.log('offset y is: ' + offsetY);
             var blockContent =
                 this.replaceInFile(block, file, SKG.d(SKG_FILE_OFFSET_Y, offsetY).o());
             this.updateProject(proj, null, blockContent);
@@ -1269,6 +1270,13 @@ var MainPanel = React.createClass({
             this.state.projects) {
             this.refs.stdoutConsole.onClear();
             var project = this.state.projects[this.state.currentProject];
+
+            this.setState({
+                blocks: [],
+                blockContent: {},
+                srcTexts: {}
+            });
+
             SKG.readProject(
                 project, this.onLoadProject.bind(this, project));
         }

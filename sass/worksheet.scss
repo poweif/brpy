@@ -216,6 +216,10 @@ $line-width: 2px;
   }
 }
 
+.worksheet-block-trans {
+  transition: height $std-duration;
+}
+
 .editor-pane {
   @extend %flexbox;
   @include flex-direction(column);
