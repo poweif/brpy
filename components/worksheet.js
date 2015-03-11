@@ -679,11 +679,18 @@ var MainPanel = React.createClass({
             blocks = this.state.blocks;
         if (!blockContent)
             blockContent = this.state.blockContent;
+
+        this.setState(
+            SKG.d("blocks", blocks)
+                .i("blockContent", blockContent).o());
+
+//        console.trace();
+
         var outerOk = function() {
-            that.setState(
-                SKG.d("blocks", blocks)
-                    .i("blockContent", blockContent).o());
-            if (onOk) onOk();
+            console.log('updated project', blockContent);
+            if (onOk) {
+                onOk();
+            }
         };
         var projData = blocks.map(function(block) {
             var bc = SKG.util.softCopy(blockContent[block]);
@@ -691,6 +698,7 @@ var MainPanel = React.createClass({
             return bc;
         });
         if (!holdWrite) {
+            console.log('writing project', projData);
             SKG.writeProject(projName, projData, outerOk, onFail);
         } else {
             outerOk();
@@ -715,6 +723,19 @@ var MainPanel = React.createClass({
             SKG_SOFT_COPY, content, SKG.d(SKG_BLOCK_SRC, nfiles).o());
         return SKG.util.copyAndReplace(
             SKG_SOFT_COPY, blockContent, SKG.d(block, newContent).o());
+    },
+    getInFile: function(block, fileName, field, blockContent) {
+        if (!blockContent)
+            blockContent = this.state.blockContent;
+        var content = blockContent[block];
+        var files = content[SKG_BLOCK_SRC];
+        var nfileVal = null;
+        files.forEach(function(file) {
+            if (file[SKG_FILE_NAME] == fileName) {
+                nfileVal = file[field];
+            }
+        });
+        return nfileVal;
     },
     replaceInBlock: function(block, data, blockContent) {
         if (!blockContent)
@@ -1012,15 +1033,24 @@ var MainPanel = React.createClass({
             function() { that.openPromptDialog("Failed to move block"); });
     },
     onFileSetHeight: function(proj, block, file, height, update) {
+        var oldHeight = this.getInFile(block, file, SKG_FILE_HEIGHT);
+        if (height == null || oldHeight == height)
+            return;
+
         var blockContent = this.replaceInFile(
             block, file, SKG.d(SKG_FILE_HEIGHT, height).o());
         this.updateProject(proj, null, blockContent, null, null, !update);
     },
     onFileOffsetY: function(proj, block, file, offsetY) {
-        if (offsetY !== null) {
+        var oldOffsetY = this.getInFile(block, file, SKG_FILE_OFFSET_Y);
+        if (offsetY !== null && oldOffsetY != offsetY) {
             var blockContent =
-                this.replaceInFile(block, file, SKG.d(SKG_FILE_OFFSET_Y, offsetY).o());
-            this.updateProject(proj, null, blockContent);
+                this.replaceInFile(
+                    block, file, SKG.d(SKG_FILE_OFFSET_Y, offsetY).o());
+            this.updateProject(
+                proj, null, blockContent,
+                function() { console.log('success'); },
+                function() { console.log('failsed'); });
         }
     },
     onBlockCollapse: function(proj, block, collapsed) {

@@ -1,4 +1,4 @@
-var SourceEditor = React.createClass({
+Var SourceEditor = React.createClass({
     cdm: null,
     getInitialState: function() {
         return {
@@ -28,7 +28,7 @@ var SourceEditor = React.createClass({
         var keymap = {
             "Shift-Enter": function() {
                 if (that.cdm) {
-                    that.save(that.getContent(), true);
+                    that.save(that.getContent(), that.props.onSave, true);
                     that.props.onRun(that.getContent());
                 }
             }
@@ -59,6 +59,7 @@ var SourceEditor = React.createClass({
         var inputCodeDiffer = this.props.src != prevProps.src;
 
         if (inputCodeDiffer && prevProps.onOffsetY) {
+            console.log(cdm.getScrollInfo().top);
             prevProps.onOffsetY(cdm.getScrollInfo().top);
         }
 
@@ -70,20 +71,24 @@ var SourceEditor = React.createClass({
                 cdm.getDoc().setValue(code);
                 cdm.scrollIntoView({line: cdm.getDoc().lastLine(), pos: 0});
                 cdm.scrollIntoView({line: 0, pos: 0});
-                that.save(that.getContent(), true);
                 cdm.getDoc().on('change', this.onDocChange);
             }
             cdm.setSize(650, this.props.height);
             cdm.refresh();
+            if (this.props.resize)
+                this.props.resize();
         }
 
-        if (this.props.height != prevProps.height || isNewCdm) {
+        if (this.props.height != prevProps.height
+            || (this.props.height && isNewCdm)) {
             cdm.setSize(650, Math.max(1, this.props.height));
             cdm.refresh();
         }
 
-        if (this.props.offsetY != prevProps.offsetY || isNewCdm) {
+        if (this.props.offsetY != prevProps.offsetY
+            || (this.props.offsetY && isNewCdm)) {
             cdm.scrollTo(null, this.props.offsetY);
+            cdm.refresh();
         }
 
         if (isNewCdm) {
@@ -101,9 +106,9 @@ var SourceEditor = React.createClass({
     componentWillUnmount: function() {
         shortcut.remove('Ctrl+S');
     },
-    save: function(text, setState) {
-        if (this.props.onSave && this.state.unsaved) {
-            this.props.onSave(text);
+    save: function(text, saveFunc, setState) {
+        if (saveFunc && this.state.unsaved) {
+            saveFunc(text);
             if (setState)
                 this.setState({unsaved: false});
         }
