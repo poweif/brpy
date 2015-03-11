@@ -1,4 +1,4 @@
-Var SourceEditor = React.createClass({
+var SourceEditor = React.createClass({
     cdm: null,
     getInitialState: function() {
         return {
@@ -28,7 +28,7 @@ Var SourceEditor = React.createClass({
         var keymap = {
             "Shift-Enter": function() {
                 if (that.cdm) {
-                    that.save(that.getContent(), that.props.onSave, true);
+                    that.save();
                     that.props.onRun(that.getContent());
                 }
             }
@@ -57,11 +57,6 @@ Var SourceEditor = React.createClass({
         var cdm = this.cdm ? this.cdm : this.createCDM();
         var isNewCdm = this.cdm != cdm;
         var inputCodeDiffer = this.props.src != prevProps.src;
-
-        if (inputCodeDiffer && prevProps.onOffsetY) {
-            console.log(cdm.getScrollInfo().top);
-            prevProps.onOffsetY(cdm.getScrollInfo().top);
-        }
 
         if (inputCodeDiffer || isNewCdm) {
             var contentCodeDiffer = this.props.src != this.getContent();
@@ -106,16 +101,19 @@ Var SourceEditor = React.createClass({
     componentWillUnmount: function() {
         shortcut.remove('Ctrl+S');
     },
-    save: function(text, saveFunc, setState) {
-        if (saveFunc && this.state.unsaved) {
-            saveFunc(text);
-            if (setState)
-                this.setState({unsaved: false});
+    save: function() {
+        if (this.state.unsaved) {
+            this.props.onSave(this.getContent());
+            this.setState({unsaved: false});
         }
+    },
+    changeOffsetY: function() {
+        if (this.props.onOffsetY && this.cdm) {
+            this.props.onOffsetY(this.cdm.getScrollInfo().top);
+        };
     },
     maxHeight: function() {
         if (!this.cdm) {
-            console.log('returning 200');
             return 200;
         }
         var height = this.cdm.heightAtLine(

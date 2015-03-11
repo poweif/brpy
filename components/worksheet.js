@@ -274,7 +274,16 @@ var EditorPane = React.createClass({
         var totalHeight = this.fileRowHeight();
         if (this.refs.editor)
             totalHeight += this.refs.editor.maxHeight();
+        if (this.refs.blockLink)
+            totalHeight += this.refs.blockLink.maxHeight();
         return totalHeight;
+    },
+    componentWillReceiveProps: function(nextProps) {
+        if (this.props.currentFileInd != nextProps.currentFileInd &&
+            this.refs.editor) {
+            this.refs.editor.save();
+            this.refs.editor.changeOffsetY();
+        }
     },
     render: function() {
         var that = this;
@@ -324,8 +333,8 @@ var EditorPane = React.createClass({
         if (SKG.util.getFileExt(fileName) == 'bk') {
             sourceEditor = function() {
                 return (
-                        <BlockLinkPane ref="editor" resize={that.props.resize}
-                    block={fileName} />
+                    <BlockLinkPane ref="blockLink" resize={that.props.resize}
+                        block={fileName} />
                 );
             }();
         }
@@ -680,14 +689,10 @@ var MainPanel = React.createClass({
         if (!blockContent)
             blockContent = this.state.blockContent;
 
-        this.setState(
-            SKG.d("blocks", blocks)
-                .i("blockContent", blockContent).o());
-
-//        console.trace();
-
         var outerOk = function() {
-            console.log('updated project', blockContent);
+            that.setState(
+                SKG.d("blocks", blocks)
+                    .i("blockContent", blockContent).o());
             if (onOk) {
                 onOk();
             }
@@ -698,7 +703,6 @@ var MainPanel = React.createClass({
             return bc;
         });
         if (!holdWrite) {
-            console.log('writing project', projData);
             SKG.writeProject(projName, projData, outerOk, onFail);
         } else {
             outerOk();
@@ -1047,10 +1051,7 @@ var MainPanel = React.createClass({
             var blockContent =
                 this.replaceInFile(
                     block, file, SKG.d(SKG_FILE_OFFSET_Y, offsetY).o());
-            this.updateProject(
-                proj, null, blockContent,
-                function() { console.log('success'); },
-                function() { console.log('failsed'); });
+            this.updateProject(proj, null, blockContent);
         }
     },
     onBlockCollapse: function(proj, block, collapsed) {
