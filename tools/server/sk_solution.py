@@ -24,6 +24,8 @@ class SkSolution():
     _PROJ_JSON = 'project.json'
     _MAIN_PY = 'main.py'
     _SKULPTGL_APP_DIR = 'skulptgl_app_data'
+    _APP_KEY = 'skulptgl_app'
+    _ROOT_KEY = 'root'
     _TEXT_MIME = "text/plain"
 
     _PROJ_BLOCK_NAME = "name"
@@ -46,11 +48,13 @@ class SkSolution():
         return value
 
     def _root(self):
-        if 'root' in self._files:
-            return self._files['root']
+        if self._ROOT_KEY in self._files:
+            return self._files[self._ROOT_KEY]
         return self._root_impl()
 
     def _app(self):
+        if self._APP_KEY in self._files:
+            return self._files[self._APP_KEY]
         return self._app_impl()
 
     @gen.coroutine
@@ -210,7 +214,7 @@ class SkSolution():
     @abstractmethod
     def _read_text_file_impl(self, file_id): pass
 
-"""
+
 def _build_drive_service(credentials):
     return build(
         serviceName = 'drive', version='v2',
@@ -221,12 +225,15 @@ class GdriveSkSolution(SkSolution):
         super(GdriveSkSolution, self).__init__()
         self.__cred = cred
         self.__drive = _build_drive_service(cred)
-        self.read_project(self._DEFAULT_PROJ, create_if_not_found=True)
 
     def _root_impl(self):
-        self._files['root'] =\
+        self._files[self._ROOT_KEY] =\
             self.__drive.about().get().execute()['rootFolderId']
-        return self._files['root']
+        return self._files[self._ROOT_KEY]
+
+    def _app_impl(self):
+        iid = self._find_file_id_impl(self._root(), self._SKULPTGL_APP_DIR)
+        return self._addkey(self._APP_KEY, iid)
 
     def _find_file_id_impl(self, folder_id, title):
         key = self._key(folder_id, title)
@@ -236,10 +243,8 @@ class GdriveSkSolution(SkSolution):
             **param).execute()
         items = itemsp['items']
         if len(items) < 1:
-            self._files[key] = None
-            return None
-        self._files[key] = items[0]['id']
-        return self._files[key]
+            return self._add_key(key, None)
+        return self._add_key(key, items[0]['id'])
 
     def _create_folder_impl(self, parent_id, folder_name):
         res = self.__drive.files().insert(
@@ -265,8 +270,7 @@ class GdriveSkSolution(SkSolution):
                     'parents': [{"id": parent_id}],
                     'mimeType': mime}).execute()
             output.close()
-            self._files[self._key(parent_id, file_name)] = dfile['id']
-            return dfile['id']
+            return self._add_key(self._key(parent_id, file_name), dfile['id'])
 
         self.__drive.files().update(
             fileId=file_id,
@@ -304,8 +308,6 @@ class GdriveSkSolution(SkSolution):
 
         print 'An error occurred: %s' % resp
         return None
-"""
-
 
 class DevSkSolution(SkSolution):
     """Encapsulation of a Skulptgl Solution for developers"""
@@ -324,8 +326,8 @@ class DevSkSolution(SkSolution):
         return self._files[key]
 
     def _root_impl(self):
-        self._files['root'] = './' #self.__root_dir
-        return self._files['root']
+        self._files[self._ROOT_KEY] = './'
+        return self._files[self._ROOT_KEY]
 
     def _app_impl(self):
         return self.__root_dir
@@ -406,7 +408,7 @@ class MongoDBSkSolution(SkSolution):
         future.add_done_callback(lambda f: True)
 
     def _root_impl(self):
-        return self._add_key('root', 'root')
+        return self._add_key(self._ROOT_KEY, 'root')
 
     def _app_impl(self):
         return self._SKULPTGL_APP_DIR
