@@ -34,7 +34,8 @@ class SkSolution():
 
     _DEFAULT_BLOCK ="default-block"
 
-    def __init__(self):
+    def __init__(self, read_only=False):
+        self._read_only = read_only
         self._files = {}
 
     def _key(self, parent_id, file_name):
@@ -59,6 +60,8 @@ class SkSolution():
 
     @gen.coroutine
     def _create_folder(self, parent_id, folder_name):
+        if self._read_only: raise gen.Return({})
+
         key = self._key(parent_id, folder_name)
         res = yield self._create_folder_impl(parent_id, folder_name)
         self._add_key(key, res)
@@ -75,6 +78,8 @@ class SkSolution():
 
     @gen.coroutine
     def create_project(self, proj_name):
+        if self._read_only: raise gen.Return({})
+
         folder_id = yield self._create_folder(self._app(), proj_name)
         proj_id = yield self._update_text_file_impl(
             folder_id, self._PROJ_JSON, EXAMPLE_PROJ_JSON)
@@ -94,7 +99,7 @@ class SkSolution():
     def read_solution(self, create=True):
         solution_file_id = yield self._find_file_id(
             self._app(), self._SOLUTION_JSON)
-        if solution_file_id is None and create:
+        if solution_file_id is None and create and not self._read_only:
             solution_json = EXAMPLE_SOLUTION_JSON
             yield self._update_text_file_impl(
                 self._app(), self._SOLUTION_JSON, solution_json)
@@ -109,6 +114,8 @@ class SkSolution():
 
     @gen.coroutine
     def update_solution(self, new_sol):
+        if self._read_only: raise gen.Return({})
+
         solution = yield self.read_solution()
         if solution is None:
             raise gen.Return(None)
@@ -122,11 +129,15 @@ class SkSolution():
 
     @gen.coroutine
     def rename_project(self, old_name, new_name):
+        if self._read_only: raise gen.Return({})
+
         res = yield self._rename_file_impl(self._app(), old_name, new_name)
         raise gen.Return(res)
 
     @gen.coroutine
     def delete_project(self, proj):
+        if self._read_only: raise gen.Return({})
+
         res = yield self._delete_file_impl(self._app(), proj)
         raise gen.Return(res)
 
@@ -145,6 +156,8 @@ class SkSolution():
 
     @gen.coroutine
     def write_file(self, proj, fname, text):
+        if self._read_only: raise gen.Return({})
+
         proj_id = yield self._find_project_id(proj)
         if proj_id is None:
             raise gen.Return(None)
@@ -153,6 +166,8 @@ class SkSolution():
 
     @gen.coroutine
     def rename_file(self, proj, old_name, new_name):
+        if self._read_only: raise gen.Return({})
+
         proj_id = yield self._find_project_id(proj)
         if proj_id is None:
             raise gen.Return(None)
@@ -161,6 +176,8 @@ class SkSolution():
 
     @gen.coroutine
     def delete_file(self, proj, fname):
+        if self._read_only: raise gen.Return({})
+
         proj_id = yield self._find_project_id(proj)
         if proj_id is None:
             raise gen.Return(False)
@@ -169,6 +186,8 @@ class SkSolution():
 
     @gen.coroutine
     def update_project(self, proj, proj_data):
+        if self._read_only: raise gen.Return({})
+
         proj_id = yield self._find_project_id(proj)
         if proj_id is None:
             raise gen.Return(None)
@@ -313,9 +332,8 @@ class DevSkSolution(SkSolution):
     """Encapsulation of a Skulptgl Solution for developers"""
 
     def __init__(self, root_dir, read_only=False):
-        super(DevSkSolution, self).__init__()
+        super(DevSkSolution, self).__init__(read_only)
         self.__root_dir = root_dir
-        self.__read_only = read_only
         self.__file_cache = {}
         # The root directory must exist
         assert os.access(root_dir, os.F_OK)
@@ -340,8 +358,6 @@ class DevSkSolution(SkSolution):
 
     @gen.coroutine
     def _create_folder_impl(self, parent_path, folder_name):
-        if self.__read_only: raise gen.Return({})
-
         path = parent_path + "/" + folder_name
         if not os.access(path, os.F_OK):
             os.mkdir(path)

@@ -9,8 +9,13 @@ import simplejson as json
 
 from apiclient.discovery import build
 
-from sk_solution import DevSkSolution, MongoDBSkSolution
+from sk_solution import DevSkSolution, MongoDBSkSolution, GdriveSkSolution
 from easy_oauth2 import EasyOAuth2
+
+import tornado.ioloop
+import tornado.web
+from tornado import gen
+import motor
 
 def get_user_info(credentials):
     user_info_service = build(
@@ -41,40 +46,84 @@ SCOPES = [
 PORT = 8124
 HOME_URI = 'http://localhost:' + str(PORT)
 LOGIN = r'/login'
-PUB = r'/pub'
 USER = r'/user'
 POST_LOGIN_URI = HOME_URI + '/login'
 SHOW_URI = HOME_URI + '/show'
-SESSION_KEY = 'skulpt-gl-key'
-g_session = {}
-
+BRPY_SESSION_KEY = 'brpy-session-key'
+ERR_PARAM = -3498314
 INDEX_HTML = open(CURRENT_DIR + '/index.html').read()
-g_solution = None
 
-import tornado.ioloop
-import tornado.web
-from tornado import gen
-import motor
+g_session = {}
+g_solution = None
+g_motor_client = motor.MotorClient()
+
 
 if len(sys.argv) >= 2 and os.access(sys.argv[1], os.F_OK):
     g_solution = DevSkSolution(sys.argv[1])
 else:
-    motor.MotorClient().drop_database('test')
-    g_solution = MongoDBSkSolution(
-        user='poweif@gmail.com', db=motor.MotorClient().test)
+    g_motor_client.drop_database('test')
+    g_solution = MongoDBSkSolution(user='brpy_public', db=g_motor_client.test)
 
-#g_auth = EasyOAuth2(CLIENTSECRETS_LOCATION, SCOPES)
+g_auth = EasyOAuth2(CLIENTSECRETS_LOCATION, SCOPES)
 
-ERR_PARAM = -3498314
+class LoginHandler(tornado.web.RequestHandler):
+    @gen.coroutine
+    def get(self):
+        if self.get_secure_cookie(BRPY_SESSION_KEY):
+            self.redirect('/')
+            return
 
-class RunHandler(tornado.web.RequestHandler):
+        error_val = self.argshort('error')
+        code_val = self.argshort('code')
+        state_val = self.argshort('state')
+
+        if error_val is not None or code_val is None or state_val is None:
+            new_url = g_auth.get_authorization_url('/login', get_random_state())
+            return self.redirect(new_url)
+
+        cred = g_auth.get_credentials(
+            param['code'], state=None, redirect_uri=POST_LOGIN_URI)
+        user_info = get_user_info(cred)
+        email = user_info.get('email')
+        solution = MongoDBSkSolution(user=email, db=g_motor_client.test)
+        user_key = state_val
+        g_session[user_key] = {
+            'user_info': user_info,
+            'solution': solution
+        }
+        self.set_secure_cookie(BRPY_SESSION_KEY, user_key)
+
+class UserInfoHandler(tornado.web.RequestHandler):
     def argshort(self, a, default=None):
         return self.get_argument(a, default=default)
 
     @gen.coroutine
     def get(self):
+        user_key = self.get_secure_cookie(BRPY_SESSION_KEY)
+        if user_key is not None and user_key in g_session:
+            info = g_session[user_key]['user_info']
+            self.write(json.dumps(info))
+            self.finish()
+            return
+        self.send_error()
+        self.finish()
+
+class RunHandler(tornado.web.RequestHandler):
+    def argshort(self, a, default=None):
+        return self.get_argument(a, default=default)
+
+    def _get_solution():
+        solution = g_solution
+        user_key = self.get_secure_cookie(BRPY_SESSION_KEY)
+        if self.get_secure_cookie(BRPY_SESSION_KEY):
+            solution = g_session[user_key]['solution']
+        return solution
+
+    @gen.coroutine
+    def get(self):
+        solution = self._get_solution()
         if self.argshort('solution', default=ERR_PARAM) != ERR_PARAM:
-            res = yield g_solution.read_solution()
+            res = yield solution.read_solution()
             sol = json.dumps(res)
             if sol is not None:
                 self.write(sol)
@@ -83,7 +132,7 @@ class RunHandler(tornado.web.RequestHandler):
 
         proj = self.argshort('read-proj')
         if proj is not None:
-            res = yield g_solution.read_project(proj)
+            res = yield solution.read_project(proj)
             if (res is not None):
                 self.write(json.dumps(res))
                 self.finish()
@@ -92,7 +141,7 @@ class RunHandler(tornado.web.RequestHandler):
         fname = self.argshort('read')
         proj = self.argshort('proj')
         if fname is not None and proj is not None:
-            res = yield g_solution.read_file(proj, fname)
+            res = yield solution.read_file(proj, fname)
             if res is not None:
                 self.write(res)
                 self.finish()
@@ -102,17 +151,17 @@ class RunHandler(tornado.web.RequestHandler):
 
     @gen.coroutine
     def post(self):
-        self.set_status(200)
+        solution = self._get_solution()
         if self.argshort('update-solution', default=ERR_PARAM) != ERR_PARAM:
             body = json.loads(self.request.body)
-            if (yield g_solution.update_solution(body)) is not None:
+            if (yield solution.update_solution(body)) is not None:
                 self.finish()
                 return
 
         val = self.argshort('rename-proj')
         if val is not None:
             old_name, new_name = tuple(val.split(','))
-            res = yield g_solution.rename_project(
+            res = yield solution.rename_project(
                 old_name=old_name, new_name=new_name)
             if res is not None:
                 self.finish()
@@ -120,7 +169,7 @@ class RunHandler(tornado.web.RequestHandler):
 
         proj = self.argshort('new-proj')
         if proj is not None:
-            res = yield g_solution.create_project(proj_name=proj)
+            res = yield solution.create_project(proj_name=proj)
             if res is not None:
                 self.finish()
                 return
@@ -128,13 +177,13 @@ class RunHandler(tornado.web.RequestHandler):
         proj = self.argshort('write-proj')
         if proj is not None:
             body = json.loads(self.request.body)
-            if (yield g_solution.update_project(proj, body)) is not None:
+            if (yield solution.update_project(proj, body)) is not None:
                 self.finish()
                 return
 
         proj = self.argshort('delete-proj')
         if proj is not None and\
-           (yield g_solution.delete_project(proj)) is not None:
+           (yield solution.delete_project(proj)) is not None:
             self.finish()
             return
 
@@ -142,21 +191,21 @@ class RunHandler(tornado.web.RequestHandler):
         proj = self.argshort('proj')
         if val is not None and proj is not None:
             (old_name, new_name) = tuple(val.split(','))
-            if (yield g_solution.rename_file(proj, old_name, new_name))\
+            if (yield solution.rename_file(proj, old_name, new_name))\
                is not None:
                 self.finish()
                 return
 
         fname = self.argshort('delete')
         if fname is not None and proj is not None and\
-           (yield g_solution.delete_file(proj, fname)) is not None:
+           (yield solution.delete_file(proj, fname)) is not None:
             self.finish()
             return
 
         fname = self.argshort('write')
         if fname is not None and proj is not None:
             body = self.request.body
-            if (yield g_solution.write_file(proj, fname, body)) is not None:
+            if (yield solution.write_file(proj, fname, body)) is not None:
                 self.finish()
                 return
 
@@ -166,6 +215,7 @@ class RunHandler(tornado.web.RequestHandler):
 if __name__ == "__main__":
     app = tornado.web.Application([
         (r"/run", RunHandler),
+        (r"/user", UserInfoHandler),        
         (r"/($)", tornado.web.StaticFileHandler, {'path': './index.html'}),
         (r"/(.*)", tornado.web.StaticFileHandler, {'path': './'})
     ])

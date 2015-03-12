@@ -455,7 +455,7 @@ var WorksheetBlock = React.createClass({
         this.setHeightAndUpdate(this.props.height);
     },
     blockExpand: function() {
-        if (this.props.onBlockCollapse) {
+        if (this.props.onBlockCollapse && this.props.collapsed) {
             this.props.onBlockCollapse(false);
             return;
         }
@@ -494,7 +494,8 @@ var WorksheetBlock = React.createClass({
 
         this.getDOMNode().style.height = this.props.height + "px";
         this.getDOMNode().classList.add('worksheet-block-trans');
-        this.refs.editorPane.forceUpdate();
+        if (this.refs.editorPane)
+            this.refs.editorPane.forceUpdate();
         this.setState(
             {editorHeight: this.props.height - this.separatorHeight()});
     },
