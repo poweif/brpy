@@ -91,17 +91,20 @@ var HeaderBar = React.createClass({
 
         var that = this;
         var current = this.props.projects[this.props.currentProject];
-        var buttons = [{text: "Switch to project", hr: true}];
-        buttons = buttons.concat(
-            this.props.projects.map(function(proj) {
-                if (proj == current)
-                    return null;
-                var projectClick = function() {
-                    return that.props.onProjectClick(proj);
-                };
-                return {text: proj, click: projectClick};
-            })
-        );
+        var buttons = [];
+        if (this.props.projects && this.props.projects.length > 1) {
+            buttons = [{text: "Switch to project", hr: true}];
+            buttons = buttons.concat(
+                this.props.projects.map(function(proj) {
+                    if (proj == current)
+                        return null;
+                    var projectClick = function() {
+                        return that.props.onProjectClick(proj);
+                    };
+                    return {text: proj, click: projectClick};
+                })
+            );
+        }
         var rename = function() { return that.props.onProjectRename(current); };
         var del = function() { return that.props.onProjectDelete(current); };
         buttons = buttons.concat([
@@ -363,7 +366,8 @@ var WorksheetBlock = React.createClass({
     separatorDrag: null,
     getInitialState: function() {
         return {
-            editorHighlightable: true
+            editorHighlightable: true,
+            editorHeight: 0
         };
     },
     verticalDivideMouseDown: function(e) {
@@ -390,7 +394,7 @@ var WorksheetBlock = React.createClass({
         }
 
         var srcY = e.clientY;
-        var srcHeight = this.height();
+        var srcHeight = this.props.height;
         this.separatorDrag = function(f) {
             this.setHeight(srcHeight - (srcY - f.clientY) * (upper ? -1 : 1));
         }.bind(this);
@@ -407,15 +411,13 @@ var WorksheetBlock = React.createClass({
         if (this.separatorDrag) {
             window.removeEventListener("mousemove", this.separatorDrag);
             this.separatorDrag = null;
-            this.setHeightAndUpdate(this.height());
+            this.setHeightAndUpdate(this.props.height + 1);
             this.getDOMNode().classList.add('worksheet-block-trans');
         }
         if (!this.state.editorHighlightable)
             this.setState({editorHighlightable: true});
     },
     defaultHeight: function() {
-        if (this.props.height)
-            return this.props.height;
         return window.innerHeight - 100;
     },
     height: function() {
@@ -450,41 +452,51 @@ var WorksheetBlock = React.createClass({
         this.setHeight(height, true);
     },
     onContentUpdate: function() {
-        this.setHeightAndUpdate(this.defaultHeight());
+        this.setHeightAndUpdate(this.props.height);
     },
     blockExpand: function() {
-        if (this.height() < this.defaultHeight()) {
-            if (this.state.collapsed) {
-               this.setState({collapsed: false});
-            }
+        if (this.props.onBlockCollapse) {
+            this.props.onBlockCollapse(false);
+            return;
+        }
+
+        if (this.props.height < this.defaultHeight()) {
             this.setHeightAndUpdate(this.defaultHeight());
             return
         }
         var maxHeight = this.maxHeight();
-        if (this.height() < maxHeight)
+        if (this.props.height < maxHeight)
             this.setHeightAndUpdate(maxHeight);
     },
     blockCollapse: function() {
-        if (this.height() > this.defaultHeight()) {
+        if (this.props.height > this.defaultHeight()) {
             this.setHeightAndUpdate(this.defaultHeight());
             return;
         }
         this.getDOMNode().style.height = null;
-        this.setState({collapsed: true});
+        if (this.props.onBlockCollapse)
+            this.props.onBlockCollapse(true);
     },
     componentDidUpdate: function(prevProps, prevState) {
-        if (this.props.collapsed != prevProps.collapsed) {
+        if (this.props.collapsed != prevProps.collapsed &&
+            this.refs.editorPane) {
             this.refs.editorPane.forceUpdate();
         }
 
         if (this.props.height != prevProps.height) {
             this.getDOMNode().style.height = this.props.height + "px";
+            this.setState(
+                {editorHeight: this.props.height - this.separatorHeight()});
         }
     },
     componentDidMount: function() {
         window.addEventListener("mouseup", this.mouseUp);
+
         this.getDOMNode().style.height = this.props.height + "px";
         this.getDOMNode().classList.add('worksheet-block-trans');
+        this.refs.editorPane.forceUpdate();
+        this.setState(
+            {editorHeight: this.props.height - this.separatorHeight()});
     },
     compnentWillUnmount: function() {
         window.removeEventListener("mouseup", this.mouseUp);
@@ -508,7 +520,7 @@ var WorksheetBlock = React.createClass({
             );
         }.bind(this)();
 
-        if (this.state.collapsed) {
+        if (this.props.collapsed) {
             return (
                 <div className="worksheet-block">
                     <div className="separator">
@@ -541,7 +553,6 @@ var WorksheetBlock = React.createClass({
 
         var sepUpper = makeSeparator(true);
         var sepLower = makeSeparator(false);
-        var editorHeight = this.props.height - this.separatorHeight();
 
         return (
             <div className="worksheet-block">
@@ -554,7 +565,7 @@ var WorksheetBlock = React.createClass({
                         <div className="divide-line"></div>
                     </div>
                     <EditorPane ref="editorPane" resize={this.onContentUpdate}
-                        height={editorHeight}
+                        height={this.state.editorHeight}
                         fileOffsetY={this.props.fileOffsetY}
                         highlightable={this.state.editorHighlightable}
                         onSave={this.props.onSave}
@@ -748,6 +759,12 @@ var MainPanel = React.createClass({
         var newContent = SKG.util.copyAndReplace(SKG_SOFT_COPY, content, data);
         return SKG.util.copyAndReplace(
             SKG_SOFT_COPY, blockContent, SKG.d(block, newContent).o());
+    },
+    getInBlock: function(block, field, blockContent) {
+        if (!blockContent)
+            blockContent = this.state.blockContent;
+        var content = blockContent[block];
+        return content[field];
     },
     onFileRename: function(proj, block, file) {
         var oldFile = file;
@@ -1055,10 +1072,12 @@ var MainPanel = React.createClass({
         }
     },
     onBlockCollapse: function(proj, block, collapsed) {
-        var blockContent = this.replaceInBlock(
-            block, SKG.d(SKG_BLOCK_COLLAPSED, collapsed).o());
-
-        this.updateProject(proj, null, blockContent, null, null);
+        var oldCollapsed = this.getInBlock(block, SKG_BLOCK_COLLAPSED);
+        if (oldCollapsed != collapsed) {
+            var blockContent = this.replaceInBlock(
+                block, SKG.d(SKG_BLOCK_COLLAPSED, collapsed).o());
+            this.updateProject(proj, null, blockContent, null, null);
+        }
     },
     checkCircularBlockLinks: function(block, blockContent, checked) {
         if (checked[block])
@@ -1350,7 +1369,8 @@ var MainPanel = React.createClass({
             var fileMoveToNewBlock =
                 this.onFileMoveToNewBlock.bind(this, proj, block);
             var files = this.state.blockContent[block][SKG_BLOCK_SRC];
-            var fileInd = this.state.blockContent[block][SKG_BLOCK_CURRENT_FILE];
+            var fileInd =
+                this.state.blockContent[block][SKG_BLOCK_CURRENT_FILE];
             var fileName = files[fileInd][SKG_FILE_NAME];
             var doms = this.state.contentPaneDoms[block];
             var fileClick = this.onFileClick.bind(this, proj, block);
@@ -1358,13 +1378,16 @@ var MainPanel = React.createClass({
             var fileAdd = this.onFileAdd.bind(this, proj, block);
             var fileDel = this.onFileDelete.bind(this, proj, block);
             var fileMove = this.onFileMove.bind(this, proj, block);
-            var fileSetHeight = this.onFileSetHeight.bind(this, proj, block, fileName);
+            var fileSetHeight =
+                this.onFileSetHeight.bind(this, proj, block, fileName);
             var offsetYVal = files[fileInd][SKG_FILE_OFFSET_Y];
             var fileOffsetY = this.onFileOffsetY.bind(this, proj, block);
             var blockRename = this.onBlockRename.bind(this, proj, block);
             var blockMoveUp = null;
             var blockMoveDown = null;
             var blockCollapse = this.onBlockCollapse.bind(this, proj, block);
+            var blockCollapsedVal =
+                this.state.blockContent[block][SKG_BLOCK_COLLAPSED];
 
             var blockHeight = files[fileInd][SKG_FILE_HEIGHT];
             if (index >= 1 && this.state.blocks.length > 1) {
@@ -1381,7 +1404,7 @@ var MainPanel = React.createClass({
             var save = this.onSave.bind(this, proj, block);
             return (
                 <WorksheetBlock key={block} files={files} name={block}
-                    height={blockHeight} collapsed={false}
+                height={blockHeight} collapsed={blockCollapsedVal}
                     fileOffsetY={offsetYVal}
                     srcTexts={this.state.srcTexts} currentFileInd={fileInd}
                     contentDoms={doms} isDialogOpen={this.state.isDialogOpen}
