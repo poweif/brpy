@@ -267,4 +267,9 @@ $line-width: 2px;
   @include flex-direction(column);
   @include align-items(center);
   padding: 5px 10px;
+
+  .login-button {
+    margin: 0 0 5px 0;
+    @include align-self(flex-end);
+  }
 }

@@ -140,10 +140,14 @@ var SKG = {
             return (new SKG_DICT()).i(key, val);
         return new SKG_DICT();
     },
+    readUserInfo: function(onLoad, onFailed) {
+        this.util.xhrGet('/user', onLoad, onFailed);
+    },
     readSolution: function(onLoad, onFailed) {
         this.util.xhrGet('/run?solution', onLoad, onFailed);
     },
     updateSolution: function(solData, onLoad, onFailed) {
+        console.log('update solution -----------------');
         var solDataStr = JSON.stringify(solData)
         this.util.xhrPost(
             '/run?update-solution', solDataStr, onLoad, onFailed);

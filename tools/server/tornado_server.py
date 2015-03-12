@@ -67,9 +67,15 @@ else:
 g_auth = EasyOAuth2(CLIENTSECRETS_LOCATION, SCOPES)
 
 class LoginHandler(tornado.web.RequestHandler):
+    def argshort(self, a, default=None):
+        return self.get_argument(a, default=default)
+
+    def get_current_user(self):
+        return self.get_cookie(BRPY_SESSION_KEY)
+
     @gen.coroutine
     def get(self):
-        if self.get_secure_cookie(BRPY_SESSION_KEY):
+        if self.current_user is not None:
             self.redirect('/')
             return
 
@@ -78,46 +84,67 @@ class LoginHandler(tornado.web.RequestHandler):
         state_val = self.argshort('state')
 
         if error_val is not None or code_val is None or state_val is None:
-            new_url = g_auth.get_authorization_url('/login', get_random_state())
+            new_url = g_auth.get_authorization_url(POST_LOGIN_URI, get_random_state())
             return self.redirect(new_url)
 
-        cred = g_auth.get_credentials(
-            param['code'], state=None, redirect_uri=POST_LOGIN_URI)
+        cred = g_auth.get_credentials(code_val, state=None, redirect_uri=POST_LOGIN_URI)
         user_info = get_user_info(cred)
         email = user_info.get('email')
         solution = MongoDBSkSolution(user=email, db=g_motor_client.test)
         user_key = state_val
         g_session[user_key] = {
-            'user_info': user_info,
+            'info': user_info,
             'solution': solution
         }
-        self.set_secure_cookie(BRPY_SESSION_KEY, user_key)
+        self.set_cookie(BRPY_SESSION_KEY, user_key)
+        return self.redirect('/')
+
+class LogoutHandler(tornado.web.RequestHandler):
+    def get_current_user(self):
+        return self.get_cookie(BRPY_SESSION_KEY)
+
+    @gen.coroutine
+    def get(self):
+        if self.current_user is not None:
+            if self.current_user in g_session:
+                g_session.pop(self.current_user, None)
+        self.clear_cookie(BRPY_SESSION_KEY)
+        return self.redirect('/')
 
 class UserInfoHandler(tornado.web.RequestHandler):
+    def get_current_user(self):
+        return self.get_cookie(BRPY_SESSION_KEY)
+
     def argshort(self, a, default=None):
         return self.get_argument(a, default=default)
 
     @gen.coroutine
     def get(self):
-        user_key = self.get_secure_cookie(BRPY_SESSION_KEY)
-        if user_key is not None and user_key in g_session:
-            info = g_session[user_key]['user_info']
-            self.write(json.dumps(info))
+        user = self.current_user
+        if not user in g_session:
+            self.clear_cookie(BRPY_SESSION_KEY)
+            self.finish()
+            return
+
+        if user is not None:
+            self.write(json.dumps(g_session[user]['info']))
             self.finish()
             return
         self.send_error()
-        self.finish()
 
 class RunHandler(tornado.web.RequestHandler):
     def argshort(self, a, default=None):
         return self.get_argument(a, default=default)
 
-    def _get_solution():
-        solution = g_solution
-        user_key = self.get_secure_cookie(BRPY_SESSION_KEY)
-        if self.get_secure_cookie(BRPY_SESSION_KEY):
-            solution = g_session[user_key]['solution']
-        return solution
+    def get_current_user(self):
+        return self.get_cookie(BRPY_SESSION_KEY)
+
+    def _get_solution(self):
+        user = self.current_user
+        if user is not None and not user in g_session:
+            self.clear_cookie(BRPY_SESSION_KEY)
+            return g_solution
+        return g_solution if user is None else g_session[user]['solution']
 
     @gen.coroutine
     def get(self):
@@ -146,7 +173,6 @@ class RunHandler(tornado.web.RequestHandler):
                 self.write(res)
                 self.finish()
                 return
-
         self.send_error()
 
     @gen.coroutine
@@ -214,10 +240,12 @@ class RunHandler(tornado.web.RequestHandler):
 
 if __name__ == "__main__":
     app = tornado.web.Application([
+        (r"/login", LoginHandler),
+        (r"/logout", LogoutHandler),
         (r"/run", RunHandler),
-        (r"/user", UserInfoHandler),        
+        (r"/user", UserInfoHandler),
         (r"/($)", tornado.web.StaticFileHandler, {'path': './index.html'}),
         (r"/(.*)", tornado.web.StaticFileHandler, {'path': './'})
-    ])
+    ], cookie_secret=get_random_state())
     app.listen(PORT)
     tornado.ioloop.IOLoop.instance().start()

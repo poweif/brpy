@@ -21,12 +21,21 @@ var Button =  React.createClass({
             );
         }();
 
+        var outerClick = this.props.click;
+        if (this.props.link) {
+            outerClick = function() {
+                if (that.props.click)
+                    that.props.click();
+                window.location.href = that.props.link;
+            };
+        }
+
         var img = !this.props.icon ? null : function() {
             var imgSrc = "/img/" + that.props.icon + ".png";
             var click = null;
             var nclassName = imgCn;
             if (!buttonText) {
-                click = that.props.click;
+                click = outerClick
                 nclassName = "button" + nclassName;
                 if (that.props.selected)
                     nclassName += " button-selected";
@@ -51,7 +60,7 @@ var Button =  React.createClass({
             wrapperCn += " " + that.props.addClass;
 
         return (
-            <div className={wrapperCn} onClick={this.props.click}>
+            <div className={wrapperCn} onClick={outerClick}>
                 {this.props.rev ? buttonText : img}
                 {this.props.rev ? img : buttonText}
             </div>

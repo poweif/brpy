@@ -78,6 +78,7 @@ class SkSolution():
 
     @gen.coroutine
     def create_project(self, proj_name):
+        print 'creating project ', proj_name
         if self._read_only: raise gen.Return({})
 
         folder_id = yield self._create_folder(self._app(), proj_name)
@@ -186,6 +187,7 @@ class SkSolution():
 
     @gen.coroutine
     def update_project(self, proj, proj_data):
+        print 'update project: ' + proj
         if self._read_only: raise gen.Return({})
 
         proj_id = yield self._find_project_id(proj)
@@ -419,9 +421,6 @@ class MongoDBSkSolution(SkSolution):
         super(MongoDBSkSolution, self).__init__()
         self.__user = user
         self.__db = db
-        future = self.read_project(self._DEFAULT_PROJ,
-                                   create_if_not_found=True)
-        future.add_done_callback(lambda f: True)
 
     def _root_impl(self):
         return self._add_key(self._ROOT_KEY, 'root')
@@ -431,6 +430,10 @@ class MongoDBSkSolution(SkSolution):
 
     @gen.coroutine
     def _find_file_id_impl(self, parent_id, title):
+        if parent_id == self._app() and title != self._SOLUTION_JSON:
+            self._add_key(self._key(parent_id, title), title)
+            raise gen.Return(title)
+
         cursor = self.__db.files.find(
             {'user': self.__user, 'parent': parent_id,
              'title': title}, {'_id' : 1})
@@ -448,6 +451,8 @@ class MongoDBSkSolution(SkSolution):
 
     @gen.coroutine
     def _update_text_file_impl(self, parent_id, title, text):
+        print self.__user, parent_id, title, text
+        print ''
         iid = yield self._find_file_id(parent_id, title)
         content = {'user': self.__user, 'parent': parent_id,
                    'title': title, 'text': text}

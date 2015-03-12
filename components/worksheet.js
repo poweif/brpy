@@ -603,7 +603,8 @@ var MainPanel = React.createClass({
             contentPaneDoms: {},
             projects: [],
             currentProject: -1,
-            isDialogOpen: false
+            isDialogOpen: false,
+            user: null
         };
     },
     updateSolution: function(solData, onOk, onFail) {
@@ -1334,6 +1335,14 @@ var MainPanel = React.createClass({
     },
     componentDidMount: function() {
         SKG.readSolution(this.onLoadSolution);
+
+        var that = this;
+        var onLoad = function(userInfo) {
+            console.log(userInfo);
+            var info = JSON.parse(userInfo);
+            that.setState({user: info['email']});
+        };
+        SKG.readUserInfo(onLoad, null);
     },
     render: function() {
         var proj = this.state.projects && (this.state.currentProject != null) ?
@@ -1423,9 +1432,25 @@ var MainPanel = React.createClass({
             );
         }.bind(this));
 
+        var inOut = function() {
+            return (
+                <Button text="login" link="/login" addClass="login-button"/>
+            );
+        }();
+        if (this.state.user) {
+            inOut = function() {
+                return (
+                    <Button text={that.state.user} link="/logout"
+                        addClass="login-button"/>
+                );
+            }();
+        }
+
         return (
            <div className="main-panel">
+                {inOut}
                 <HeaderBar projects={this.state.projects}
+                    user={this.state.user}
                     currentProject={this.state.currentProject}
                     onProjectDelete={this.onProjectDelete}
                     onProjectNew={this.onProjectNew}
