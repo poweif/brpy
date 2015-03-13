@@ -79,7 +79,6 @@ class SkSolution():
 
     @gen.coroutine
     def create_project(self, proj_name):
-        print 'creating project ', proj_name
         if self._read_only: raise gen.Return({})
 
         folder_id = yield self._create_folder(
@@ -192,7 +191,6 @@ class SkSolution():
 
     @gen.coroutine
     def update_project(self, proj, proj_data):
-        print 'update project: ' + proj
         if self._read_only: raise gen.Return({})
 
         proj_id = yield self._find_project_id(proj)
@@ -265,7 +263,6 @@ class GdriveSkSolution(SkSolution):
 
     @gen.coroutine
     def _find_file_id_impl(self, folder_id, title):
-        print 'gdrive find file'
         key = self._key(folder_id, title)
         param = {"q": "title = '%s' and trashed = false" % title}
         itemsp = self.__drive.children().list(
@@ -288,7 +285,6 @@ class GdriveSkSolution(SkSolution):
 
     @gen.coroutine
     def _update_text_file_impl(self, parent_id, file_name, text):
-        print 'gdrive updating text file'
         if type(text) is str:
             text = unicode(text)
         output = io.StringIO(text)
@@ -340,7 +336,6 @@ class GdriveSkSolution(SkSolution):
 
         resp, content = self.__drive._http.request(download_url)
         if resp.status == 200:
-            print 'Status: %s' % resp['status']
             raise gen.Return(content)
 
         print 'An error occurred: %s' % resp
@@ -470,8 +465,6 @@ class MongoDBSkSolution(SkSolution):
 
     @gen.coroutine
     def _update_text_file_impl(self, parent_id, title, text):
-        print self.__user, parent_id, title, text
-        print ''
         iid = yield self._find_file_id(parent_id, title)
         content = {'user': self.__user, 'parent': parent_id,
                    'title': title, 'text': text}
@@ -513,16 +506,12 @@ class MongoDBSkSolution(SkSolution):
 
 
 class HierarchicalSkSolution(SkSolution):
+    _DELAY = .2
     def __init__(self, io_loop, l1, l2):
         super(HierarchicalSkSolution, self).__init__()
         self._io_loop = io_loop
         self._l1 = l1
         self._l2 = l2
-
-    def _yield_callback(self, callback, *args):
-        print 'calling yield callback--------------------------'
-        print args
-        yield callback(*args)
 
     @gen.coroutine
     def create_project(self, proj_name):
@@ -530,47 +519,82 @@ class HierarchicalSkSolution(SkSolution):
 
     @gen.coroutine
     def read_solution(self, create=True):
-        raise gen.Return((yield self._l1.read_solution(create)))
+        l1_res = yield self._l1.read_solution(False)
+        if l1_res is not None:
+            raise gen.Return(l1_res)
+
+        l2_res = yield self._l2.read_solution(create)
+        yield self._l1.update_solution(l2_res)
+        raise gen.Return(l2_res)
 
     @gen.coroutine
     def update_solution(self, new_sol):
         def run():
-            print 'update *************************'
-            self._l2.update_solution(new_sol)                    
-        self._io_loop.call_later(.5, run)
+            self._l2.update_solution(new_sol)
+        self._io_loop.call_later(self._DELAY, run)
         raise gen.Return((yield self._l1.update_solution(new_sol)))
 
     @gen.coroutine
     def rename_project(self, old_name, new_name):
+        def run():
+            self._l2.rename_project(old_name, new_name)
+        self._io_loop.call_later(self._DELAY, run)
         raise gen.Return((yield self._l1.rename_project(old_name, new_name)))
 
     @gen.coroutine
     def delete_project(self, proj):
+        def run():
+            self._l2.delete_project(proj)
+        self._io_loop.call_later(self._DELAY, run)
         raise gen.Return((yield self._l1.delete_project(proj)))
 
     @gen.coroutine
     def read_file(self, proj, fname):
-        raise gen.Return((yield self._l1.read_file(proj, fname)))
+        l1_res = yield self._l1.read_file(proj, fname)
+        if l1_res is not None:
+            raise gen.Return(l1_res)
+        l2_res = yield self._l2.read_file(proj, fname)
+
+        yield self._l1.write_file(proj, fname, l2_res)
+        raise gen.Return(l2_res)
 
     @gen.coroutine
     def write_file(self, proj, fname, text):
+        def run():
+            self._l2.write_file(proj, fname, text)
+        self._io_loop.call_later(self._DELAY, run)
         raise gen.Return((yield self._l1.write_file(proj, fname, text)))
 
     @gen.coroutine
     def rename_file(self, proj, old_name, new_name):
-        raise gen.Return((yield self._l1.rename_file(proj, old_name, new_name)))
+        def run():
+            self._l2.rename_file(proj, old_name, new_name)
+        self._io_loop.call_later(self._DELAY, run)
+        raise gen.Return((yield self._l1.rename_file(proj)))
 
     @gen.coroutine
     def delete_file(self, proj, fname):
+        def run():
+            self._l2.delete_file(proj, fname)
+        self._io_loop.call_later(self._DELAY, run)
         raise gen.Return((yield self._l1.delete_file(proj, fname)))
 
     @gen.coroutine
     def update_project(self, proj, proj_data):
+        def run():
+            self._l2.update_project(proj, proj_data)
+        self._io_loop.call_later(self._DELAY, run)
         raise gen.Return((yield self._l1.update_project(proj, proj_data)))
 
     @gen.coroutine
     def read_project(self, proj):
-        raise gen.Return((yield self._l1.read_project(proj)))
+        l1_res = yield self._l1.read_project(proj)
+        if l1_res is not None:
+            raise gen.Return(l1_res)
+        l2_res = yield self._l2.read_project(proj)
+
+        yield self._l1.update_project(proj, l2_res)
+        raise gen.Return(l2_res)
 
     def _root_impl(self): pass
     def _app_impl(self): pass
