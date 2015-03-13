@@ -53,10 +53,11 @@ class SkSolution():
             return self._files[self._ROOT_KEY]
         return self._root_impl()
 
+    @gen.coroutine
     def _app(self):
         if self._APP_KEY in self._files:
-            return self._files[self._APP_KEY]
-        return self._app_impl()
+            raise gen.Return(self._files[self._APP_KEY])
+        raise gen.Return((yield self._app_impl()))
 
     @gen.coroutine
     def _create_folder(self, parent_id, folder_name):
@@ -81,7 +82,8 @@ class SkSolution():
         print 'creating project ', proj_name
         if self._read_only: raise gen.Return({})
 
-        folder_id = yield self._create_folder(self._app(), proj_name)
+        folder_id = yield self._create_folder(
+            (yield self._app()), proj_name)
         proj_id = yield self._update_text_file_impl(
             folder_id, self._PROJ_JSON, EXAMPLE_PROJ_JSON)
         main_id = yield self._update_text_file_impl(
@@ -90,7 +92,8 @@ class SkSolution():
 
     @gen.coroutine
     def _find_project_id(self, proj_name):
-        proj_folder_id = yield self._find_file_id(self._app(), proj_name)
+        proj_folder_id = yield self._find_file_id(
+            (yield self._app()), proj_name)
         if proj_folder_id is None:
             res = yield self.create_project(proj_name)
             raise gen.Return(res)
@@ -99,11 +102,11 @@ class SkSolution():
     @gen.coroutine
     def read_solution(self, create=True):
         solution_file_id = yield self._find_file_id(
-            self._app(), self._SOLUTION_JSON)
+            (yield self._app()), self._SOLUTION_JSON)
         if solution_file_id is None and create and not self._read_only:
             solution_json = EXAMPLE_SOLUTION_JSON
             yield self._update_text_file_impl(
-                self._app(), self._SOLUTION_JSON, solution_json)
+                (yield self._app()), self._SOLUTION_JSON, solution_json)
             solution = json.loads(solution_json)
             yield self.create_project(solution['projects'][0])
             raise gen.Return(solution)
@@ -125,21 +128,23 @@ class SkSolution():
             solution[key] = new_sol[key]
 
         res = yield self._update_text_file_impl(
-            self._app(), self._SOLUTION_JSON, json.dumps(solution))
+            (yield self._app()), self._SOLUTION_JSON, json.dumps(solution))
         raise gen.Return(res)
 
     @gen.coroutine
     def rename_project(self, old_name, new_name):
         if self._read_only: raise gen.Return({})
 
-        res = yield self._rename_file_impl(self._app(), old_name, new_name)
+        res = yield self._rename_file_impl(
+            (yield self._app()), old_name, new_name)
         raise gen.Return(res)
 
     @gen.coroutine
     def delete_project(self, proj):
         if self._read_only: raise gen.Return({})
 
-        res = yield self._delete_file_impl(self._app(), proj)
+        res = yield self._delete_file_impl(
+            (yield self._app()), proj)
         raise gen.Return(res)
 
     @gen.coroutine
@@ -252,10 +257,13 @@ class GdriveSkSolution(SkSolution):
             self.__drive.about().get().execute()['rootFolderId']
         return self._files[self._ROOT_KEY]
 
+    @gen.coroutine
     def _app_impl(self):
-        iid = self._find_file_id_impl(self._root(), self._SKULPTGL_APP_DIR)
-        return self._addkey(self._APP_KEY, iid)
+        iid = yield self._find_file_id_impl(
+            self._root(), self._SKULPTGL_APP_DIR)
+        raise gen.Return(self._add_key(self._APP_KEY, iid))
 
+    @gen.coroutine
     def _find_file_id_impl(self, folder_id, title):
         key = self._key(folder_id, title)
         param = {"q": "title = '%s' and trashed = false" % title}
@@ -264,9 +272,10 @@ class GdriveSkSolution(SkSolution):
             **param).execute()
         items = itemsp['items']
         if len(items) < 1:
-            return self._add_key(key, None)
-        return self._add_key(key, items[0]['id'])
+            raise gen.Return(self._add_key(key, None))
+        raise gen.Return(self._add_key(key, items[0]['id']))
 
+    @gen.coroutine
     def _create_folder_impl(self, parent_id, folder_name):
         res = self.__drive.files().insert(
             body = {
@@ -274,14 +283,15 @@ class GdriveSkSolution(SkSolution):
                 'parents': [{"id": parent_id}],
                 'mimeType': "application/vnd.google-apps.folder"
             }).execute()
-        return res['id']
+        raise gen.Return(res['id'])
 
+    @gen.coroutine
     def _update_text_file_impl(self, parent_id, file_name, text):
         if type(text) is str:
             text = unicode(text)
         output = io.StringIO(text)
         mime = self._TEXT_MIME
-        file_id = self._find_file_id(parent_id, file_name)
+        file_id = yield self._find_file_id(parent_id, file_name)
 
         if file_id is None:
             dfile = self.__drive.files().insert(
@@ -291,44 +301,48 @@ class GdriveSkSolution(SkSolution):
                     'parents': [{"id": parent_id}],
                     'mimeType': mime}).execute()
             output.close()
-            return self._add_key(self._key(parent_id, file_name), dfile['id'])
+            raise gen.Return(
+                self._add_key(self._key(parent_id, file_name), dfile['id']))
 
         self.__drive.files().update(
             fileId=file_id,
             media_body=MediaIoBaseUpload(output, mime)).execute()
         output.close()
-        return file_id
+        raise gen.Return(file_id)
 
+    @gen.coroutine
     def _rename_file_impl(self, parent_id, old_name, new_name):
-        file_id = self._find_file_id(parent_id, old_name)
+        file_id = yield self._find_file_id(parent_id, old_name)
         if file_id is None:
-            return None
+            raise gen.Return(None)
         tbody = self.__drive.files().get(fileId=file_id).execute()
         tbody['title'] = new_name
         self.__drive.files().update(fileId=file_id, body=tbody).execute()
-        return file_id
+        raise gen.Return(file_id)
 
+    @gen.coroutine
     def _delete_file_impl(self, parent_id, file_name):
-        file_id = self._find_file_id(parent_id, file_name)
+        file_id = yield self._find_file_id(parent_id, file_name)
         if file_id is None:
-            return None
+            raise gen.Return(None)
         self.__drive.files().trash(fileId=file_id).execute()
-        return file_id
+        raise gen.Return(file_id)
 
+    @gen.coroutine
     def _read_text_file_impl(self, file_id):
         tfile = self.__drive.files().get(fileId=file_id).execute()
         download_url = tfile['downloadUrl']
         if download_url is None:
             print "Cannot download " + tfile['title']
-            return None
+            raise gen.Return(None)
 
         resp, content = self.__drive._http.request(download_url)
         if resp.status == 200:
             print 'Status: %s' % resp['status']
-            return content
+            raise gen.Return(content)
 
         print 'An error occurred: %s' % resp
-        return None
+        raise gen.Return(None)
 
 class DevSkSolution(SkSolution):
     """Encapsulation of a Skulptgl Solution for developers"""
@@ -349,8 +363,9 @@ class DevSkSolution(SkSolution):
         self._files[self._ROOT_KEY] = './'
         return self._files[self._ROOT_KEY]
 
+    @gen.coroutine
     def _app_impl(self):
-        return self.__root_dir
+        raise gen.Return(self.__root_dir)
 
     @gen.coroutine
     def _find_file_id_impl(self, parent_path, title):
@@ -425,12 +440,14 @@ class MongoDBSkSolution(SkSolution):
     def _root_impl(self):
         return self._add_key(self._ROOT_KEY, 'root')
 
+    @gen.coroutine
     def _app_impl(self):
-        return self._SKULPTGL_APP_DIR
+        raise gen.Return(self._SKULPTGL_APP_DIR)
 
     @gen.coroutine
     def _find_file_id_impl(self, parent_id, title):
-        if parent_id == self._app() and title != self._SOLUTION_JSON:
+        if parent_id == (yield self._app())\
+           and title != self._SOLUTION_JSON:
             self._add_key(self._key(parent_id, title), title)
             raise gen.Return(title)
 
@@ -491,3 +508,72 @@ class MongoDBSkSolution(SkSolution):
     def _read_text_file_impl(self, file_id):
         res = yield self.__db.files.find_one({'_id': file_id}, {'text': 1})
         raise gen.Return(res['text'])
+
+
+class HierarchicalSkSolution(SkSolution):
+    def __init__(self, io_loop, l1, l2):
+        super(HierarchicalSkSolution, self).__init__()
+        self._io_loop = io_loop
+        self._l1 = l1
+        self._l2 = l2
+
+    def _yield_callback(self, callback, *args):
+        print 'calling yield callback--------------------------'
+        print args
+        yield callback(*args)
+
+    @gen.coroutine
+    def create_project(self, proj_name):
+        raise gen.Return((yield self._l1.create_project(proj_name)))
+
+    @gen.coroutine
+    def read_solution(self, create=True):
+        raise gen.Return((yield self._l1.read_solution(create)))
+
+    @gen.coroutine
+    def update_solution(self, new_sol):
+        print 'updating soltion -------------'
+        self._io_loop.spawn_callback(
+            self._yield_callback, [self._l2.update_solution, new_sol])
+        raise gen.Return((yield self._l1.update_solution(new_sol)))
+
+    @gen.coroutine
+    def rename_project(self, old_name, new_name):
+        raise gen.Return((yield self._l1.rename_project(old_name, new_name)))
+
+    @gen.coroutine
+    def delete_project(self, proj):
+        raise gen.Return((yield self._l1.delete_project(proj)))
+
+    @gen.coroutine
+    def read_file(self, proj, fname):
+        raise gen.Return((yield self._l1.read_file(proj, fname)))
+
+    @gen.coroutine
+    def write_file(self, proj, fname, text):
+        raise gen.Return((yield self._l1.write_file(proj, fname, text)))
+
+    @gen.coroutine
+    def rename_file(self, proj, old_name, new_name):
+        raise gen.Return((yield self._l1.rename_file(proj, old_name, new_name)))
+
+    @gen.coroutine
+    def delete_file(self, proj, fname):
+        raise gen.Return((yield self._l1.delete_file(proj, fname)))
+
+    @gen.coroutine
+    def update_project(self, proj, proj_data):
+        raise gen.Return((yield self._l1.update_project(proj, proj_data)))
+
+    @gen.coroutine
+    def read_project(self, proj):
+        raise gen.Return((yield self._l1.read_project(proj)))
+
+    def _root_impl(self): pass
+    def _app_impl(self): pass
+    def _find_file_id_impl(self, folder_id, title): pass
+    def _create_folder_impl(self, parent_id, folder_name): pass
+    def _update_text_file_impl(self, parent_id, file_name, text): pass
+    def _rename_file_impl(self, parent_id, old_name, new_name): pass
+    def _delete_file_impl(self, parent_id, file_name): pass
+    def _read_text_file_impl(self, file_id): pass

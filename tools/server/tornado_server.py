@@ -9,7 +9,8 @@ import simplejson as json
 
 from apiclient.discovery import build
 
-from sk_solution import DevSkSolution, MongoDBSkSolution, GdriveSkSolution
+from sk_solution import DevSkSolution, MongoDBSkSolution, GdriveSkSolution,\
+    HierarchicalSkSolution
 from easy_oauth2 import EasyOAuth2
 
 import tornado.ioloop
@@ -57,6 +58,7 @@ g_session = {}
 g_solution = None
 g_motor_client = motor.MotorClient()
 
+_io_loop = tornado.ioloop.IOLoop.instance()
 
 if len(sys.argv) >= 2 and os.access(sys.argv[1], os.F_OK):
     g_solution = DevSkSolution(sys.argv[1])
@@ -90,7 +92,9 @@ class LoginHandler(tornado.web.RequestHandler):
         cred = g_auth.get_credentials(code_val, state=None, redirect_uri=POST_LOGIN_URI)
         user_info = get_user_info(cred)
         email = user_info.get('email')
-        solution = MongoDBSkSolution(user=email, db=g_motor_client.test)
+        mongo = MongoDBSkSolution(user=email, db=g_motor_client.test)
+        gdrive = GdriveSkSolution(cred)
+        solution = HierarchicalSkSolution(io_loop=_io_loop, l1=mongo, l2=gdrive)
         user_key = state_val
         g_session[user_key] = {
             'info': user_info,
@@ -248,4 +252,4 @@ if __name__ == "__main__":
         (r"/(.*)", tornado.web.StaticFileHandler, {'path': './'})
     ], cookie_secret=get_random_state())
     app.listen(PORT)
-    tornado.ioloop.IOLoop.instance().start()
+    _io_loop.start()
