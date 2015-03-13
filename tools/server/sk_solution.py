@@ -265,6 +265,7 @@ class GdriveSkSolution(SkSolution):
 
     @gen.coroutine
     def _find_file_id_impl(self, folder_id, title):
+        print 'gdrive find file'
         key = self._key(folder_id, title)
         param = {"q": "title = '%s' and trashed = false" % title}
         itemsp = self.__drive.children().list(
@@ -287,6 +288,7 @@ class GdriveSkSolution(SkSolution):
 
     @gen.coroutine
     def _update_text_file_impl(self, parent_id, file_name, text):
+        print 'gdrive updating text file'
         if type(text) is str:
             text = unicode(text)
         output = io.StringIO(text)
@@ -532,9 +534,10 @@ class HierarchicalSkSolution(SkSolution):
 
     @gen.coroutine
     def update_solution(self, new_sol):
-        print 'updating soltion -------------'
-        self._io_loop.spawn_callback(
-            self._yield_callback, [self._l2.update_solution, new_sol])
+        def run():
+            print 'update *************************'
+            self._l2.update_solution(new_sol)                    
+        self._io_loop.call_later(.5, run)
         raise gen.Return((yield self._l1.update_solution(new_sol)))
 
     @gen.coroutine
