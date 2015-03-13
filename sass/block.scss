@@ -1,0 +1,142 @@
+@import 'common';
+@import 'flexbox';
+
+$stdout-console-width: 500px;;
+$console-button-size: 50px;
+
+$line-width: 2px;
+
+.worksheet-block {
+  @extend %flexbox;
+  @include flex-direction(column);
+  @include align-items(stretch);
+  @include align-self(stretch);
+  @include flex-grow(0);
+  @include flex-shrink(0);
+
+  overflow: hidden;
+
+  .line-wrapper {
+    opacity: .15;
+    transition: opacity $std-duration;
+    border-width: 1px;
+  }
+  .line-wrapper:hover {
+    opacity: 1;
+    transition: opacity $std-duration;
+  }
+
+  .separator {
+    @extend %flexbox;
+    @include flex-direction(row);
+    @include align-items(center);
+    @include flex-grow(0);
+    @include flex-shrink(0);
+
+    margin: 5px 0;
+
+    .separator-line-wrapper {
+      @extend %flexbox;
+      @include flex(auto);
+      @include flex-direction(column);
+      @include align-items(stretch);
+      cursor: ns-resize;
+      @extend .line-wrapper;
+    }
+    .separator-line {
+      margin: 5px 10px;
+      border-style: dotted none none none;
+      height: 0;
+      border-color: $prime-inv-color;
+      border-width: $line-width;
+    }
+    .collapsed-line-wrapper {
+      @extend .separator-line-wrapper;
+      cursor: pointer;
+    }
+    .collapsed-line {
+      @extend .separator-line;
+      border-style: solid none solid none;
+      height: 4px;
+      border-width: $line-width;
+    }
+  }
+
+  .block-content {
+    @extend %flexbox;
+    @include flex-direction(row);
+    @include align-items(stretch);
+    @include justify-content(flex-start);
+    min-height: 50px;
+
+    .divide-line-wrapper {
+      @include flex-grow(0);
+      @include flex-shrink(0);
+      @extend %flexbox;
+      @include flex-direction(row);
+      @include align-items(stretch);
+      cursor: ew-resize;
+      @extend .line-wrapper;
+    }
+    .divide-line {
+      width: 0;
+      border-style: none none none dotted;
+      border-color: $prime-inv-color;
+      margin: 5px 10px;
+      border-width: $line-width;
+    }
+    .content-pane {
+      @extend %flexbox;
+      @include flex-direction(column);
+      @include align-items(stretch);
+      @include flex(auto);
+      @include align-self(flex-start);
+    }
+  }
+}
+
+.worksheet-block-trans {
+  transition: height $std-duration;
+}
+
+.editor-pane {
+  @extend %flexbox;
+  @include flex-direction(column);
+  @include align-items(stretch);
+  overflow: hidden;
+
+  .editor-file-row {
+    @extend %flexbox;
+    @include flex-direction(row);
+    @include align-items(center);
+    @include justify-content(flex-start);
+    @include flex-grow(0);
+    @include flex-shrink(0);
+    height: $button-size-small * 2;
+    margin: 5px 0;
+    .file-item {
+      margin: 0 3px;
+    }
+  }
+}
+
+.editor-pane-backgrounded {
+  @extend .editor-pane;
+  z-index: -1
+}
+
+.block-link-pane {
+  @include flex-direction(column);
+  @extend %flexbox;
+  @include flex-grow(1);
+  @include align-items(center);
+  @include justify-content(center);
+  width: 650px;
+  .content {
+    position: relative;
+    transform: translateY(-50%);
+    height: auto;
+    font-weight: 600;
+    top: 50%;
+  }
+}

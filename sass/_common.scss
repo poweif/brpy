@@ -43,11 +43,13 @@ $std-fast-duration: .2s;
   white-space: nowrap;
 }
 
-$button-size-small: 17px;
-$button-size-mid: 35px;
+$button-size-tiny: 11px;
+$button-size-small: 16px;
+$button-size-mid: 22px;
 $button-size-large: 50px;
 
-$button-font-small: $button-size-small -1;
+$button-font-tiny: $button-size-tiny;
+$button-font-small: $button-size-small - 1;
 $button-font-mid: $button-size-mid;
 $button-font-large: $button-size-large;
 
@@ -85,6 +87,10 @@ $button-font-large: $button-size-large;
 
 .font-small {
   font-size: $button-font-small;
+}
+
+.font-tiny {
+  font-size: $button-font-tiny;
 }
 
 
