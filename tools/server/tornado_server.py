@@ -53,18 +53,21 @@ SHOW_URI = HOME_URI + '/show'
 BRPY_SESSION_KEY = 'brpy-session-key'
 ERR_PARAM = -3498314
 INDEX_HTML = open(CURRENT_DIR + '/index.html').read()
+PUB_DIR = './pub'
 
 g_session = {}
-g_solution = None
+_pub_solution = None
 g_motor_client = motor.MotorClient()
 
 _io_loop = tornado.ioloop.IOLoop.instance()
 
 if len(sys.argv) >= 2 and os.access(sys.argv[1], os.F_OK):
-    g_solution = DevSkSolution(sys.argv[1])
+    _pub_solution = DevSkSolution(sys.argv[1])
 else:
     g_motor_client.drop_database('test')
-    g_solution = MongoDBSkSolution(user='brpy_public', db=g_motor_client.test)
+    dev = DevSkSolution(PUB_DIR)
+    mongo = MongoDBSkSolution(user='brpy_public', db=g_motor_client.test)
+    _pub_solution = HierarchicalSkSolution(io_loop=_io_loop, l1=mongo, l2=dev)
 
 g_auth = EasyOAuth2(CLIENTSECRETS_LOCATION, SCOPES)
 
@@ -147,8 +150,8 @@ class RunHandler(tornado.web.RequestHandler):
         user = self.current_user
         if user is not None and not user in g_session:
             self.clear_cookie(BRPY_SESSION_KEY)
-            return g_solution
-        return g_solution if user is None else g_session[user]['solution']
+            return _pub_solution
+        return _pub_solution if user is None else g_session[user]['solution']
 
     @gen.coroutine
     def get(self):
@@ -242,13 +245,18 @@ class RunHandler(tornado.web.RequestHandler):
         self.send_error()
         self.finish()
 
+class IndexHandler(tornado.web.RequestHandler):
+    @gen.coroutine
+    def get(self, v):
+        self.write(INDEX_HTML)
+
 if __name__ == "__main__":
     app = tornado.web.Application([
         (r"/login", LoginHandler),
         (r"/logout", LogoutHandler),
         (r"/run", RunHandler),
         (r"/user", UserInfoHandler),
-        (r"/($)", tornado.web.StaticFileHandler, {'path': './index.html'}),
+        (r"/($)", IndexHandler),
         (r"/(.*)", tornado.web.StaticFileHandler, {'path': './'})
     ], cookie_secret=get_random_state())
     app.listen(PORT)

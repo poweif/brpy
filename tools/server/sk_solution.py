@@ -379,7 +379,7 @@ class DevSkSolution(SkSolution):
 
     @gen.coroutine
     def _update_text_file_impl(self, parent_path, file_name, text):
-        if self.__read_only: raise gen.Return({})
+        if self._read_only: raise gen.Return({})
 
         path = parent_path + "/" + file_name
         if not os.access(path, os.F_OK):
@@ -390,7 +390,7 @@ class DevSkSolution(SkSolution):
 
     @gen.coroutine
     def _rename_file_impl(self, parent_path, old_name, new_name):
-        if self.__read_only: raise gen.Return({})
+        if self._read_only: raise gen.Return({})
 
         old_path = yield self._find_file_id(parent_path, old_name)
         if old_path is None:
@@ -402,7 +402,7 @@ class DevSkSolution(SkSolution):
 
     @gen.coroutine
     def _delete_file_impl(self, parent_path, file_name):
-        if self.__read_only: raise gen.Return({})
+        if self._read_only: raise gen.Return({})
 
         file_path = self._find_file_id(parent_path, file_name)
         if file_path is None:
@@ -419,12 +419,12 @@ class DevSkSolution(SkSolution):
         if not os.access(file_path, os.F_OK):
             raise gen.Return(None)
 
-        if self.__read_only and file_path in self.__file_cache:
+        if self._read_only and file_path in self.__file_cache:
             raise gen.Return(self.__file_cache[file_path])
 
         with open(file_path, "r") as f:
             content = f.read()
-            if self.__read_only:
+            if self._read_only:
                 self.__file_cache[file_path] = content
             raise gen.Return(content)
 

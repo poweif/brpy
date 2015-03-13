@@ -6,8 +6,8 @@
   @extend %flexbox;
   @include flex-direction(column);
   @include align-items(center);
-  position: absolute;
-  bottom: 10px;
-  left: 0;
+  position: relative;
   width: 100%;
+  margin: 10px 0;
+  opacity: .3;
 }

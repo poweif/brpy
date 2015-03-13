@@ -1,4 +1,3 @@
-
 var ContentPane = React.createClass({
     mountContentDoms: function() {
         if (!this.props.contentDoms || this.props.contentDoms.length == 0)
@@ -331,7 +330,7 @@ var WorksheetBlock = React.createClass({
         this.setHeight(height, true);
     },
     onContentUpdate: function() {
-        this.setHeightAndUpdate(this.props.height);
+//        this.setHeightAndUpdate(this.props.height);
     },
     blockExpand: function() {
         if (this.props.onBlockCollapse && this.props.collapsed) {
@@ -366,6 +365,10 @@ var WorksheetBlock = React.createClass({
             this.getDOMNode().style.height = this.props.height + "px";
             this.setState(
                 {editorHeight: this.props.height - this.separatorHeight()});
+        }
+
+        if (this.props.collapsed) {
+            this.getDOMNode().style.height = null;
         }
     },
     componentDidMount: function() {

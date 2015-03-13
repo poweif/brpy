@@ -20,7 +20,7 @@ var StdoutConsole =  React.createClass({
             this.hideTimeout = setTimeout(function() {
                 that.setState({ hidden: true, autoHide: false });
                 that.hideTimeout = null;
-            }, 6000);
+            }, 4000);
         }
 
         var ks = kramed(s);
@@ -281,6 +281,9 @@ var Worksheet = React.createClass({
             blocks = this.state.blocks;
         if (!blockContent)
             blockContent = this.state.blockContent;
+
+        console.trace();
+        console.log('updating project ' + projName, blockContent);
 
         var outerOk = function() {
             that.setState(
@@ -772,7 +775,7 @@ var Worksheet = React.createClass({
                         { name: fileName,
                           body: that.state.srcTexts[fileName] });
                 } else if (ext == 'bk') {
-                    var block = SKG.util.getFileName(fileExt);
+                    var block = SKG.util.getFileName(fileName);
                     ret = ret.concat(that.collectSrc(block));
                 }
             }
@@ -906,7 +909,8 @@ var Worksheet = React.createClass({
             this.setState({
                 blocks: [],
                 blockContent: {},
-                srcTexts: {}
+                srcTexts: {},
+                contentPaneDoms: {}
             });
 
             SKG.readProject(
