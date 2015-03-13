@@ -1,0 +1,13 @@
+@import 'common';
+@import 'flexbox';
+
+.footer {
+  @extend .font-tiny;
+  @extend %flexbox;
+  @include flex-direction(column);
+  @include align-items(center);
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  width: 100%;
+}
