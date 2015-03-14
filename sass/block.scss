@@ -34,6 +34,7 @@ $line-width: 2px;
     @include flex-shrink(0);
 
     margin: 5px 0;
+//    z-index: -1;
 
     .separator-line-wrapper {
       @extend %flexbox;

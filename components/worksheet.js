@@ -165,8 +165,11 @@ var HeaderBar = React.createClass({
             link = "/logout";
         }
         return (
-            <Button text={text} link={link} mid
-                icon={this.state.userIcon} addClass="login-button"/>
+            <div className="header-bar">
+                <span className="product title">brpy</span>
+                <Button text={text} link={link} mid
+                    icon={this.state.userIcon} addClass="login-button"/>
+            </div>
         );
     }
 });
@@ -281,9 +284,6 @@ var Worksheet = React.createClass({
             blocks = this.state.blocks;
         if (!blockContent)
             blockContent = this.state.blockContent;
-
-        console.trace();
-        console.log('updating project ' + projName, blockContent);
 
         var outerOk = function() {
             that.setState(

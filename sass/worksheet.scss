@@ -131,6 +131,18 @@ $console-button-size: 50px;
   @include align-items(center);
   padding: 5px 10px;
 
+}
+
+.header-bar {
+  @extend %flexbox;
+  @include flex-direction(row);
+  @include justify-content(space-between);
+  @include align-self(stretch);
+
+  .title {
+    font-size: $button-font-mid + 10;
+  }
+
   .login-button {
     margin: 0 0 5px 0;
     @include align-self(flex-end);

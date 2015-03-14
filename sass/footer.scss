@@ -10,4 +10,9 @@
   width: 100%;
   margin: 10px 0;
   opacity: .3;
+
+  .product {
+    font-size: $button-font-tiny + 4;
+  }
+  z-index: -1;
 }
