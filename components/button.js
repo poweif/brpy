@@ -106,14 +106,37 @@ var ButtonMenu =  React.createClass({
             var items = this.refs.items.getDOMNode();
             var itemsWidth = items.clientWidth;
             var mainWidth = main.clientWidth;
+            var itemsCN = "items-larger";
+            var mainButtonLargerCN = "main-button-larger";
+            var mainButtonSmallerCN = "main-button-smaller";
+            var leftTrans = 0;
+            if (this.props.center) {
+                itemsCN += "-center";
+                mainButtonLargerCN += "-center";
+            } else if (this.props.right) {
+                itemsCN += "-right";
+                mainButtonLargerCN += "-right";
+            } else {
+                itemsCN += "-left";
+            }
+
             if (itemsWidth > mainWidth) {
-                main.classList.remove("main-button-larger");
-                main.classList.add("main-button-smaller");
-                items.classList.add("items-larger");
+                main.classList.remove(mainButtonLargerCN);
+                main.classList.add(mainButtonSmallerCN);
+                items.classList.add(itemsCN);
             } else if (itemsWidth < mainWidth) {
-                main.classList.remove("main-button-smaller");
-                items.classList.remove("items-larger");
-                main.classList.add("main-button-larger");
+                main.classList.remove(mainButtonSmallerCN);
+                items.classList.remove(itemsCN);
+                main.classList.add(mainButtonLargerCN);
+            }
+
+            if (this.props.center) {
+                items.style.left = -(itemsWidth - mainWidth) / 2 + 'px';
+            } else if (this.props.right) {
+                var hackDiff = 0;
+                if (this.props.mid)
+                    hackDiff = 1;
+                items.style.left = -(itemsWidth - mainWidth - hackDiff) + 'px';
             }
         }
 
@@ -162,7 +185,8 @@ var ButtonMenu =  React.createClass({
         var onClickWrapper = function(callback) {
             return function() {
                 that.setState({hidden: true});
-                callback();
+                if (callback)
+                    callback();
             };
         };
 
@@ -191,7 +215,7 @@ var ButtonMenu =  React.createClass({
                 return (
                     <span className="vspace">
                         <Button text={item.text} click={click} key={ind}
-                            icon={item.icon} />
+                            icon={item.icon} link={item.link} />
                     </span>
                 );
             });

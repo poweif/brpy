@@ -71,7 +71,7 @@ var StdoutConsole =  React.createClass({
            <div className={stdoutCn}>
                 <div className="stdout-content">
                    <div className="stdout-content-buttons">
-                       <Button icon="do10" click={this.onClear} text="Clear" />
+                       <Button icon="do10" click={this.onClear} text="clear" />
                    </div>
                    <div className="content-wrapper">
                        {this.state.content}
@@ -93,7 +93,7 @@ var ProjectBar = React.createClass({
         var current = this.props.projects[this.props.currentProject];
         var buttons = [];
         if (this.props.projects && this.props.projects.length > 1) {
-            buttons = [{text: "Switch to project", hr: true}];
+            buttons = [{text: "switch to project", hr: true}];
             buttons = buttons.concat(
                 this.props.projects.map(function(proj) {
                     if (proj == current)
@@ -108,14 +108,14 @@ var ProjectBar = React.createClass({
         var rename = function() { return that.props.onProjectRename(current); };
         var del = function() { return that.props.onProjectDelete(current); };
         buttons = buttons.concat([
-            {text: "Project options", hr: true},
+            {text: "project options", hr: true},
             {text: "new", click: this.props.onProjectNew, icon: "add186"},
             {text: "rename", click: rename, icon: "rotate11"},
-            {text: "delete", click: del, icon: "close47"},
+            {text: "delete", click: del, icon: "close47"}
         ]);
 
         return (
-            <ButtonMenu large text={current} items={buttons}/>
+            <ButtonMenu center large text={current} items={buttons}/>
         );
     }
 });
@@ -158,17 +158,32 @@ var HeaderBar = React.createClass({
     },
     render: function() {
         var that = this;
-        var text = "login";
-        var link = "/login";
+        var button = null;
         if (this.props.user) {
-            text = this.trim(this.props.user);
-            link = "/logout";
+            var text = this.trim(this.props.user);
+            button = function() {
+                return (
+                    <Button mid text={text} link="/logout"
+                        icon={that.state.userIcon} addClass="login-button"/>
+                );
+            }();
+        } else {
+            var text = "login";
+            var items = [
+                {text: "just login", link: "/login", icon: "round58"},
+                {text: "copy project & login", icon: "upload119"}
+            ];
+            button = function() {
+                return (
+                    <ButtonMenu mid right text="login" items={items}
+                        icon={that.state.userIcon} addClass="login-button" />
+                );
+            }();
         }
         return (
             <div className="header-bar">
                 <span className="product title">brpy</span>
-                <Button text={text} link={link} mid
-                    icon={this.state.userIcon} addClass="login-button"/>
+                {button}
             </div>
         );
     }

@@ -11,21 +11,37 @@
   }
 }
 
+$sbr: $std-border-radius;
+
 .button-menu {
   @extend %flexbox;
   @include flex-direction(column);
+  position: relative;
 
   .main-button {
-    border-radius: $std-border-radius;
+    border-radius: $sbr;
   }
 
   .main-button-larger {
-    border-radius: $std-border-radius $std-border-radius $std-border-radius 0;
+    @extend .main-button;
+    border-radius: $sbr $sbr $sbr 0;
+    border-color: $prime-inv-color;
+  }
+
+  .main-button-larger-center {
+    @extend .main-button-larger;
+    border-radius: $sbr;
+  }
+
+  .main-button-larger-right {
+    @extend .main-button-larger;
+    border-radius: $sbr $sbr 0 $sbr;
   }
 
   .main-button-smaller {
-    border-radius: $std-border-radius $std-border-radius 0 0;
+    @extend .main-button;
     border-color: $prime-inv-color $prime-inv-color $prime-color $prime-inv-color;
+    border-radius: $sbr $sbr 0 0;
     z-index: 9;
   }
 
@@ -38,7 +54,7 @@
     position: absolute;
     background-color: $prime-color;
     border-color: $prime-color $prime-inv-color $prime-inv-color $prime-inv-color;
-    border-radius: 0 0 $std-border-radius $std-border-radius;
+    border-radius: 0 0 $sbr $sbr;
     margin-top: -1px;
     @include animation('fade-in ' + $std-duration);
     cursor: default;
@@ -48,7 +64,21 @@
 
   .items-larger {
     border-color: $prime-inv-color $prime-inv-color $prime-inv-color $prime-inv-color;
-    border-radius: 0 $std-border-radius $std-border-radius $std-border-radius;
+  }
+
+  .items-larger-left {
+    @extend .items-larger;
+    border-radius: 0 $sbr $sbr $sbr;
+  }
+
+  .items-larger-center {
+    @extend .items-larger;
+    border-radius: $sbr;
+  }
+
+  .items-larger-right {
+    @extend .items-larger;
+    border-radius: $sbr 0 $sbr $sbr;
   }
 
   .hr {
