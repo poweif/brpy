@@ -293,6 +293,39 @@ var Worksheet = React.createClass({
         };
         this.openBinaryDialog("Delete project?", ok);
     },
+    onProjectCopyToUser: function(proj) {
+        var that = this;
+        var blocks = this.state.blocks;
+        var blockContent = this.state.blockContent;
+        var srcTexts = this.state.srcTexts;
+        var projData = blocks.map(function(block) {
+            var bc = SKG.util.softCopy(blockContent[block]);
+            bc["name"] = block;
+            return bc;
+        });
+        var files = [];
+        blocks.forEach(function(block) {
+            blockContent[block][SKG_BLOCK_SRC].forEach(function(file) {
+                files.push(
+                    {"name": file[SKG_FILE_NAME],
+                     "text": srcTexts[SKG_FILE_NAME]}
+                );
+            });
+        });
+
+        var projOut = {
+            "name": proj + SKG.util.makeId(7),
+            "json": projData,
+            "files": files
+        };
+/*
+        if (!holdWrite) {
+            SKG.writeProject(projName, projData, outerOk, onFail);
+        } else {
+            outerOk();
+        }
+*/
+    },
     updateProject: function(projName, blocks, blockContent, onOk, onFail, holdWrite) {
         var that = this;
         if (!blocks)
