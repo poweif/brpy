@@ -71,13 +71,14 @@ else:
 
 g_auth = EasyOAuth2(CLIENTSECRETS_LOCATION, SCOPES)
 
-class LoginHandler(tornado.web.RequestHandler):
+class AllHandler(tornado.web.RequestHandler):
     def argshort(self, a, default=None):
         return self.get_argument(a, default=default)
 
     def get_current_user(self):
         return self.get_cookie(BRPY_SESSION_KEY)
 
+class LoginHandler(AllHandler):
     @gen.coroutine
     def get(self):
         if self.current_user is not None:
@@ -99,17 +100,18 @@ class LoginHandler(tornado.web.RequestHandler):
         gdrive = GdriveSkSolution(cred)
         solution = HierarchicalSkSolution(io_loop=_io_loop, l1=mongo, l2=gdrive)
         user_key = state_val
+
+        proj_port_data = self.argshort('port')
+
         g_session[user_key] = {
             'info': user_info,
-            'solution': solution
+            'solution': solution,
+            'port': proj_port_data
         }
         self.set_cookie(BRPY_SESSION_KEY, user_key)
         return self.redirect('/')
 
-class LogoutHandler(tornado.web.RequestHandler):
-    def get_current_user(self):
-        return self.get_cookie(BRPY_SESSION_KEY)
-
+class LogoutHandler(AllHandler):
     @gen.coroutine
     def get(self):
         if self.current_user is not None:
@@ -118,13 +120,7 @@ class LogoutHandler(tornado.web.RequestHandler):
         self.clear_cookie(BRPY_SESSION_KEY)
         return self.redirect('/')
 
-class UserInfoHandler(tornado.web.RequestHandler):
-    def get_current_user(self):
-        return self.get_cookie(BRPY_SESSION_KEY)
-
-    def argshort(self, a, default=None):
-        return self.get_argument(a, default=default)
-
+class UserInfoHandler(AllHandler):
     @gen.coroutine
     def get(self):
         user = self.current_user
@@ -139,13 +135,10 @@ class UserInfoHandler(tornado.web.RequestHandler):
             return
         self.send_error()
 
-class RunHandler(tornado.web.RequestHandler):
-    def argshort(self, a, default=None):
-        return self.get_argument(a, default=default)
+INIT_LOAD_SOLUTION = 'INIT_LOAD_SOLUTION'
+INIT_PORT_PROJECT = 'INIT_PORT_PROJECT'
 
-    def get_current_user(self):
-        return self.get_cookie(BRPY_SESSION_KEY)
-
+class RunHandler(AllHandler):
     def _get_solution(self):
         user = self.current_user
         if user is not None and not user in g_session:
@@ -155,7 +148,17 @@ class RunHandler(tornado.web.RequestHandler):
 
     @gen.coroutine
     def get(self):
+        user = self.current_user
         solution = self._get_solution()
+        if self.argshort('init', default=ERR_PARAM) != ERR_PARAM:
+            if user is None:
+                self.write(sol)
+            else:
+                pass
+
+            self.finish()
+            return
+
         if self.argshort('solution', default=ERR_PARAM) != ERR_PARAM:
             res = yield solution.read_solution()
             sol = json.dumps(res)
