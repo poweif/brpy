@@ -881,6 +881,8 @@ var Worksheet = React.createClass({
                 return;
         }
         var output = function(s) {
+            s = s.trim();
+            if (s.length == 0) return;
             that.refs.stdoutConsole.write(block, s);
         };
         Sk.configure(
@@ -990,7 +992,7 @@ var Worksheet = React.createClass({
         if (code == SKG_INIT_LOAD_SOLUTION) {
             SKG.readSolution(this.onLoadSolution);
         } else if (code == SKG_INIT_IMPORT_PROJECT) {
-            SKG.importProject(this.onProjectImport, failed);
+            SKG.importProject(this.onProjectImport);
         }
     },
     componentDidUpdate: function(prevProps, prevState) {
