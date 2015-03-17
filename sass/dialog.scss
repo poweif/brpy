@@ -20,9 +20,6 @@
     min-width: 100%;
     top: 0;
     left: 0;
-    .project-name {
-      @extend .button;
-    }
     transition: opacity $std-duration;
   }
 
@@ -36,6 +33,14 @@
     border-radius: $std-border-radius;
   }
 
+  .choices-input {
+    margin: 15px 0;
+  }
+
+  .binary-button {
+    margin: 5px;
+  }
+
   .dialog {
     @extend %flexbox;
     @include align-items(center);
@@ -44,10 +49,6 @@
     padding: 15px;
     z-index: 0;
     background-color: $prime-color;
-    .project-name {
-      @extend .button;
-      font-size: 30px;
-    }
     .bottom {
       @extend %flexbox;
       @include align-items(center);

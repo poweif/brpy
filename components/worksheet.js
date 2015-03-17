@@ -93,15 +93,29 @@ var ProjectBar = React.createClass({
         var current = this.props.projects[this.props.currentProject];
         var buttons = [];
         if (this.props.projects && this.props.projects.length > 1) {
-            buttons = [{text: "switch to project", hr: true}];
+            buttons = [{text: "other projects", hr: true}];
             buttons = buttons.concat(
                 this.props.projects.map(function(proj) {
                     if (proj == current)
                         return null;
                     var projectClick = function() {
+                        if (that.refs.menu)
+                            that.refs.menu.hide();
                         return that.props.onProjectClick(proj);
                     };
-                    return {text: proj, click: projectClick};
+                    var importBlock = function() {
+                        if (that.refs.menu)
+                            that.refs.menu.hide();
+                        return that.props.onImportBlock(proj);
+                    };
+
+                    var items = [
+                      {text: 'switch to', icon: 'play109' ,
+                       click: projectClick},
+                      {text: 'import block', icon: 'download164',
+                       click: importBlock}
+                    ];
+                    return {text: proj, items: items};
                 })
             );
         }
@@ -115,7 +129,8 @@ var ProjectBar = React.createClass({
         ]);
 
         return (
-            <ButtonMenu center large text={current} items={buttons}/>
+            <ButtonMenu ref="menu" center large text={current}
+                items={buttons}/>
         );
     }
 });
@@ -170,7 +185,7 @@ var HeaderBar = React.createClass({
         } else {
             var text = "login";
             var items = [
-                {text: "just login", link: "/login", icon: "round58"},
+                {text: "just login", link: "/login", icon: "person325"},
                 {text: "copy to user", click: that.props.onProjectExport,
                  icon: "upload119"}
             ];
@@ -315,7 +330,7 @@ var Worksheet = React.createClass({
             });
         });
         var proj = {
-            "name": proj + '-' + SKG.util.makeId(7),
+            "name": proj + '-' + SKG.util.makeId(7).toLowerCase(),
             "json": projData,
             "files": files
         };
@@ -362,6 +377,79 @@ var Worksheet = React.createClass({
         };
 
         SKG.newProject(projName, onNewProjectDone);
+    },
+    onImportBlock: function(aProj, bProj) {
+        var that = this;
+        this.openWorkingDialog();
+
+        var onLoadProject = function(text) {
+            var bBlocks = JSON.parse(text);
+
+            var rand = SKG.util.makeId(5).toLowerCase();
+            var genFileName = function(fnameExt) {
+                var fileName = SKG.util.getFileName(fnameExt);
+                var fileExt = SKG.util.getFileExt(fnameExt);
+                return fileName + '-' + rand + '.' + fileExt;
+            };
+
+            var onOk = function(ind) {
+                var bBlock = bBlocks[ind];
+                var aSrcTexts = SKG.util.softCopy(that.state.srcTexts);
+                var aBlockName = bBlock.name + '-' + rand;
+                var bFiles = bBlock[SKG_BLOCK_SRC].map(function(file) {
+                    return file[SKG_FILE_NAME];
+                });
+
+                var aBlocks = SKG.util.softCopy(that.state.blocks);
+                aBlocks.unshift(aBlockName);
+
+                var aBlock = SKG.util.deepCopy(bBlock);
+                var aBlockSrcs = [];
+                bBlock[SKG_BLOCK_SRC].forEach(function(file) {
+                    var nfile = SKG.util.softCopy(file);
+                    var fileNameExt = nfile[SKG_FILE_NAME];
+                    var fileExt = SKG.util.getFileExt(fileNameExt);
+                    if (fileExt == 'bk') return;
+                    nfile[SKG_FILE_NAME] = genFileName(fileNameExt);
+                    aBlockSrcs.push(nfile);
+                });
+                aBlock[SKG_BLOCK_SRC] = aBlockSrcs;
+                var aBlockContent = SKG.util.softCopy(that.state.blockContent);
+                aBlockContent[aBlockName] = aBlock;
+
+                var readFile = function(i) {
+                    if (i == bFiles.length) {
+                        that.updateProject(
+                            aProj, aBlocks, aBlockContent,
+                            function () {
+                                that.closeDialog();
+                                that.setState({srcTexts: aSrcTexts});
+                            });
+                        return;
+                    }
+                    var bFileNameExt = bFiles[i];
+                    var next = function(text) {
+                        var fileExt = SKG.util.getFileExt(bFileNameExt);
+                        if (fileExt == 'bk') return;
+                        var aFileName = genFileName(bFileNameExt);
+                        aSrcTexts[aFileName] = text;
+                        SKG.writeSrcFile(
+                            aProj, aFileName, text,
+                            function() { readFile(i + 1); });
+                    };
+                    SKG.readSrcFile(bProj, bFileNameExt, next);
+                };
+                readFile(0);
+                that.closeDialog();
+            };
+
+            var bBlockNames = bBlocks.map(function(block) {
+                return block[SKG_BLOCK_NAME];
+            });
+            that.openChoicesDialog(bBlockNames, 'Choose a block to import:', onOk);
+        };
+
+        SKG.readProject(bProj, onLoadProject);
     },
     updateProject: function(projName, blocks, blockContent, onOk, onFail,
                             holdWrite) {
@@ -532,7 +620,7 @@ var Worksheet = React.createClass({
     deleteBlock: function(proj, block, onOk, onFail) {
         var ind = SKG.util.indexOf(this.state.blocks, block);
         var blocks = SKG.util.deepCopy(this.state.blocks);
-        var blockContent = SKG.util.softCopy(this.state.blockContent);
+        var blockContent = SKG.util.deepCopy(this.state.blockContent);
         var srcTexts = SKG.util.deepCopy(this.state.srcTexts);
         var contentPaneDoms = this.state.contentPaneDoms;
         blockContent[block][SKG_BLOCK_SRC].forEach(function(file) {
@@ -541,7 +629,6 @@ var Worksheet = React.createClass({
                 delete srcTexts[fileName];
         });
 
-        var ncontent = {};
         var that = this;
         blocks.forEach(function(block) {
             var nfiles = [];
@@ -549,15 +636,15 @@ var Worksheet = React.createClass({
                 var fileName = file[SKG_FILE_NAME];
                 var ext = SKG.util.getFileExt(fileName);
                 var name = SKG.util.getFileName(fileName);
-                if (ext == 'bk' && name == oldBlock)
+                if (ext == 'bk' && name == block)
                     return;
                 nfiles.push(file);
             });
-            ncontent[block] =
-                that.replaceInBlock(block, SKG.d(SKG_BLOCK_SRC, nfiles).o());
+            blockContent = that.replaceInBlock(
+                block, SKG.d(SKG_BLOCK_SRC, nfiles).o(), blockContent);
         });
 
-        delete ncontent[block];
+        delete blockContent[block];
         blocks.splice(ind, 1);
         delete contentPaneDoms[block];
 
@@ -571,7 +658,7 @@ var Worksheet = React.createClass({
             if (onOk) onOk();
         };
 
-        this.updateProject(proj, blocks, ncontent, onOkInner, onFail);
+        this.updateProject(proj, blocks, blockContent, onOkInner, onFail);
     },
     onFileDelete: function(proj, block, fname) {
         var that = this;
@@ -614,7 +701,7 @@ var Worksheet = React.createClass({
 
             if (nfiles.length == 0) {
                 successFile = function() {
-                    that.deleteBlock(proj, block, null, failed);
+                    that.deleteBlock(proj, block, that.closeDialog, failed);
                 };
             }
 
@@ -1111,6 +1198,7 @@ var Worksheet = React.createClass({
         }.bind(this));
 
         var projExport = this.onProjectExport.bind(this, proj);
+        var importBlock = this.onImportBlock.bind(this, proj);
 
         return (
            <div className="main-panel">
@@ -1121,7 +1209,8 @@ var Worksheet = React.createClass({
                     onProjectDelete={this.onProjectDelete}
                     onProjectNew={this.onProjectNew}
                     onProjectClick={this.onProjectClick}
-                    onProjectRename={this.onProjectRename} />
+                    onProjectRename={this.onProjectRename}
+                    onImportBlock={importBlock} />
                 <StdoutConsole ref="stdoutConsole"
                     isDialogOpen={this.state.isDialogOpen}/>
                 {blocks}

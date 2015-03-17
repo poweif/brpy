@@ -1,7 +1,8 @@
 var InputDialog = React.createClass({
     getInitialState: function() {
         return {
-            text: null
+            text: null,
+            currentChoice: null
         };
     },
     onTextChanged: function() {
@@ -16,6 +17,11 @@ var InputDialog = React.createClass({
                 text: this.props.text
             });
         }
+        if (this.props.choices) {
+            this.setState({
+                currentChoice: this.props.choices[0]
+            });
+        }
     },
     onTextOk: function() {
         if (!this.props.onOK)
@@ -28,9 +34,9 @@ var InputDialog = React.createClass({
         if (this.props.level)
             dialogWrapperCn += "-" + this.props.level;
 
-        var textInput = null;
+        var input = null;
         if (this.props.text) {
-            textInput = function() {
+            input = function() {
                 return (
                     <input ref="input" type="text" className="text-input"
                         onChange={that.onTextChanged} value={that.state.text}
@@ -38,17 +44,47 @@ var InputDialog = React.createClass({
                 );
             }();
         }
+        var choiceInput = null;
+        if (this.props.choices) {
+            input = null;
+            var items = [];
+            this.props.choices.forEach(function(choice) {
+                if (choice == that.state.currentChoice)
+                    return;
+
+                var click = function() {
+                    that.setState({currentChoice: choice});
+                };
+                items.push({text: choice, click: click});
+            });
+            choiceInput = function() {
+                return (
+                    <ButtonMenu center items={items} addClass="choices-input"
+                        text={that.state.currentChoice} />
+                );
+            }();
+        }
         var okButton = null;
         if (this.props.onOK) {
             var okCallback = this.props.onOK;
-            if (textInput) {
+            if (input) {
                 okCallback = function() {
                     that.props.onOK(that.state.text);
                 };
             }
+
+            if (choiceInput) {
+                okCallback = function() {
+                    var i = SKG.util.indexOf(
+                        that.props.choices, that.state.currentChoice);
+                    that.props.onOK(i);
+                };
+            }
+
             okButton = function() {
                 return (
-                    <span className="button" onClick={okCallback}>OK</span>
+                    <Button addClass="binary-button" click={okCallback}
+                        text="Ok" />
                 );
             }();
         }
@@ -56,9 +92,8 @@ var InputDialog = React.createClass({
         if (this.props.onCancel) {
             cancelButton = function() {
                 return (
-                    <span className="button" onClick={that.props.onCancel}>
-                        Cancel
-                    </span>
+                    <Button addClass="button" click={that.props.onCancel}
+                        text="Cancel" />
                 );
             }();
         }
@@ -70,7 +105,8 @@ var InputDialog = React.createClass({
                 <div className="dialog-bg" onClick={defaultAction}></div>
                 <div className="dialog">
                     <div className="prompt">{this.props.prompt}</div>
-                    {textInput}
+                    {input}
+                    {choiceInput}
                     <div className="bottom">
                         {okButton}
                         {cancelButton}
@@ -84,22 +120,27 @@ var InputDialog = React.createClass({
 var DialogMixins = function(setDialogOpen) {
     return {
         openTextDialog: function(text, prompt, onOK) {
-            SKG.openDialog(text, prompt, onOK, this.closeDialog);
+            SKG.openDialog(text, null, prompt, onOK, this.closeDialog);
             if (setDialogOpen)
                 setDialogOpen.bind(this)(true);
         },
         openPromptDialog: function(prompt) {
-            SKG.openDialog(null, prompt, this.closeDialog, null);
+            SKG.openDialog(null, null, prompt, this.closeDialog, null);
             if (setDialogOpen)
                 setDialogOpen.bind(this)(true);
         },
         openBinaryDialog: function(prompt, onOK) {
-            SKG.openDialog(null, prompt, onOK, this.closeDialog);
+            SKG.openDialog(null, null, prompt, onOK, this.closeDialog);
+            if (setDialogOpen)
+                setDialogOpen.bind(this)(true);
+        },
+        openChoicesDialog: function(choices, prompt, onOK) {
+            SKG.openDialog(null, choices, prompt, onOK, this.closeDialog);
             if (setDialogOpen)
                 setDialogOpen.bind(this)(true);
         },
         openWorkingDialog: function() {
-            SKG.openDialog(null, "Working...", null, null);
+            SKG.openDialog(null, null, "Working...", null, null);
             if (setDialogOpen)
                 setDialogOpen.bind(this)(true);
         },

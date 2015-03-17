@@ -109,7 +109,8 @@ class SkSolution():
             solution = json.loads(solution_json)
             yield self.create_project(solution['projects'][0])
             raise gen.Return(solution)
-        elif solution_file_id is not None:
+
+        if solution_file_id is not None:
             solution = json.loads(
                 (yield self._read_text_file_impl(solution_file_id)))
             raise gen.Return(solution)
@@ -404,7 +405,7 @@ class DevSkSolution(SkSolution):
     def _delete_file_impl(self, parent_path, file_name):
         if self._read_only: raise gen.Return({})
 
-        file_path = self._find_file_id(parent_path, file_name)
+        file_path = yield self._find_file_id(parent_path, file_name)
         if file_path is None:
             raise gen.Return(None)
         if os.path.isfile(file_path):
@@ -519,7 +520,7 @@ class HierarchicalSkSolution(SkSolution):
 
     @gen.coroutine
     def read_solution(self, create=True):
-        l1_res = yield self._l1.read_solution(False)
+        l1_res = yield self._l1.read_solution(create=False)
         if l1_res is not None:
             raise gen.Return(l1_res)
 

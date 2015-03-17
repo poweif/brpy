@@ -126,9 +126,9 @@ class LoginHandler(AllHandler):
         user_info = get_user_info(cred)
         email = user_info.get('email')
         mongo = MongoDBSkSolution(user=email, db=g_motor_client.test)
-#        gdrive = GdriveSkSolution(cred)
-#        solution = HierarchicalSkSolution(io_loop=_io_loop, l1=mongo, l2=gdrive)
-        solution = mongo
+        gdrive = GdriveSkSolution(cred)
+        solution = HierarchicalSkSolution(io_loop=_io_loop, l1=mongo, l2=gdrive)
+#        solution = mongo
         user_key = state_val
 
         if not user_key in g_session:

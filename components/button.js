@@ -153,6 +153,9 @@ var ButtonMenu =  React.createClass({
             this.click = null;
         }
     },
+    hide: function() {
+        this.setState({hidden: true});
+    },
     render: function() {
         var that = this;
         var mainButton = function() {

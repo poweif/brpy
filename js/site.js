@@ -197,11 +197,11 @@ var SKG = {
         this.util.xhrPost('/run?write=' + filename + '&proj=' + proj,
                           text, onLoad, onFailed);
     },
-    openDialog: function(text, prompt, onOK, onCancel) {
+    openDialog: function(text, choices, prompt, onOK, onCancel) {
         this.closeDialog();
         React.render(
-            <InputDialog text={text} prompt={prompt} onOK={onOK}
-                onCancel={onCancel} />,
+            <InputDialog text={text} choices={choices} prompt={prompt}
+                onOK={onOK} onCancel={onCancel} />,
             document.getElementById('dialog0'));
     },
     closeDialog: function() {
