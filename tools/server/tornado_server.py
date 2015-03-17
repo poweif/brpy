@@ -71,12 +71,36 @@ else:
 
 g_auth = EasyOAuth2(CLIENTSECRETS_LOCATION, SCOPES)
 
+INIT_LOAD_SOLUTION = 'INIT_LOAD_SOLUTION'
+INIT_PORT_PROJECT = 'INIT_PORT_PROJECT'
+SESSION_INFO = 'info'
+SESSION_SOLUTION = 'solution'
+SESSION_IMPORT = 'import'
+
 class AllHandler(tornado.web.RequestHandler):
     def argshort(self, a, default=None):
         return self.get_argument(a, default=default)
 
     def get_current_user(self):
         return self.get_cookie(BRPY_SESSION_KEY)
+
+    def _get_solution(self):
+        user = self.current_user
+        if user is not None and not user in g_session:
+            self.clear_cookie(BRPY_SESSION_KEY)
+            return _pub_solution
+        return _pub_solution if user is None\
+            else g_session[user][SESSION_SOLUTION]
+
+class ExportHandler(AllHandler):
+    @gen.coroutine
+    def post(self):
+        user_key = get_random_state()
+        g_session[user_key] = {
+            SESSION_IMPORT: self.request.body
+        }
+        self.write(user_key)
+        return
 
 class LoginHandler(AllHandler):
     @gen.coroutine
@@ -88,26 +112,30 @@ class LoginHandler(AllHandler):
         error_val = self.argshort('error')
         code_val = self.argshort('code')
         state_val = self.argshort('state')
+        tid = self.argshort('tid')
+        if tid is None:
+            tid = get_random_state()
 
         if error_val is not None or code_val is None or state_val is None:
-            new_url = g_auth.get_authorization_url(POST_LOGIN_URI, get_random_state())
+            new_url = g_auth.get_authorization_url(POST_LOGIN_URI, tid)
             return self.redirect(new_url)
 
-        cred = g_auth.get_credentials(code_val, state=None, redirect_uri=POST_LOGIN_URI)
+
+        cred = g_auth.get_credentials(
+            code_val, state=None, redirect_uri=POST_LOGIN_URI)
         user_info = get_user_info(cred)
         email = user_info.get('email')
         mongo = MongoDBSkSolution(user=email, db=g_motor_client.test)
-        gdrive = GdriveSkSolution(cred)
-        solution = HierarchicalSkSolution(io_loop=_io_loop, l1=mongo, l2=gdrive)
+#        gdrive = GdriveSkSolution(cred)
+#        solution = HierarchicalSkSolution(io_loop=_io_loop, l1=mongo, l2=gdrive)
+        solution = mongo
         user_key = state_val
 
-        proj_port_data = self.argshort('port')
+        if not user_key in g_session:
+            g_session[user_key] = {}
 
-        g_session[user_key] = {
-            'info': user_info,
-            'solution': solution,
-            'port': proj_port_data
-        }
+        g_session[user_key][SESSION_INFO]= user_info
+        g_session[user_key][SESSION_SOLUTION]= solution
         self.set_cookie(BRPY_SESSION_KEY, user_key)
         return self.redirect('/')
 
@@ -130,32 +158,37 @@ class UserInfoHandler(AllHandler):
             return
 
         if user is not None:
-            self.write(json.dumps(g_session[user]['info']))
+            self.write(json.dumps(g_session[user][SESSION_INFO]))
             self.finish()
             return
         self.send_error()
 
 INIT_LOAD_SOLUTION = 'INIT_LOAD_SOLUTION'
-INIT_PORT_PROJECT = 'INIT_PORT_PROJECT'
+INIT_IMPORT_PROJECT = 'INIT_IMPORT_PROJECT'
 
 class RunHandler(AllHandler):
-    def _get_solution(self):
+    def _get_import_data(self):
         user = self.current_user
-        if user is not None and not user in g_session:
-            self.clear_cookie(BRPY_SESSION_KEY)
-            return _pub_solution
-        return _pub_solution if user is None else g_session[user]['solution']
+        if user is None or not user in g_session\
+           or not SESSION_IMPORT in g_session[user]:
+            return None
+        return g_session[user][SESSION_IMPORT]
+    def _clear_import_data(self):
+        user = self.current_user
+        if user is None or not user in g_session\
+           or not SESSION_IMPORT in g_session[user]:
+            return None
+        del g_session[user][SESSION_IMPORT]
 
     @gen.coroutine
     def get(self):
         user = self.current_user
         solution = self._get_solution()
         if self.argshort('init', default=ERR_PARAM) != ERR_PARAM:
-            if user is None:
-                self.write(sol)
+            if user is None or self._get_import_data() is None:
+                self.write(INIT_LOAD_SOLUTION)
             else:
-                pass
-
+                self.write(INIT_IMPORT_PROJECT)
             self.finish()
             return
 
@@ -166,6 +199,13 @@ class RunHandler(AllHandler):
                 self.write(sol)
                 self.finish()
                 return
+
+        if self.argshort('import-proj', default=ERR_PARAM) != ERR_PARAM:
+            res = self._get_import_data()
+            self.write(res)
+            self._clear_import_data()
+            self.finish()
+            return
 
         proj = self.argshort('read-proj')
         if proj is not None:
@@ -255,6 +295,7 @@ class IndexHandler(tornado.web.RequestHandler):
 
 if __name__ == "__main__":
     app = tornado.web.Application([
+        (r"/export", ExportHandler),
         (r"/login", LoginHandler),
         (r"/logout", LogoutHandler),
         (r"/run", RunHandler),

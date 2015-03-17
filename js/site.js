@@ -146,8 +146,17 @@ var SKG = {
     readSolution: function(onLoad, onFailed) {
         this.util.xhrGet('/run?solution', onLoad, onFailed);
     },
+    exportProject: function(proj, onLoad, onFailed) {
+        var data = JSON.stringify(proj);
+        this.util.xhrPost('/export', data, onLoad, onFailed);
+    },
+    importProject: function(onLoad, onFailed) {
+        this.util.xhrGet('/run?import-proj', onLoad, onFailed);
+    },
+    init: function(onLoad, onFailed) {
+        this.util.xhrGet('/run?init', onLoad, onFailed);
+    },
     updateSolution: function(solData, onLoad, onFailed) {
-        console.log('update solution -----------------');
         var solDataStr = JSON.stringify(solData)
         this.util.xhrPost(
             '/run?update-solution', solDataStr, onLoad, onFailed);
@@ -220,6 +229,8 @@ var SKG = {
     SKG_SOLUTION_CURRENT_PROJECT = 'currentProject';
     SKG_DEEP_COPY = SKG.util.deepCopy;
     SKG_SOFT_COPY = SKG.util.softCopy;
+    SKG_INIT_LOAD_SOLUTION = 'INIT_LOAD_SOLUTION';
+    SKG_INIT_IMPORT_PROJECT = 'INIT_IMPORT_PROJECT';
 
     window.addEventListener("beforeunload", function (e) {
         var confirmation = "Did you save? Are you sure you'd like to quit?"

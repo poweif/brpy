@@ -171,7 +171,8 @@ var HeaderBar = React.createClass({
             var text = "login";
             var items = [
                 {text: "just login", link: "/login", icon: "round58"},
-                {text: "copy project & login", icon: "upload119"}
+                {text: "copy to user", click: that.props.onProjectExport,
+                 icon: "upload119"}
             ];
             button = function() {
                 return (
@@ -293,7 +294,7 @@ var Worksheet = React.createClass({
         };
         this.openBinaryDialog("Delete project?", ok);
     },
-    onProjectCopyToUser: function(proj) {
+    onProjectExport: function(proj) {
         var that = this;
         var blocks = this.state.blocks;
         var blockContent = this.state.blockContent;
@@ -306,27 +307,64 @@ var Worksheet = React.createClass({
         var files = [];
         blocks.forEach(function(block) {
             blockContent[block][SKG_BLOCK_SRC].forEach(function(file) {
+                var fileName = file[SKG_FILE_NAME];
                 files.push(
-                    {"name": file[SKG_FILE_NAME],
-                     "text": srcTexts[SKG_FILE_NAME]}
+                    {"name": fileName,
+                     "text": srcTexts[fileName]}
                 );
             });
         });
-
-        var projOut = {
-            "name": proj + SKG.util.makeId(7),
+        var proj = {
+            "name": proj + '-' + SKG.util.makeId(7),
             "json": projData,
             "files": files
         };
-/*
-        if (!holdWrite) {
-            SKG.writeProject(projName, projData, outerOk, onFail);
-        } else {
-            outerOk();
+        // Will redirect to login.
+        var done = function(v) {
+            window.location.href = "/login?tid=" + v;
         }
-*/
+        SKG.exportProject(proj, done);
     },
-    updateProject: function(projName, blocks, blockContent, onOk, onFail, holdWrite) {
+    onProjectImport: function(text) {
+        var proj = JSON.parse(text);
+        var projName = proj['name'];
+        var projJson = proj['json'];
+        var files = proj['files'];
+        var that = this;
+
+        var onSolutionRead = function(text) {
+            var sol = JSON.parse(text);
+            sol.projects.push(projName);
+            sol.currentProject = sol.projects.length -1;
+            that.updateSolution(
+                SKG.d(SKG_SOLUTION_CURRENT_PROJECT, sol.currentProject)
+                    .i(SKG_SOLUTION_PROJECTS, sol.projects).o());
+        };
+
+        var onWriteProjectDone = function() {
+            var writeFile = function(i) {
+                if (i == files.length) {
+                    SKG.readSolution(onSolutionRead);
+                    return;
+                }
+
+                var next = writeFile.bind(that, i + 1);
+                SKG.writeSrcFile(projName, files[i].name, files[i].text,
+                                 next, next);
+            };
+            writeFile(0);
+        };
+        var onNewProjectDone = function() {
+            // TODO
+            // There's a bug here because a new default source file is generated
+            // on every new project.  It needs to be deleted.
+            SKG.writeProject(projName, projJson, onWriteProjectDone);
+        };
+
+        SKG.newProject(projName, onNewProjectDone);
+    },
+    updateProject: function(projName, blocks, blockContent, onOk, onFail,
+                            holdWrite) {
         var that = this;
         if (!blocks)
             blocks = this.state.blocks;
@@ -948,6 +986,13 @@ var Worksheet = React.createClass({
             SKG.d(SKG_SOLUTION_PROJECTS, solution.projects)
                 .i(SKG_SOLUTION_CURRENT_PROJECT, solution.currentProject).o());
     },
+    onInit: function(code) {
+        if (code == SKG_INIT_LOAD_SOLUTION) {
+            SKG.readSolution(this.onLoadSolution);
+        } else if (code == SKG_INIT_IMPORT_PROJECT) {
+            SKG.importProject(this.onProjectImport, failed);
+        }
+    },
     componentDidUpdate: function(prevProps, prevState) {
         if (prevState.currentProject != this.state.currentProject &&
             this.state.projects) {
@@ -961,15 +1006,15 @@ var Worksheet = React.createClass({
                 contentPaneDoms: {}
             });
 
-            SKG.readProject(
-                project, this.onLoadProject.bind(this, project));
+            SKG.readProject(project, this.onLoadProject.bind(this, project));
         }
     },
     componentDidMount: function() {
-        SKG.readSolution(this.onLoadSolution);
+        SKG.init(this.onInit);
 
         var that = this;
         var onLoad = function(userInfo) {
+            if (!userInfo) return;
             var info = JSON.parse(userInfo);
             that.setState({user: info['email']});
         };
@@ -1063,9 +1108,12 @@ var Worksheet = React.createClass({
             );
         }.bind(this));
 
+        var projExport = this.onProjectExport.bind(this, proj);
+
         return (
            <div className="main-panel">
-                <HeaderBar user={this.state.user} />
+                <HeaderBar user={this.state.user}
+                    onProjectExport={projExport} />
                 <ProjectBar projects={this.state.projects}
                     currentProject={this.state.currentProject}
                     onProjectDelete={this.onProjectDelete}
