@@ -1,4 +1,5 @@
 var ContentPane = React.createClass({
+    height: 0,
     mountContentDoms: function() {
         if (!this.props.contentDoms || this.props.contentDoms.length == 0)
             return;
@@ -7,9 +8,14 @@ var ContentPane = React.createClass({
         while(wrapper.hasChildNodes()) {
             wrapper.removeChild(wrapper.firstChild);
         }
+        this.height = 0;
+        var that = this;
         this.props.contentDoms.forEach(function(elem) {
             wrapper.appendChild(elem);
+            that.height += SKG.util.fullElementHeight(elem);
         });
+        this.height += 20;
+        this.height += 30 * (this.props.contentDoms.length);
     },
     componentDidUpdate: function(prevProps, prevState) {
         if (prevProps.contentDoms !== this.props.contentDoms)
@@ -19,7 +25,9 @@ var ContentPane = React.createClass({
         this.mountContentDoms();
     },
     maxHeight: function() {
-        return SKG.util.fullElementHeight(this.getDOMNode());
+        //        return SKG.util.fullElementHeight(this.refs.main.getDOMNode());
+        //        console.log(this.height);
+        return this.height;
     },
     render: function() {
         return (

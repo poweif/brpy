@@ -9,9 +9,7 @@ $ahref-color: $prime-color;
 
 a, .ahref {
   @extend .clickable;
-  display: inline;
-  color: $ahref-color;
-  font-weight: 600;
+  color: $color-0;
   text-decoration: none;
 }
 

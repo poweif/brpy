@@ -86,11 +86,8 @@ $line-width: 2px;
       border-width: $line-width;
     }
     .content-pane {
-      @extend %flexbox;
-      @include flex-direction(column);
-      @include align-items(stretch);
       @include flex(auto);
-      @include align-self(flex-start);
+      overflow: auto;
     }
   }
 }

@@ -5,7 +5,7 @@ kd("""
 ## Title ##
 
 This is how you would write $c = \\frac{1}{2}$.
-I'll remember this ok?
+I'll remember this ok? why think more than it is necessary?
 
 - $a=b$
 - $b=1$
@@ -16,8 +16,9 @@ I'll remember this ok?
 """) 
 
 kd("""
+#hello world!#
+#hello world!#
+#hello world!#
 
-## Adachi from the hospital ##
 
-""") 
-
+""")
