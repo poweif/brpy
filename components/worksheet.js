@@ -981,6 +981,8 @@ var Worksheet = React.createClass({
             Sk.importMainWithMultipleFiles(false, progs);
         } catch (e) {
             console.log("python[ERROR]> " + e.toString());
+            if (e.stack)
+                console.log(e.stack);
         }
 
         var ndoms = Sk.progdomIds().map(function(elem) { return elem.dom; });

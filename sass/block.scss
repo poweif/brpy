@@ -34,7 +34,6 @@ $line-width: 2px;
     @include flex-shrink(0);
 
     margin: 5px 0;
-//    z-index: -1;
 
     .separator-line-wrapper {
       @extend %flexbox;
@@ -105,6 +104,7 @@ $line-width: 2px;
   @include flex-direction(column);
   @include align-items(stretch);
   overflow: hidden;
+  @include flex-shrink(0);
 
   .editor-file-row {
     @extend %flexbox;
