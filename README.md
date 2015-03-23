@@ -1,12 +1,12 @@
 # brpy #
-brpy (pronounced "burpy") is a browser-side interactive python client that stresses edit-as-you-go rapid-prototyping. The long term goal of the project is to provide a [mathematica](http://www.wolfram.com/mathematica/)-like environment that will enable applied math enthusiasts and engineers to express their ideas and collaborate on projects.
+brpy (pronounced "burpy") is a browser-side interactive python client that stresses edit-as-you-go rapid-prototyping. The long term goal of the project is to provide a [Mathematica](http://www.wolfram.com/mathematica/)-like environment where applied math enthusiasts and engineers can express their ideas and collaborate on projects.
 
 brpy is built on a fork/branch of [skulpt](https://github.com/skulpt/skulpt).
 
 ## Outline ##
 This project is roughly divided into three parts:
 
-1. Modification to skulpt
+1. Modification to [skulpt](http://www.skulpt.org/)
    - Added a few modules (webgl, [threejs](http://threejs.org/) math)
    - Patched missing language feature (inheritance)
    - Associated dom elements to python-code evaluation
@@ -16,8 +16,8 @@ This project is roughly divided into three parts:
    - [Tornado](http://www.tornadoweb.org/en/stable/)
    - Cache-level file-saving
      - 1st level is [mongoDB](http://www.mongodb.org) for fast access
-     - 2nd level is the user's Google Drive or the server-side disk.
-     - Also allow save-to-disk for developers.
+     - 2nd level is the user's Google Drive or the server-side disk
+     - Allow developers save-to-disk
 
 3. Client-side
    - [react](http://reactjs.org/) as the component framework
@@ -44,11 +44,11 @@ This project is roughly divided into three parts:
 ```
 pip install simplejson google-api-python-client tornado motor watchdog
 ```
-- Clone and run the forked skulpt (in the root project dir.):
+- Clone the forked skulpt (in the brpy root dir.):
 ```
 git clone https://github.com/poweif/skulpt.git
 ```
-- `sass` can be installed by following [these instructions](http://www.sass-lang.com/install).
+- [Sass installation](http://www.sass-lang.com/install).
 
 #### Enable save to user's gDrive ####
 - [mongoDB installation](http://docs.mongodb.org/manual/installation/)
@@ -69,8 +69,7 @@ git clone https://github.com/poweif/skulpt.git
 ## Running the server ##
 - Run script in `skulpt` to generate skulpt javascript library. If you're developing the forked skulpt, then `watch.py` is useful as it will watch for changes and update the resulting lib. Otherwise, just run it once and stop it with `Ctrl-C`.
 ```
-cd skulpt
-python tmp/watch.py ../js
+python ./skulpt/tmp/watch.py ./js
 ```
 - Run sass to generate css files. This can also be terminated with `Ctrl-C` if you will not be changing the sass files.
 ```
@@ -79,7 +78,7 @@ python tmp/watch.py ../js
 
 - Make sure the Google API Client ID file is present as `./tools/files/client_secret.json`
 
-- Run the server
+- Run the server (terminate with `Ctrl-C`)
 ```
 python tools/server/tornado_server.py
 ```
