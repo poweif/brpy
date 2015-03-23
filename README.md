@@ -10,7 +10,7 @@ This project is roughly divided into three parts:
    - Added a few modules (webgl, [threejs](http://threejs.org/) math)
    - Patched missing language feature (inheritance)
    - Associated dom elements to python-code evaluation
-   - Allow for [KaTeX](https://github.com/Khan/KaTeX) and [kramdown](http://kramdown.gettalong.org/)
+   - Allow for [KaTeX](https://github.com/Khan/KaTeX) and [kramdown](http://kramdown.gettalong.org/) ([kramed](https://github.com/GitbookIO/kramed))
 
 2. Server-side
    - [Tornado](http://www.tornadoweb.org/en/stable/)
@@ -21,7 +21,7 @@ This project is roughly divided into three parts:
 
 3. Client-side
    - [react](http://reactjs.org/) as the component framework
-   - [Codedmirror](https://codemirror.net/)
+   - [Codemirror](https://codemirror.net/)
 
 ## Requirements ##
 - python 2.7

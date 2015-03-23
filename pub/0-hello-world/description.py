@@ -16,12 +16,12 @@ file **main.py**
 
 ### Evaluation ###
 When a source file is changed, the left side of the editor will turn pink. You can
-evaluate the changes by pressing the combination *shift+enter*. As an exercise, you
+evaluate the changes by pressing the combination `shift+enter`. As an exercise, you
 can try changing the content of this file and try reevaluating.
 
 ### Saving the source ###
 The source is saved on every evaluation.  Even if your evaluation produced error,
-the file is still saved. So just use the combination *shift-enter* to save.
+the file is still saved. So just use the combination `shift-enter` to save.
 
 ### Output ###
 
