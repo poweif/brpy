@@ -15,8 +15,8 @@ This project is roughly divided into three parts:
 2. Server-side
    - [Tornado](http://www.tornadoweb.org/en/stable/)
    - Cache-level file-saving
-     - 1st is [mongoDB](http://www.mongodb.org) for fast access
-     - 2nd is the user's Google Drive or the server-side disk.
+     - 1st level is [mongoDB](http://www.mongodb.org) for fast access
+     - 2nd level is the user's Google Drive or the server-side disk.
      - Also allow save-to-disk for developers.
 
 3. Client-side
@@ -26,12 +26,12 @@ This project is roughly divided into three parts:
 ## Requirements ##
 - python 2.7
 - [python pip] (https://pip.pypa.io/en/latest/installing.html)
-- python packages
-  - [simplejson](https://pypi.python.org/pypi/simplejson)
-  - [Google API Client (python)](https://developers.google.com/api-client-library/python/start/installation)
-  - [tornado](https://pypi.python.org/pypi/tornado)
-  - [motor](https://motor.readthedocs.org/en/stable/installation.html)
-  - [watchdog](http://pythonhosted.org/watchdog/installation.html)
+- python packages:
+  [simplejson](https://pypi.python.org/pypi/simplejson),
+  [Google API Client (python)](https://developers.google.com/api-client-library/python/start/installation),
+  [tornado](https://pypi.python.org/pypi/tornado),
+  [motor](https://motor.readthedocs.org/en/stable/installation.html),
+  [watchdog](http://pythonhosted.org/watchdog/installation.html)
 - [sass](http://www.sass-lang.com)
 - [special skulpt fork](https://github.com/poweif/skulpt)
 
@@ -47,25 +47,26 @@ This project is roughly divided into three parts:
 - `sass` can be installed by following [these instructions](http://www.sass-lang.com/install).
 
 #### Save to user's gDrive ####
-- [`mongoDB` installation](http://docs.mongodb.org/manual/installation/)
+- [mongoDB installation](http://docs.mongodb.org/manual/installation/)
 -
 
 ## Running the server ##
-1. Run script in `skulpt` to generate skulpt javascript library
+- Run script in `skulpt` to generate skulpt javascript library
 ```
 cd skulpt
 python tmp/watch.py ../js
 ```
    If you're developing the forked skulpt, then `watch.py` is useful as it will watch for changes and update the resulting lib. Otherwise, just run it once and stop it with `Ctrl-C`.
 
-2. Run sass to generate css files:
+- Run sass to generate css files:
 ```
 ./tool/sass
 ```
 This can also be terminated with `Ctrl-C` if you will not be changing the sass files.
-4. Make sure the Google API Client file is present as `./tools/files/client_secret.json`
 
-3. Run the server
+- Make sure the Google API Client file is present as `./tools/files/client_secret.json`
+
+- Run the server
 ```
 python tools/server/tornado_server.py
 ```
