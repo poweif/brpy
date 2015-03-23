@@ -73,7 +73,7 @@ def reshape(gl, program, vertex_buffer, color_buffer, width, height):
   render(gl, program=program, vertex_buffer=vertex_buffer, color_buffer=color_buffer)
 
 def main():
-  gl, glut = webgl.glutCreateWindow()
+  gl, glut = webgl.glutCreateWindow(300)
   program = gl.createProgram()
   vbo = gl.createBuffer()
   cbo = gl.createBuffer()
@@ -84,7 +84,6 @@ def main():
   def reshape_outer(gl, width, height):
     reshape(gl, program, vbo, cbo, width, height)
 
-  glut.mouseFunc(mouseClick)
   glut.reshapeFunc(reshape_outer)
 
 main()

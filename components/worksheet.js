@@ -409,6 +409,7 @@ var Worksheet = React.createClass({
                     var nfile = SKG.util.softCopy(file);
                     var fileNameExt = nfile[SKG_FILE_NAME];
                     var fileExt = SKG.util.getFileExt(fileNameExt);
+                    console.log(fileExt);
                     if (fileExt == 'bk') return;
                     nfile[SKG_FILE_NAME] = genFileName(fileNameExt);
                     aBlockSrcs.push(nfile);
@@ -428,16 +429,22 @@ var Worksheet = React.createClass({
                         return;
                     }
                     var bFileNameExt = bFiles[i];
+                    var fileExt = SKG.util.getFileExt(bFileNameExt);
                     var next = function(text) {
-                        var fileExt = SKG.util.getFileExt(bFileNameExt);
-                        if (fileExt == 'bk') return;
+                        if (fileExt == 'bk') {
+                            readFile(i + 1);
+                            return;
+                        }
                         var aFileName = genFileName(bFileNameExt);
                         aSrcTexts[aFileName] = text;
                         SKG.writeSrcFile(
                             aProj, aFileName, text,
                             function() { readFile(i + 1); });
                     };
-                    SKG.readSrcFile(bProj, bFileNameExt, next);
+                    if (fileExt != 'bk')
+                        SKG.readSrcFile(bProj, bFileNameExt, next);
+                    else
+                        next();
                 };
                 readFile(0);
                 that.closeDialog();

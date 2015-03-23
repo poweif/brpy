@@ -24,7 +24,7 @@ MOUSE_MODE_NONE = -1
 MOUSE_MODE_ROTATE = 0
 MOUSE_MODE_AXIS = 1
 
-_width = _height = 100
+_width = _height = 350
 
 _mousedown = False
 _prev_rot = quat()
@@ -122,7 +122,7 @@ def setup(gl):
   _mats["model"] = mat4()
   _mats["model_inv_tr"] = mat4()
   _mats["view"] = view_mat = mat4().setPosition(vec3(0, 0, _zoom))
-  _mats["proj"] = proj_mat = mat4().makePerspective(45, 1, .2, 30)
+  _mats["proj"] = proj_mat = mat4().makePerspective(45, 1, .1, 30)
   _mats["view_inv"] = view_mat.clone().inverse()
   _mats["view_proj"] = view_proj_mat = proj_mat.clone().multiply(view_mat)
   _mats["view_proj_inv"] = _mats["view_proj"].clone().inverse()
@@ -136,7 +136,7 @@ def setup(gl):
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
 def render(gl):
-  gl.clearColor(0.98, 0.98, 0.98, 1.0)
+  gl.clearColor(1.0, 1.0, 1.0, 1.0)
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
   matrices = {
@@ -405,7 +405,7 @@ def reshape(gl, width, height):
   render(gl)
 
 def main():
-  gl, glut = webgl.glutCreateWindow()
+  gl, glut = webgl.glutCreateWindow(_width, _height)
   setup(gl)
   render(gl)
   glut.mouseFunc(mouse_clicked)
