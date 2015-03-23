@@ -20,12 +20,12 @@ This project is roughly divided into three parts:
      - Also allow save-to-disk for developers.
 
 3. Client-side
-   - [react](http://reactjs.org/) as the basic framework
+   - [react](http://reactjs.org/) as the component framework
    - [Codedmirror](https://codemirror.net/)
 
 ## Requirements ##
 - python 2.7
-  - [python pip] (https://pip.pypa.io/en/latest/installing.html)
+  - [pip] (https://pip.pypa.io/en/latest/installing.html)
   - packages:
     [simplejson](https://pypi.python.org/pypi/simplejson),
     [tornado](https://pypi.python.org/pypi/tornado),
@@ -41,15 +41,19 @@ This project is roughly divided into three parts:
 
 ## Installation ##
 - For the python packages, you can use `pip` to install them:
-  - `pip install simplejson google-api-python-client tornado motor watchdog`
+```
+pip install simplejson google-api-python-client tornado motor watchdog
+```
 - Clone and run the forked skulpt (in the root project dir.):
-  - `git clone https://github.com/poweif/skulpt.git`
+```
+git clone https://github.com/poweif/skulpt.git
+```
 - `sass` can be installed by following [these instructions](http://www.sass-lang.com/install).
 
 #### Enable save to user's gDrive ####
 - [mongoDB installation](http://docs.mongodb.org/manual/installation/)
 - Google API
-  - Go to the Google API console
+  - Go to the [Google API console](https://console.developers.google.com/project)
   - Create a new project, give it a name
   - After you've selected the project, (on the left-hand side) go to `API & auth` -> `APIs`
   - Make sure the following APIs are enabled:
@@ -59,24 +63,21 @@ This project is roughly divided into three parts:
     - Choose 'Service account` and `JSON key`
     - Click `Create Client ID`
     - `Download JSON` for the Client ID you just created
-  - Rename the client file into `client_secret.json`
-  - Move `client_scret.json` to `./tools/files/`
+  - Rename the client ID file to `client_secret.json`
+  - Move `client_secret.json` to `./tools/files/`
 
 ## Running the server ##
-- Run script in `skulpt` to generate skulpt javascript library
+- Run script in `skulpt` to generate skulpt javascript library. If you're developing the forked skulpt, then `watch.py` is useful as it will watch for changes and update the resulting lib. Otherwise, just run it once and stop it with `Ctrl-C`.
 ```
 cd skulpt
 python tmp/watch.py ../js
 ```
-   If you're developing the forked skulpt, then `watch.py` is useful as it will watch for changes and update the resulting lib. Otherwise, just run it once and stop it with `Ctrl-C`.
-
-- Run sass to generate css files:
+- Run sass to generate css files. This can also be terminated with `Ctrl-C` if you will not be changing the sass files.
 ```
 ./tool/sass
 ```
-This can also be terminated with `Ctrl-C` if you will not be changing the sass files.
 
-- Make sure the Google API Client file is present as `./tools/files/client_secret.json`
+- Make sure the Google API Client ID file is present as `./tools/files/client_secret.json`
 
 - Run the server
 ```
