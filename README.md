@@ -1,7 +1,7 @@
 # brpy #
 brpy (pronounced "burpy") is a browser-side interactive python client that stresses edit-as-you-go rapid-prototyping. The long term goal of the project is to provide a [mathematica](http://www.wolfram.com/mathematica/)-like environment that will enable applied math enthusiasts and engineers to express their ideas and collaborate on projects.
 
-brpy is built on a branch of [skulpt](https://github.com/skulpt/skulpt).
+brpy is built on a fork/branch of [skulpt](https://github.com/skulpt/skulpt).
 
 ## Outline ##
 This project is roughly divided into three parts:
@@ -10,7 +10,7 @@ This project is roughly divided into three parts:
    - Added a few modules (webgl, [threejs](http://threejs.org/) math)
    - Patched missing language feature (inheritance)
    - Associated dom elements to python-code evaluation
-   - Allow for [KaTeX](https://github.com/Khan/KaTeX] and [kramdown](http://kramdown.gettalong.org/)
+   - Allow for [KaTeX](https://github.com/Khan/KaTeX) and [kramdown](http://kramdown.gettalong.org/)
 
 2. Server-side
    - [Tornado](http://www.tornadoweb.org/en/stable/)
@@ -33,30 +33,39 @@ This project is roughly divided into three parts:
   - [motor](https://motor.readthedocs.org/en/stable/installation.html)
   - [watchdog](http://pythonhosted.org/watchdog/installation.html)
 - [sass](http://www.sass-lang.com)
-- [special skulpt branch](https://github.com/poweif/skulpt)
+- [special skulpt fork](https://github.com/poweif/skulpt)
 
 #### Save to user's gDrive (strongly recommended) ####
 - [mongoDB](http://www.mongodb.org)
-- [Create project in Google's API Console](https://console.developers.google.com/)
+- [Google API](https://console.developers.google.com/)
 
 ## Installation ##
 - For the python packages, you can use `pip` to install them:
   - `pip install simplejson google-api-python-client tornado motor watchdog`
-
+- Clone and run the forked skulpt (in the root project dir.):
+  - `git clone https://github.com/poweif/skulpt.git`
 - `sass` can be installed by following [these instructions](http://www.sass-lang.com/install).
-- Clone the branched skulpt (in the root project dir.):
-  -
+
+#### Save to user's gDrive ####
+- [`mongoDB` installation](http://docs.mongodb.org/manual/installation/)
+-
+
+## Running the server ##
+1. Run script in `skulpt` to generate skulpt javascript library
 ```
-git clone https://github.com/poweif/skulpt.git
 cd skulpt
 python tmp/watch.py ../js
 ```
-  - If you're developing the branched skulpt, then `watch.py` is useful as it will watch for changes and update the resulting js lib. Otherwise, just run it once and stop it with `Ctrl-C'.
+   If you're developing the forked skulpt, then `watch.py` is useful as it will watch for changes and update the resulting lib. Otherwise, just run it once and stop it with `Ctrl-C`.
 
-
-#### Save to user's gDrive ####
-
-First step is to run sass:
+2. Run sass to generate css files:
 ```
 ./tool/sass
+```
+This can also be terminated with `Ctrl-C` if you will not be changing the sass files.
+4. Make sure the Google API Client file is present as `./tools/files/client_secret.json`
+
+3. Run the server
+```
+python tools/server/tornado_server.py
 ```
