@@ -46,7 +46,8 @@ This project is roughly divided into three parts:
 - `sass` can be installed by following [these instructions](http://www.sass-lang.com/install).
 - Clone the branched skulpt (in the root project dir.):
   - `git clone https://github.com/poweif/skulpt.git`
-  - ```cd skulpt
+  - ```
+       cd skulpt
        python tmp/watch.py ../js
     ```
   - If you're developing the branched skulpt, then `watch.py` is useful as it will watch for changes and update the resulting js lib. Otherwise, just run it once and stop it with `Ctrl-C'.
