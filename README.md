@@ -6,7 +6,7 @@ brpy is built on a fork/branch of [skulpt](https://github.com/skulpt/skulpt).
 ## Outline ##
 This project is roughly divided into three parts:
 
-1. Modification to [skulpt](http://www.skulpt.org/)
+1. [Modification to skulpt](https://github.com/poweif/skulpt)
    - Added a few modules (webgl, [threejs](http://threejs.org/) math)
    - Patched missing language feature (inheritance)
    - Associated dom elements to python-code evaluation
@@ -48,7 +48,7 @@ pip install simplejson google-api-python-client tornado motor watchdog
 ```
 git clone https://github.com/poweif/skulpt.git
 ```
-- [Sass installation](http://www.sass-lang.com/install).
+- [Sass installation](http://www.sass-lang.com/install)
 
 #### Enable save to user's gDrive ####
 - [mongoDB installation](http://docs.mongodb.org/manual/installation/)
@@ -82,3 +82,4 @@ python ./skulpt/tmp/watch.py ./js
 ```
 python tools/server/tornado_server.py
 ```
+- Open browser to `http://localhost:8124`

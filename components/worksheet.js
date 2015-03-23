@@ -1148,6 +1148,10 @@ var Worksheet = React.createClass({
             var files = this.state.blockContent[block][SKG_BLOCK_SRC];
             var fileInd =
                 this.state.blockContent[block][SKG_BLOCK_CURRENT_FILE];
+
+            if (fileInd < 0 || fileInd > files.length)
+                return null;
+            
             var fileName = files[fileInd][SKG_FILE_NAME];
             var doms = this.state.contentPaneDoms[block];
             var fileClick = this.onFileClick.bind(this, proj, block);

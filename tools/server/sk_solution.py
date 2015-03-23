@@ -571,7 +571,8 @@ class HierarchicalSkSolution(SkSolution):
         def run():
             self._l2.rename_file(proj, old_name, new_name)
         self._io_loop.call_later(self._DELAY, run)
-        raise gen.Return((yield self._l1.rename_file(proj)))
+        raise gen.Return(
+            (yield self._l1.rename_file(proj, old_name, new_name)))
 
     @gen.coroutine
     def delete_file(self, proj, fname):
