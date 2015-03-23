@@ -7,19 +7,21 @@ brpy is built on a branch of [skulpt](https://github.com/skulpt/skulpt).
 This project is roughly divided into three parts:
 
 1. Modification to skulpt
-   - Added A few modules (webgl, etc)
-   - Patched missing language (inheritance)
+   - Added a few modules (webgl, etc)
+   - Patched missing language feature (inheritance)
    - Associated dom elements to python-code evaluation
-   - Allow for (Katex)[https://github.com/Khan/KaTeX] and (kramdown)[http://kramdown.gettalong.org/]
+   - Allow for [KaTeX](https://github.com/Khan/KaTeX] and (kramdown)[http://kramdown.gettalong.org/)
 
 2. Server-side
-   - Developed cache-level file-saving
-   - The first-level is MongoDB for fast access
-   - The second-level can be user's Google Drive or the server-side disk.
+   - [Tornado](http://www.tornadoweb.org/en/stable/)
+   - Cache-level file-saving
+     - 1st is [mongoDB](http://www.mongodb.org) for fast access
+     - 2nd is the user's Google Drive or the server-side disk.
+     - Also possible hook to saving to disk for developers.
 
 3. Client-side
-   - Used [react](http://reactjs.org/) as the basic framework
-   - (Codedmirror)[https://codemirror.net/]
+   - [react](http://reactjs.org/) as the basic framework
+   - [Codedmirror](https://codemirror.net/)
 
 ## Requirements ##
 - python 2.7
@@ -30,20 +32,23 @@ This project is roughly divided into three parts:
   - [tornado](https://pypi.python.org/pypi/tornado)
   - [motor](https://motor.readthedocs.org/en/stable/installation.html)
   - [watchdog](http://pythonhosted.org/watchdog/installation.html)
-- [sass](http://www.sass-lang.com/install)
+- [sass](http://www.sass-lang.com)
 - [special skulpt branch](https://github.com/poweif/skulpt)
 
 ### Save to user's gDrive (strongly recommended) ###
-- [mongodb](http://www.mongodb.org)
+- [mongoDB](http://www.mongodb.org)
 - [Create project in Google's API Console](https://console.developers.google.com/)
 
 ## Installation ##
-For the python packages, you can use `pip` to install them:
-```
-pip install simplejson google-api-python-client tornado motor watchdog
-```
-
-`sass` can be installed by following the website's instructions.
+- For the python packages, you can use `pip` to install them:
+  ```
+  pip install simplejson google-api-python-client tornado motor watchdog
+  ```
+- `sass` can be installed by following [these instructions](http://www.sass-lang.com/install).
+- Checkout the branched skulpt
+  ```
+  git clone https://github.com/poweif/skulpt.git
+  ```
 
 ### Save to user's gDrive ###
 
