@@ -25,17 +25,17 @@ This project is roughly divided into three parts:
 
 ## Requirements ##
 - python 2.7
-- [python pip] (https://pip.pypa.io/en/latest/installing.html)
-- python packages:
-  [simplejson](https://pypi.python.org/pypi/simplejson),
-  [Google API Client (python)](https://developers.google.com/api-client-library/python/start/installation),
-  [tornado](https://pypi.python.org/pypi/tornado),
-  [motor](https://motor.readthedocs.org/en/stable/installation.html),
-  [watchdog](http://pythonhosted.org/watchdog/installation.html)
+  - [python pip] (https://pip.pypa.io/en/latest/installing.html)
+  - packages:
+    [simplejson](https://pypi.python.org/pypi/simplejson),
+    [tornado](https://pypi.python.org/pypi/tornado),
+    [motor](https://motor.readthedocs.org/en/stable/installation.html),
+    [watchdog](http://pythonhosted.org/watchdog/installation.html),
+    [Google API Client (python)](https://developers.google.com/api-client-library/python/start/installation)
 - [sass](http://www.sass-lang.com)
 - [special skulpt fork](https://github.com/poweif/skulpt)
 
-#### Save to user's gDrive (strongly recommended) ####
+#### Enable save to user's gDrive (strongly recommended) ####
 - [mongoDB](http://www.mongodb.org)
 - [Google API](https://console.developers.google.com/)
 
@@ -46,9 +46,21 @@ This project is roughly divided into three parts:
   - `git clone https://github.com/poweif/skulpt.git`
 - `sass` can be installed by following [these instructions](http://www.sass-lang.com/install).
 
-#### Save to user's gDrive ####
+#### Enable save to user's gDrive ####
 - [mongoDB installation](http://docs.mongodb.org/manual/installation/)
--
+- Google API
+  - Go to the Google API console
+  - Create a new project, give it a name
+  - After you've selected the project, (on the left-hand side) go to `API & auth` -> `APIs`
+  - Make sure the following APIs are enabled:
+    - Drive API
+    - Drive SDK
+  - Go to `API & auth` -> `Credentials` -> `Create Client ID`
+    - Choose 'Service account` and `JSON key`
+    - Click `Create Client ID`
+    - `Download JSON` for the Client ID you just created
+  - Rename the client file into `client_secret.json`
+  - Move `client_scret.json` to `./tools/files/`
 
 ## Running the server ##
 - Run script in `skulpt` to generate skulpt javascript library
