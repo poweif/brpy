@@ -23,8 +23,8 @@ class SkSolution():
     _DEFAULT_PROJ = 'default'
     _PROJ_JSON = 'project.json'
     _MAIN_PY = 'main.py'
-    _SKULPTGL_APP_DIR = 'skulptgl_app_data'
-    _APP_KEY = 'skulptgl_app'
+    _BRPY_APP_DIR = 'brpy_app_data'
+    _APP_KEY = 'brpy_app'
     _ROOT_KEY = 'root'
     _TEXT_MIME = "text/plain"
 
@@ -259,7 +259,7 @@ class GdriveSkSolution(SkSolution):
     @gen.coroutine
     def _app_impl(self):
         iid = yield self._find_file_id_impl(
-            self._root(), self._SKULPTGL_APP_DIR)
+            self._root(), self._BRPY_APP_DIR)
         raise gen.Return(self._add_key(self._APP_KEY, iid))
 
     @gen.coroutine
@@ -343,7 +343,7 @@ class GdriveSkSolution(SkSolution):
         raise gen.Return(None)
 
 class DevSkSolution(SkSolution):
-    """Encapsulation of a Skulptgl Solution for developers"""
+    """Encapsulation of a brpy Solution for developers"""
 
     def __init__(self, root_dir, read_only=False):
         super(DevSkSolution, self).__init__(read_only)
@@ -440,7 +440,7 @@ class MongoDBSkSolution(SkSolution):
 
     @gen.coroutine
     def _app_impl(self):
-        raise gen.Return(self._SKULPTGL_APP_DIR)
+        raise gen.Return(self._BRPY_APP_DIR)
 
     @gen.coroutine
     def _find_file_id_impl(self, parent_id, title):

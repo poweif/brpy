@@ -43,7 +43,7 @@ PORT = 8124
 HOME_URI = 'http://localhost:' + str(PORT)
 POST_LOGIN_URI = HOME_URI + '/login'
 SHOW_URI = HOME_URI + '/show'
-SESSION_KEY = 'skulpt-gl-key'
+SESSION_KEY = 'brpy-gl-key'
 g_session = {}
 
 INDEX_HTML = open(CURRENT_DIR + '/index.html').read()
