@@ -69,7 +69,8 @@ git clone https://github.com/poweif/skulpt.git
 ## Running the server ##
 - Run script in `skulpt` to generate skulpt javascript library. If you're developing the forked skulpt, then `watch.py` is useful as it will watch for changes and update the resulting lib. Otherwise, just run it once and stop it with `Ctrl-C`.
 ```
-python ./skulpt/tmp/watch.py ./js
+cd skulpt
+python ./tmp/watch.py ../js
 ```
 - Run sass to generate css files. This can also be terminated with `Ctrl-C` if you will not be changing the sass files.
 ```
