@@ -129,6 +129,5 @@ def main():
   glut.mouseFunc(mouse_clicked)
   glut.motionFunc(mouse_drag)
   glut.reshapeFunc(reshape)
-  print "done hello!"
 
 main()

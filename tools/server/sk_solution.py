@@ -100,8 +100,9 @@ class SkSolution():
 
     @gen.coroutine
     def read_solution(self, create=True):
+        app_id = yield self._app()
         solution_file_id = yield self._find_file_id(
-            (yield self._app()), self._SOLUTION_JSON)
+            app_id, self._SOLUTION_JSON)
         if solution_file_id is None and create and not self._read_only:
             solution_json = EXAMPLE_SOLUTION_JSON
             yield self._update_text_file_impl(
@@ -246,8 +247,8 @@ def _build_drive_service(credentials):
         http = credentials.authorize(httplib2.Http()))
 
 class GdriveSkSolution(SkSolution):
-    def __init__(self, cred):
-        super(GdriveSkSolution, self).__init__()
+    def __init__(self, cred, read_only=False):
+        super(GdriveSkSolution, self).__init__(read_only=read_only)
         self.__cred = cred
         self.__drive = _build_drive_service(cred)
 
@@ -260,6 +261,11 @@ class GdriveSkSolution(SkSolution):
     def _app_impl(self):
         iid = yield self._find_file_id_impl(
             self._root(), self._BRPY_APP_DIR)
+
+        # Always create when not found
+        if iid is None:
+            iid = yield self._create_folder(self._root(), self._BRPY_APP_DIR)
+
         raise gen.Return(self._add_key(self._APP_KEY, iid))
 
     @gen.coroutine
@@ -346,7 +352,7 @@ class DevSkSolution(SkSolution):
     """Encapsulation of a brpy Solution for developers"""
 
     def __init__(self, root_dir, read_only=False):
-        super(DevSkSolution, self).__init__(read_only)
+        super(DevSkSolution, self).__init__(read_only=read_only)
         self.__root_dir = root_dir
         self.__file_cache = {}
         # The root directory must exist
@@ -430,8 +436,8 @@ class DevSkSolution(SkSolution):
             raise gen.Return(content)
 
 class MongoDBSkSolution(SkSolution):
-    def __init__(self, user, db):
-        super(MongoDBSkSolution, self).__init__()
+    def __init__(self, user, db, read_only=False):
+        super(MongoDBSkSolution, self).__init__(read_only=read_only)
         self.__user = user
         self.__db = db
 

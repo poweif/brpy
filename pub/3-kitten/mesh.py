@@ -128,7 +128,6 @@ class PolyMesh(Mesh):
     return self._flat_norms
 
   def __build_normals(self):
-    print 'building normals'
     vs = self._verts
     norms = [vec3() for _ in range(len(vs))]
     for (a, b, c) in self._tris:
