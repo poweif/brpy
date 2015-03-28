@@ -140,11 +140,12 @@ $console-button-size: 50px;
   @include align-self(stretch);
 
   .title {
+    @extend .product;
     font-size: $button-font-mid + 10;
   }
 
   .login-button {
     margin: 0 0 5px 0;
-    @include align-self(flex-end);
+    @include align-self(center);
   }
 }

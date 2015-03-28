@@ -198,7 +198,14 @@ var HeaderBar = React.createClass({
         }
         return (
             <div className="header-bar">
-                <span className="product title">brpy</span>
+                <Button mid text="brpy" addClass="title" icon="brpy"/>
+                <ProjectBar projects={this.props.projects}
+                    currentProject={this.props.currentProject}
+                    onProjectDelete={this.props.onProjectDelete}
+                    onProjectNew={this.props.onProjectNew}
+                    onProjectClick={this.props.onProjectClick}
+                    onProjectRename={this.props.onProjectRename}
+                    onImportBlock={this.props.onImportBlock} />
                 {button}
             </div>
         );
@@ -1216,8 +1223,8 @@ var Worksheet = React.createClass({
         return (
            <div className="main-panel">
                 <HeaderBar user={this.state.user}
-                    onProjectExport={projExport} />
-                <ProjectBar projects={this.state.projects}
+                    onProjectExport={projExport}
+                    projects={this.state.projects}
                     currentProject={this.state.currentProject}
                     onProjectDelete={this.onProjectDelete}
                     onProjectNew={this.onProjectNew}

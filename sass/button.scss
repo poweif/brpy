@@ -11,6 +11,21 @@
   }
 }
 
+.button-wrapper-large {
+  @extend .button-wrapper;
+  max-height: $button-size-large + 10;
+}
+
+.button-wrapper-mid {
+  @extend .button-wrapper;
+  max-height: $button-size-mid + 10;
+}
+
+.button-wrapper-small {
+  @extend .button-wrapper;
+  max-height: $button-size-small + 10;
+}
+
 $sbr: $std-border-radius;
 
 .button-menu {

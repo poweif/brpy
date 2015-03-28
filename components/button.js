@@ -3,16 +3,20 @@ var Button =  React.createClass({
         var that = this;
         var imgCn = ""
         var textCn = "button-text";
+        var wrapperCn = "button-wrapper";
 
         if (this.props.large) {
             imgCn += " button-large";
             textCn += " font-large";
+            wrapperCn += "-large";
         } else if (this.props.mid) {
             imgCn += " button-mid";
             textCn += " font-mid";
+            wrapperCn += "-mid";
         } else {
             imgCn += " button-small";
             textCn += " font-small";
+            wrapperCn += "-small";
         }
 
         var buttonText = !that.props.text ? null : function() {
@@ -44,15 +48,13 @@ var Button =  React.createClass({
             }
 
             return (
-                <img src={imgSrc} className={nclassName}
-                    onClick={click} />
+                <img src={imgSrc} className={nclassName} onClick={click} />
             );
         }();
 
         if (img && !buttonText)
             return img;
 
-        var wrapperCn = "button-wrapper";
         if (this.props.selected)
             wrapperCn += " button-selected";
 
@@ -165,7 +167,7 @@ var ButtonMenu =  React.createClass({
                     mid={that.props.mid}
                     small={that.props.small}
                     addClass={that.state.hidden ?
-                              "main-button "  + that.props.addClass :
+                              "main-button "  + (that.props.addClass ? that.props.addClass : '') :
                               "main-button"}
                     click={that.onClickMain} text={that.props.text}
                     icon={that.props.icon} />
