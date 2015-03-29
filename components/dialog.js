@@ -124,10 +124,21 @@ var InputDialog = React.createClass({
 });
 
 var LoadingDialog = React.createClass({
+    onFinish: null,
     getInitialState: function() {
         return {};
     },
+    reopen: function() {
+        var finish = this.onFinish;
+        this.getDOMNode().removeEventListener('animationend', finish, false);
+        this.getDOMNode().removeEventListener(
+            'webkitAnimationEnd', finish, false);
+        this.getDOMNode().classList.add('dialog-fade-in');
+        this.getDOMNode().classList.remove('dialog-fade-out');
+        this.onFinish = null;
+    },
     close: function(finish) {
+        this.onFinish = finish;
         this.getDOMNode().addEventListener('animationend', finish, false);
         this.getDOMNode().addEventListener('webkitAnimationEnd', finish, false);
         this.getDOMNode().classList.remove('dialog-fade-in');

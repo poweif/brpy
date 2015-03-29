@@ -205,7 +205,10 @@ var SKG = {
             document.getElementById('dialog0'));
     },
     loadingDialog: function() {
-        this.closeDialog();
+        if (SKG.openedDialog && SKG.openedDialog.reopen) {
+            SKG.openedDialog.reopen();
+            return;
+        }
         SKG.openedDialog = React.render(
             <LoadingDialog />, document.getElementById('dialog0'));
     },
@@ -213,9 +216,7 @@ var SKG = {
         if (!SKG.openedDialog)
             return;
         var onfinish = function() {
-            console.log('finished!!!!!!');
-            React.unmountComponentAtNode(
-                document.getElementById('dialog0'));
+            React.unmountComponentAtNode(document.getElementById('dialog0'));
             SKG.openedDialog = null;
         };
         SKG.openedDialog.close(onfinish);

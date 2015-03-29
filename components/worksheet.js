@@ -376,6 +376,7 @@ var Worksheet = React.createClass({
         SKG.exportProject(proj, done);
     },
     onProjectImport: function(text) {
+        this.openWorkingDialog();
         var proj = JSON.parse(text);
         var projName = proj['name'];
         var projJson = proj['json'];
@@ -394,6 +395,7 @@ var Worksheet = React.createClass({
         var onWriteProjectDone = function() {
             var writeFile = function(i) {
                 if (i == files.length) {
+                    that.closeDialog();
                     SKG.readSolution(onSolutionRead);
                     return;
                 }
