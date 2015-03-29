@@ -39,7 +39,7 @@ void main(void) {
   float diff = dd * .6;
   float amb = .3;
   float spec = pow(max(0., dot(R, V)), spec_coeff) * .35;
-  gl_FragColor = vec4(vec3(.9, .9, .9) * (amb + diff) + vec3(spec), 1);
+  gl_FragColor = vec4(vec3(.70, .8, .95) * (amb + diff) + vec3(spec), 1);
 }
 """
 

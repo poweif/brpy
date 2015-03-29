@@ -59,6 +59,8 @@ var SourceEditor = React.createClass({
         var inputCodeDiffer = this.props.src != prevProps.src;
 
         if (inputCodeDiffer || isNewCdm) {
+            if (!isNewCdm)
+                cdm.getDoc().clearHistory();
             var contentCodeDiffer = this.props.src != this.getContent();
             var code = this.props.src;
             if (code && code != this.getContent()) {

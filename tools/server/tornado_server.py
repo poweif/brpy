@@ -65,9 +65,10 @@ if len(sys.argv) >= 2 and os.access(sys.argv[1], os.F_OK):
     _pub_solution = DevSkSolution(sys.argv[1])
 else:
     g_motor_client.drop_database('test')
-    dev = DevSkSolution(PUB_DIR, read_only=True)
+    read_only = False
+    dev = DevSkSolution(PUB_DIR, read_only=read_only)
     mongo = MongoDBSkSolution(
-        user='brpy_public', db=g_motor_client.test, read_only=True)
+        user='brpy_public', db=g_motor_client.test, read_only=read_only)
     _pub_solution = HierarchicalSkSolution(io_loop=_io_loop, l1=mongo, l2=dev)
 
 g_auth = EasyOAuth2(CLIENTSECRETS_LOCATION, SCOPES)

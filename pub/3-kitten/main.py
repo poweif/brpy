@@ -65,7 +65,7 @@ def render(gl):
     "_view_inv": _mats["view_inv"]
   }
 
-  # draw the subdivided mesh
+  # draw the mesh
   _phong_prog.use().set_uniform_matrices(matrices)
   _mesh_gl.draw(
     vert=_phong_prog.attrib("_pos"), normal=_phong_prog.attrib("_normal"))
@@ -115,19 +115,11 @@ def mouse_drag(gl, x, y):
   update_rot(_arcball.drag(vec3(x, y, 0)).multiply(_prev_rot))
   render(gl)
     
-def reshape(gl, width, height):
-  global _arcball, _width, _height
-  _width, _height = width, height
-  _arcball = ArcBall(width, height)
-  gl.viewport(0, 0, width, height)
-  render(gl)
-
 def main():
   gl, glut = webgl.glutCreateWindow(_width, _height)
   setup(gl)
   render(gl)
   glut.mouseFunc(mouse_clicked)
   glut.motionFunc(mouse_drag)
-  glut.reshapeFunc(reshape)
 
 main()

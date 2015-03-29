@@ -3,7 +3,7 @@ from md import *
 kd("""
 
 # Hello World #
-This is a simple program, intended to be a simple tutorial of *brpy*.
+This is a simple introduction to brpy.
 
 ### Sources and Blocks ###
 The brpy interface is divided into *projects*. For example, this is the 
