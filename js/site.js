@@ -199,13 +199,26 @@ var SKG = {
     },
     openDialog: function(text, choices, prompt, onOK, onCancel) {
         this.closeDialog();
-        React.render(
+        SKG.openedDialog = React.render(
             <InputDialog text={text} choices={choices} prompt={prompt}
                 onOK={onOK} onCancel={onCancel} />,
             document.getElementById('dialog0'));
     },
+    loadingDialog: function() {
+        this.closeDialog();
+        SKG.openedDialog = React.render(
+            <LoadingDialog />, document.getElementById('dialog0'));
+    },
     closeDialog: function() {
-        React.unmountComponentAtNode(document.getElementById('dialog0'));
+        if (!SKG.openedDialog)
+            return;
+        var onfinish = function() {
+            console.log('finished!!!!!!');
+            React.unmountComponentAtNode(
+                document.getElementById('dialog0'));
+            SKG.openedDialog = null;
+        };
+        SKG.openedDialog.close(onfinish);
     },
     builtinRead: function(x) {
         if (Sk.builtinFiles === undefined ||
@@ -237,6 +250,8 @@ var SKG = {
         (e || window.event).returnValue = confirmation;
         return confirmation;
     });
+
+    SKG.openedDialog = null;
 
     SKG.fun = ['albatross', 'amago', 'anis', 'antelope1', 'avocet', 'bandicoot', 'bear13', 'beaver', 'beaver1', 'bird46', 'bird47', 'bird48', 'bird50', 'bird51', 'bird52', 'bird53', 'bird54', 'bird55', 'bird56', 'bird57', 'bird58', 'bird61', 'buffalo1', 'bull8', 'camel1', 'camel2', 'centrosaurus', 'chameleon1', 'cheetah1', 'chinchilla1', 'cow9', 'crocodile1', 'deer2', 'deer3', 'deer4', 'deer5', 'dinosaur13', 'dinosaur4', 'dinosaur8', 'dog58', 'dogfish', 'dolphin', 'domestic', 'elephant6', 'eromangasaurus', 'falcon', 'fish25', 'fish29', 'fish31', 'fish32', 'fish33', 'fish36', 'fish40', 'fish42', 'flamingo3', 'flying14', 'fox1', 'frigatebird', 'frog5', 'gazelle', 'gecko2', 'giraffatitan', 'giraffe3', 'gorgosaurus', 'gull', 'hammerhead', 'hawk', 'hippo2', 'horse176', 'horse177', 'hummingbird', 'humpback', 'hyena', 'iguana', 'kangaroo', 'koala', 'lamb', 'lemur', 'magyarosaurus', 'mamenchisaurus', 'mammal5', 'mammal6', 'mammal7', 'mammut', 'manatee', 'manta', 'monkey2', 'monkey3', 'monoclonius', 'moose2', 'mouse37', 'mouse38', 'opah', 'opossum', 'orca', 'owl13', 'oystercatcher', 'panther', 'parrot', 'pelican', 'pig4', 'pigeon', 'porcupine2', 'prairie', 'pterodactyl', 'puma', 'quail', 'rabbit5', 'racoon1', 'rat2', 'rhino', 'right102', 'running28', 'running29', 'sandpiper', 'sea11', 'seahorse1', 'shark1', 'sheep3', 'snail1', 'squirrel3', 'swallow', 'swift', 'tapir', 'tiger3', 'tropical2', 'turkey6', 'turtle', 'turtle1', 'tyrannosaurus1', 'tyrannosaurus2', 'velociraptor', 'vulture', 'wallaby', 'whale1', 'wild4', 'wombat', 'yellowtail'];
 })();

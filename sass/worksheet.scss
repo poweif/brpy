@@ -138,6 +138,7 @@ $console-button-size: 50px;
   @include flex-direction(row);
   @include justify-content(space-between);
   @include align-self(stretch);
+  @include align-items(center);
 
   .title {
     @extend .product;

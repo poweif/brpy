@@ -104,6 +104,11 @@ $line-width: 2px;
   transition: height $std-duration;
 }
 
+.worksheet-block-backgrounded {
+  @extend .worksheet-block;
+  z-index: -1
+}
+
 .editor-pane {
   @extend %flexbox;
   @include flex-direction(column);
@@ -124,11 +129,6 @@ $line-width: 2px;
       margin: 0 3px;
     }
   }
-}
-
-.editor-pane-backgrounded {
-  @extend .editor-pane;
-  z-index: -1
 }
 
 .block-link-pane {

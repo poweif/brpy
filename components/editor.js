@@ -96,10 +96,9 @@ var SourceEditor = React.createClass({
             propagate: false,
             target: document
         };
-        shortcut.add('Ctrl+S', function() {}, keyMapParams);
     },
     componentWillUnmount: function() {
-        shortcut.remove('Ctrl+S');
+//        shortcut.remove('Ctrl+S');
     },
     save: function() {
         if (this.state.unsaved) {

@@ -202,8 +202,6 @@ var EditorPane = React.createClass({
         };
 
         var editorPaneCn = "editor-pane";
-        if (this.props.isDialogOpen)
-            editorPaneCn += "-backgrounded";
 
         if (!this.props.highlightable)
             editorPaneCn += " unselectable";
@@ -394,6 +392,7 @@ var WorksheetBlock = React.createClass({
     },
     render: function() {
         var that = this;
+
         var blockMenu = function() {
             var items = [];
             if (this.props.onBlockMoveUp)
@@ -445,8 +444,12 @@ var WorksheetBlock = React.createClass({
         var sepUpper = makeSeparator(true);
         var sepLower = makeSeparator(false);
 
+        var worksheetBlockCn = "worksheet-block";
+        if (this.props.isDialogOpen)
+            worksheetBlockCn += "-backgrounded";
+
         return (
-            <div className="worksheet-block">
+            <div className={worksheetBlockCn}>
                 {sepUpper}
                 <div className="block-content">
                     <ContentPane ref="contentPane" resize={this.onContentUpdate}
@@ -470,7 +473,6 @@ var WorksheetBlock = React.createClass({
                         onFileMoveToNewBlock={this.props.onFileMoveToNewBlock}
                         onFileOffsetY={this.props.onFileOffsetY}
                         onBlockLinkAdds={this.props.onBlockLinkAdds}
-                        isDialogOpen={this.props.isDialogOpen}
                         srcTexts={this.props.srcTexts}
                         files={this.props.files}
                         currentFileInd={this.props.currentFileInd} />

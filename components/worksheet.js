@@ -416,7 +416,6 @@ var Worksheet = React.createClass({
                     var nfile = SKG.util.softCopy(file);
                     var fileNameExt = nfile[SKG_FILE_NAME];
                     var fileExt = SKG.util.getFileExt(fileNameExt);
-                    console.log(fileExt);
                     if (fileExt == 'bk') return;
                     nfile[SKG_FILE_NAME] = genFileName(fileNameExt);
                     aBlockSrcs.push(nfile);
@@ -1025,7 +1024,7 @@ var Worksheet = React.createClass({
             function() { console.log("Failed to write " + file); }
         );
     },
-    onLoadProject: function(projectName, text) {
+    onLoadProject: function(projectName, text, onAllDone) {
         var projectBlocks = JSON.parse(text);
         var blocks = [];
         var blockContent = {};
@@ -1071,6 +1070,8 @@ var Worksheet = React.createClass({
             blocks.forEach(function(block) {
                 that.runProg(block);
             });
+            if (onAllDone)
+                onAllDone();
         };
         runq(SKG.util.deepCopy(blocks), readBlock, allDone);
 
@@ -1099,6 +1100,7 @@ var Worksheet = React.createClass({
         }
     },
     componentDidUpdate: function(prevProps, prevState) {
+        var that = this;
         if (prevState.currentProject != this.state.currentProject &&
             this.state.projects) {
             this.refs.stdoutConsole.onClear();
@@ -1110,8 +1112,11 @@ var Worksheet = React.createClass({
                 srcTexts: {},
                 contentPaneDoms: {}
             });
-
-            SKG.readProject(project, this.onLoadProject.bind(this, project));
+            var loadProject = function(text) {
+                that.onLoadProject(project, text, that.closeDialog);
+            };
+            this.openWorkingDialog();
+            SKG.readProject(project, loadProject);
         }
     },
     componentDidMount: function() {

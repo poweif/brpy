@@ -28,9 +28,15 @@ var InputDialog = React.createClass({
             return;
         this.props.onOK(this.state.text);
     },
+    close: function(finish) {
+        this.getDOMNode().addEventListener('animationend', finish, false);
+        this.getDOMNode().addEventListener('webkitAnimationEnd', finish, false);
+        this.getDOMNode().classList.remove('dialog-fade-in');
+        this.getDOMNode().classList.add('dialog-fade-out');
+    },
     render: function() {
         var that = this;
-        var dialogWrapperCn = "dialog-wrapper";
+        var dialogWrapperCn = "dialog-wrapper dialog-fade-in";
         if (this.props.level)
             dialogWrapperCn += "-" + this.props.level;
 
@@ -117,6 +123,30 @@ var InputDialog = React.createClass({
     }
 });
 
+var LoadingDialog = React.createClass({
+    getInitialState: function() {
+        return {};
+    },
+    close: function(finish) {
+        this.getDOMNode().addEventListener('animationend', finish, false);
+        this.getDOMNode().addEventListener('webkitAnimationEnd', finish, false);
+        this.getDOMNode().classList.remove('dialog-fade-in');
+        this.getDOMNode().classList.add('dialog-fade-out');
+    },
+    componentDidMount: function() {},
+    render: function() {
+        var dialogWrapperCn = "dialog-wrapper dialog-fade-in";
+        return (
+            <div className={dialogWrapperCn}>
+                <div className="dialog-bg"></div>
+                <div className="loader-wrapper">
+                    <div className="loader"></div>
+                </div>
+            </div>
+        );
+    }
+});
+
 var DialogMixins = function(setDialogOpen) {
     return {
         openTextDialog: function(text, prompt, onOK) {
@@ -140,7 +170,7 @@ var DialogMixins = function(setDialogOpen) {
                 setDialogOpen.bind(this)(true);
         },
         openWorkingDialog: function() {
-            SKG.openDialog(null, null, "Working...", null, null);
+            SKG.loadingDialog();
             if (setDialogOpen)
                 setDialogOpen.bind(this)(true);
         },
