@@ -10,9 +10,7 @@ var StdoutConsole =  React.createClass({
     toggleConsole: function() {
         this.setState({hidden: !this.state.hidden});
     },
-    write: function(block, s) {
-        if (!s) return;
-
+    timedOpen: function(waitTime) {
         if (this.hideTimeout || this.state.hidden) {
             var that = this;
             clearTimeout(this.hideTimeout);
@@ -20,14 +18,10 @@ var StdoutConsole =  React.createClass({
             this.hideTimeout = setTimeout(function() {
                 that.setState({ hidden: true, autoHide: false });
                 that.hideTimeout = null;
-            }, 4000);
+            }, waitTime);
         }
-
-        var ks = kramed(s);
-        var content = this.state.content;
-        var contentCn = "content ";
-        contentCn += content.length % 2 == 0 ? "content-dark" : "content-light";
-
+    },
+    info: function(block) {
         var time = new Date();
         var hours = time.getHours();
         var mins = time.getMinutes();
@@ -36,7 +30,38 @@ var StdoutConsole =  React.createClass({
             ((hours < 10) ? "0" + hours : hours) + ":" +
             ((mins < 10) ? "0" + mins : mins) + ":" +
             ((secs < 10) ? "0" + secs : secs) + "] > ";
+        return infoStr;
+    },
+    error: function(block, e) {
+        this.timedOpen(8000);
+        var infoStr = this.info(block);
+        var content = this.state.content;
+        var contentCn = "content error"
+        var str = e.toString();
+        content.unshift(function() {
+            return (
+                <div key={content.length} className="single-output">
+                    <div className="info">{infoStr}</div>
+                    <div className={contentCn}>
+                       {str}
+                    </div>
+                </div>
+            );
+        }());
 
+        this.setState({
+            hidden: false,
+            content: content});
+    },
+    write: function(block, s) {
+        if (!s) return;
+
+        this.timedOpen(4000);
+        var infoStr = this.info(block);
+        var ks = kramed(s);
+        var content = this.state.content;
+        var contentCn = "content ";
+        contentCn += content.length % 2 == 0 ? "content-dark" : "content-light";
         content.unshift(function() {
             return (
                 <div key={content.length} className="single-output">
@@ -121,12 +146,14 @@ var ProjectBar = React.createClass({
         }
         var rename = function() { return that.props.onProjectRename(current); };
         var del = function() { return that.props.onProjectDelete(current); };
-        buttons = buttons.concat([
-            {text: "project options", hr: true},
-            {text: "new", click: this.props.onProjectNew, icon: "add186"},
-            {text: "rename", click: rename, icon: "rotate11"},
-            {text: "delete", click: del, icon: "close47"}
-        ]);
+        if (this.props.user) {
+            buttons = buttons.concat([
+                {text: "project options", hr: true},
+                {text: "new", click: this.props.onProjectNew, icon: "add186"},
+                {text: "rename", click: rename, icon: "rotate11"},
+                {text: "delete", click: del, icon: "close47"}
+            ]);
+        }
 
         return (
             <ButtonMenu ref="menu" center large text={current}
@@ -205,7 +232,8 @@ var HeaderBar = React.createClass({
                     onProjectNew={this.props.onProjectNew}
                     onProjectClick={this.props.onProjectClick}
                     onProjectRename={this.props.onProjectRename}
-                    onImportBlock={this.props.onImportBlock} />
+                    onImportBlock={this.props.onImportBlock}
+                    user={this.props.user} />
                 {button}
             </div>
         );
@@ -993,9 +1021,7 @@ var Worksheet = React.createClass({
         try {
             Sk.importMainWithMultipleFiles(false, progs);
         } catch (e) {
-            console.log("python[ERROR]> " + e.toString());
-            if (e.stack)
-                console.log(e.stack);
+            that.refs.stdoutConsole.error(block, e);
         }
 
         var ndoms = Sk.progdomIds().map(function(elem) { return elem.dom; });
@@ -1170,7 +1196,7 @@ var Worksheet = React.createClass({
 
             if (fileInd < 0 || fileInd > files.length)
                 return null;
-            
+
             var fileName = files[fileInd][SKG_FILE_NAME];
             var doms = this.state.contentPaneDoms[block];
             var fileClick = this.onFileClick.bind(this, proj, block);

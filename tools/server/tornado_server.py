@@ -65,7 +65,7 @@ if len(sys.argv) >= 2 and os.access(sys.argv[1], os.F_OK):
     _pub_solution = DevSkSolution(sys.argv[1])
 else:
     g_motor_client.drop_database('test')
-    read_only = False
+    read_only = True
     dev = DevSkSolution(PUB_DIR, read_only=read_only)
     mongo = MongoDBSkSolution(
         user='brpy_public', db=g_motor_client.test, read_only=read_only)

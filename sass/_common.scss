@@ -1,8 +1,11 @@
 $color-fac: .75;
-$color-0: rgb(145, 195, 250) * $color-fac; // blue
+$color-red: rgb(250, 145, 160) * $color-fac; // red
+$color-blue: rgb(145, 195, 250) * $color-fac; // blue
+
+$color-0: $color-blue;
 $color-1: rgb(135, 220, 165) * $color-fac; // green
 $color-2: rgb(240, 175, 240) * $color-fac; // purple
-$color-3: rgb(250, 145, 160) * $color-fac; // red
+$color-3: $color-red;
 $color-4: #fec440 * $color-fac;  // yellow
 $color-5: #e010e0;  // purple
 $color-6: #5010e0;  // yellow
