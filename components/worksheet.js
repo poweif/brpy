@@ -252,6 +252,7 @@ var Worksheet = React.createClass({
             contentPaneDoms: {},
             projects: [],
             currentProject: -1,
+            editorMode: SKG_EDITOR_STANDARD,
             isDialogOpen: false,
             user: null
         };
@@ -263,6 +264,10 @@ var Worksheet = React.createClass({
             if (onOk) onOk();
         };
         SKG.updateSolution(solData, outerOk, onFail);
+    },
+    onEditorModeChange: function(mode) {
+        that.updateSolution(
+            SKG.d(SKG_SOLUTION_EDITOR_MODE, mode).o(), null, null);
     },
     onProjectRename: function(oldProj) {
         var that = this;
@@ -793,6 +798,7 @@ var Worksheet = React.createClass({
             blockContent[newBlock] = SKG
                 .d(SKG_BLOCK_SRC, [])
                 .i(SKG_BLOCK_CURRENT_FILE, -1)
+                .i(SKG_BLOCK_DISPLAY, false)
                 .i(SKG_BLOCK_COLLAPSED, false).o();
 
             var doms = that.state.contentPaneDoms;
@@ -877,6 +883,14 @@ var Worksheet = React.createClass({
         if (oldCollapsed != collapsed) {
             var blockContent = this.replaceInBlock(
                 block, SKG.d(SKG_BLOCK_COLLAPSED, collapsed).o());
+            this.updateProject(proj, null, blockContent, null, null);
+        }
+    },
+    onBlockDisplay: function(proj, block, display) {
+        var oldDisplay = this.getInBlock(block, SKG_BLOCK_DISPLAY);
+        if (oldDisplay != display) {
+            var blockContent = this.replaceInBlock(
+                block, SKG.d(SKG_BLOCK_DISPLAY, display).o());
             this.updateProject(proj, null, blockContent, null, null);
         }
     },
@@ -1062,6 +1076,7 @@ var Worksheet = React.createClass({
             var blockName = block.name;
             blocks.push(blockName);
             delete block['name'];
+            console.log(block);
             blockContent[blockName] = SKG.util.deepCopy(block);
         });
 
@@ -1216,6 +1231,10 @@ var Worksheet = React.createClass({
             var blockCollapse = this.onBlockCollapse.bind(this, proj, block);
             var blockCollapsedVal =
                 this.state.blockContent[block][SKG_BLOCK_COLLAPSED];
+            var blockDisplayF = this.onBlockDisplay.bind(this, proj, block, false);
+            var blockDisplayT = this.onBlockDisplay.bind(this, proj, block, true);
+            var blockDisplayVal =
+                this.state.blockContent[block][SKG_BLOCK_DISPLAY];
 
             var blockHeight = files[fileInd][SKG_FILE_HEIGHT];
             if (index >= 1 && this.state.blocks.length > 1) {
@@ -1230,9 +1249,19 @@ var Worksheet = React.createClass({
 
             var run = this.onRun.bind(this, proj, block);
             var save = this.onSave.bind(this, proj, block);
+
+
+            if (blockDisplayVal) {
+                return (
+                    <DisplayBlock onBlockDisplay={blockDisplayF}
+                        contentDoms={doms} name={block} />
+                );
+            }
+
             return (
                 <WorksheetBlock key={block} files={files} name={block}
-                height={blockHeight} collapsed={blockCollapsedVal}
+                    height={blockHeight} collapsed={blockCollapsedVal}
+                    display={blockDisplayVal}
                     fileOffsetY={offsetYVal}
                     srcTexts={this.state.srcTexts} currentFileInd={fileInd}
                     contentDoms={doms} isDialogOpen={this.state.isDialogOpen}
@@ -1246,6 +1275,7 @@ var Worksheet = React.createClass({
                     onFileOffsetY={fileOffsetY}
                     onBlockCollapse={blockCollapse}
                     onBlockLinkAdds={blockLinkAdds}
+                    onBlockDisplay={blockDisplayT}
                     onRun={run} onSave={save} />
             );
         }.bind(this));

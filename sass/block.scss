@@ -6,16 +6,7 @@ $console-button-size: 50px;
 
 $line-width: 2px;
 
-.worksheet-block {
-  @extend %flexbox;
-  @include flex-direction(column);
-  @include align-items(stretch);
-  @include align-self(stretch);
-  @include flex-grow(0);
-  @include flex-shrink(0);
-
-  overflow: hidden;
-
+.general-block {
   .line-wrapper {
     opacity: .15;
     transition: opacity $std-duration;
@@ -32,7 +23,7 @@ $line-width: 2px;
     @include align-items(center);
     @include flex-grow(0);
     @include flex-shrink(0);
-
+    transition: opacity $std-duration;
     margin: 5px 0;
 
     .separator-line-wrapper {
@@ -61,7 +52,6 @@ $line-width: 2px;
       border-width: $line-width;
     }
   }
-
   .block-content {
     @extend %flexbox;
     @include flex-direction(row);
@@ -98,6 +88,45 @@ $line-width: 2px;
       }
     }
   }
+}
+
+.mouse-out-clear {
+  opacity: 0;
+  transition: opacity $std-duration;
+}
+
+.mouse-out-fade {
+  opacity: .35;
+  transition: opacity $std-duration;
+}
+
+.display-block {
+  @extend %flexbox;
+  @extend .general-block;
+  @include flex-direction(column);
+  @include align-items(stretch);
+  max-width: 750px;
+
+  .display-separator-line-wrapper {
+    @extend .separator-line-wrapper;
+    cursor: pointer;
+    opacity: 1;
+  }
+  .block-name {
+    margin: 0 5px;
+  }
+}
+
+.worksheet-block {
+  @extend %flexbox;
+  @extend .general-block;
+  @include flex-direction(column);
+  @include align-items(stretch);
+  @include align-self(stretch);
+  @include flex-grow(0);
+  @include flex-shrink(0);
+
+  overflow: hidden;
 }
 
 .worksheet-block-trans {

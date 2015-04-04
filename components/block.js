@@ -92,7 +92,7 @@ var EditorFileRow = React.createClass({
                 var right = {text: "move right", icon: "right244",
                              click: moveRight};
                 var rename = !isBlockLink ?
-                    {text: "rename", icon: "create3", click: renameFunc} :
+                    {text: "rename", icon: "snake4", click: renameFunc} :
                     null;
                 var del = {text: "delete", icon: "close47", click: delFunc};
 
@@ -240,6 +240,67 @@ var EditorPane = React.createClass({
                     currentFileInd={this.props.currentFileInd}
                     files={this.props.files} />
                 {sourceEditor}
+            </div>
+        );
+    }
+});
+
+var DisplayBlock = React.createClass({
+    getInitialState: function() {
+        return {
+            isMouseOver: false
+        };
+    },
+    mouseOver: function() {
+        if (!this.state.isMouseOver)
+            this.setState({isMouseOver: true});
+    },
+    mouseLeave: function() {
+        if (this.state.isMouseOver) {
+            this.setState({isMouseOver: false});
+        }
+    },
+    render: function() {
+
+        if (!this.props.contentDoms || this.props.contentDoms.length == 0) {
+            var separatorCn = 'separator';
+            var minText = this.props.name;
+            var minIcon = 'create3';
+            if (!this.state.isMouseOver) {
+                separatorCn += ' mouse-out-fade';
+                minText = '.......'
+                minIcon = null;
+            }
+
+            return (
+                <div className={separatorCn} onMouseOver={this.mouseOver}
+                    onMouseLeave={this.mouseLeave} >
+                    <Button text={minText} icon={minIcon}
+                        click={this.props.onBlockDisplay} />
+                </div>
+            );
+        }
+
+        var separatorCn = 'separator';
+        if (!this.state.isMouseOver) {
+            separatorCn += ' mouse-out-clear';
+        }
+
+        return (
+            <div className='display-block' onMouseOver={this.mouseOver}
+                onMouseLeave={this.mouseLeave} >
+                <div className={separatorCn} >
+                    <div className="display-separator-line-wrapper">
+                        <div className="separator-line"></div>
+                    </div>
+                    <span className="block-name">{this.props.name}</span>
+                    <Button icon="create3" click={this.props.onBlockDisplay} />
+                </div>
+                <div className="block-content">
+                    <ContentPane ref="contentPane"
+                        contentDoms={this.props.contentDoms}
+                        block={this.props.name} />
+                </div>
             </div>
         );
     }
@@ -403,8 +464,10 @@ var WorksheetBlock = React.createClass({
                 items.push(
                     {text: "move down", click: this.props.onBlockMoveDown,
                      icon: "right244-s"});
+            items.push({text: "display mode", click: this.props.onBlockDisplay,
+                        icon: 'blank32'});
             items.push({text: "rename", click: this.props.onBlockRename,
-                        icon: "create3"});
+                        icon: "snake4"});
             return (
                 <ButtonMenu right items={items} text={this.props.name} />
             );
