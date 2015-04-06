@@ -15,7 +15,7 @@ import motor
 
 EXAMPLE_MAIN_PY = """print 'hello world'"""
 EXAMPLE_PROJ_JSON = """[{"src": [{"file": "main.py", "height": 100}], "currentFile": 0, "name": "block"}]"""
-EXAMPLE_SOLUTION_JSON = """{"currentProject": 0, "projects": ["example"]}"""
+EXAMPLE_SOLUTION_JSON = """{"currentProject": 0, "editorMode": "standard", "projects": ["example"]}"""
 
 class SkSolution():
     __metaclass__ = ABCMeta

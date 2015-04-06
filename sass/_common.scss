@@ -50,13 +50,13 @@ $std-fast-duration: .2s;
 
 $button-size-tiny: 8px;
 $button-size-small: 12px;
-$button-size-mid: 18px;
+$button-size-mid: 20px;
 $button-size-large: 35px;
 
-$button-font-tiny: $button-size-tiny + 3;
-$button-font-small: $button-size-small + 3;
-$button-font-mid: $button-size-mid + 3;
-$button-font-large: $button-size-large + 3;
+$button-font-tiny: $button-size-tiny + 2;
+$button-font-small: $button-size-small + 2;
+$button-font-mid: $button-size-mid + 2;
+$button-font-large: $button-size-large + 2;
 
 .button-selected {
   border: 1px solid $prime-inv-color;

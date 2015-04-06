@@ -219,28 +219,55 @@ var HeaderBar = React.createClass({
             button = function() {
                 return (
                     <ButtonMenu mid right text="login" items={items}
-                        icon={that.state.userIcon} addClass="login-button" />
+                        icon={that.state.userIcon} />
                 );
             }();
         }
+        var rightMost = function() {
+            var editorItems = that.props.editorModes.map(function(editor) {
+                var selected = that.props.selectedEditorMode;
+                var addClass = selected == editor ? 'selected-editor' : null;
+                var icon = selected == editor ? 'filled13' : 'circle107';
+                var click = function() {
+                    that.props.onEditorModeChange(editor);
+                };
+                return {text: editor, addClass: addClass, click: click,
+                    icon: icon};
+            });
+            editorItems.unshift({hr: true, text: 'input modes'});
+            return (
+                <div className="right-menus">
+                    <ButtonMenu mid right addClass="menu-button"
+                        items={editorItems} icon="menu55" />
+                    {button}
+                </div>
+            );
+        }();
+
         return (
             <div className="header-bar">
                 <Button mid text="brpy" addClass="title" icon="brpy"/>
-                <ProjectBar projects={this.props.projects}
-                    currentProject={this.props.currentProject}
-                    onProjectDelete={this.props.onProjectDelete}
-                    onProjectNew={this.props.onProjectNew}
-                    onProjectClick={this.props.onProjectClick}
-                    onProjectRename={this.props.onProjectRename}
-                    onImportBlock={this.props.onImportBlock}
-                    user={this.props.user} />
-                {button}
+                <span className="project-title">
+                    <ProjectBar projects={this.props.projects}
+                        currentProject={this.props.currentProject}
+                        onProjectDelete={this.props.onProjectDelete}
+                        onProjectNew={this.props.onProjectNew}
+                        onProjectClick={this.props.onProjectClick}
+                        onProjectRename={this.props.onProjectRename}
+                        onImportBlock={this.props.onImportBlock}
+                        user={this.props.user} />
+                </span>
+                {rightMost}
             </div>
         );
     }
 });
 
 var Worksheet = React.createClass({
+    editors: [
+        SKG_EDITOR_STANDARD,
+        SKG_EDITOR_EMACS
+    ],
     mixins: [DialogMixins(function(v) {
         this.setState({isDialogOpen: v})
     })],
@@ -266,8 +293,8 @@ var Worksheet = React.createClass({
         SKG.updateSolution(solData, outerOk, onFail);
     },
     onEditorModeChange: function(mode) {
-        that.updateSolution(
-            SKG.d(SKG_SOLUTION_EDITOR_MODE, mode).o(), null, null);
+        this.updateSolution(
+            SKG.d(SKG_SOLUTION_EDITOR_MODE, mode).o());
     },
     onProjectRename: function(oldProj) {
         var that = this;
@@ -293,10 +320,13 @@ var Worksheet = React.createClass({
         this.openTextDialog(oldProj, "Rename project?", ok);
     },
     onProjectClick: function(project) {
+        // working dialog will be closed when project has finished loading
+        // (onLoadProject).
+        this.openWorkingDialog();
+
         this.updateSolution(
             SKG.d(SKG_SOLUTION_CURRENT_PROJECT,
-                  SKG.util.indexOf(this.state.projects, project)).o()
-        );
+                  SKG.util.indexOf(this.state.projects, project)).o());
     },
     onProjectNew: function() {
         var that = this;
@@ -394,7 +424,8 @@ var Worksheet = React.createClass({
             sol.currentProject = sol.projects.length -1;
             that.updateSolution(
                 SKG.d(SKG_SOLUTION_CURRENT_PROJECT, sol.currentProject)
-                    .i(SKG_SOLUTION_PROJECTS, sol.projects).o());
+                    .i(SKG_SOLUTION_PROJECTS, sol.projects)
+                    .i(SKG_SOLUTION_EDITOR_MODE, sol.editorMode).o());
         };
 
         var onWriteProjectDone = function() {
@@ -1131,9 +1162,13 @@ var Worksheet = React.createClass({
     },
     onLoadSolution: function(text) {
         var solution = JSON.parse(text);
+        if (!solution.editorMode)
+            solution.editorMode = SKG_EDITOR_STANDARD;
         this.setState(
             SKG.d(SKG_SOLUTION_PROJECTS, solution.projects)
-                .i(SKG_SOLUTION_CURRENT_PROJECT, solution.currentProject).o());
+                .i(SKG_SOLUTION_CURRENT_PROJECT, solution.currentProject)
+                .i(SKG_SOLUTION_EDITOR_MODE, solution.editorMode)
+                .o());
     },
     onInit: function(code) {
         if (code == SKG_INIT_LOAD_SOLUTION) {
@@ -1261,7 +1296,7 @@ var Worksheet = React.createClass({
             return (
                 <WorksheetBlock key={block} files={files} name={block}
                     height={blockHeight} collapsed={blockCollapsedVal}
-                    display={blockDisplayVal}
+                    display={blockDisplayVal} editorMode={this.state.editorMode}
                     fileOffsetY={offsetYVal}
                     srcTexts={this.state.srcTexts} currentFileInd={fileInd}
                     contentDoms={doms} isDialogOpen={this.state.isDialogOpen}
@@ -1286,6 +1321,9 @@ var Worksheet = React.createClass({
         return (
            <div className="main-panel">
                 <HeaderBar user={this.state.user}
+                    editorModes={this.editors}
+                    onEditorModeChange={this.onEditorModeChange}
+                    selectedEditorMode={this.state.editorMode}
                     onProjectExport={projExport}
                     projects={this.state.projects}
                     currentProject={this.state.currentProject}

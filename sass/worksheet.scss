@@ -2,7 +2,7 @@
 @import 'flexbox';
 
 $stdout-console-width: 550px;;
-$console-button-size: 50px;
+$console-button-size: $button-size-large;
 
 .stdout-console {
   @extend %flexbox;
@@ -68,7 +68,6 @@ $console-button-size: 50px;
     }
 
     .content {
-//      @include flex-grow(1);
       width: 3 * $stdout-console-width / 4;
       font-family:  "source-sans-pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
 
@@ -111,7 +110,7 @@ $console-button-size: 50px;
 }
 
 .stdout-console-hide {
-  left: -($stdout-console-width - $console-button-size + 2);
+  left: -($stdout-console-width - $console-button-size - 2);
   opacity: 1;
   transition: left $std-duration, opacity $std-duration;
 }
@@ -154,8 +153,20 @@ $console-button-size: 50px;
     font-size: $button-font-mid + 10;
   }
 
-  .login-button {
-    margin: 0 0 5px 0;
+  .project-title {
+    margin-left: 60px;
+  }
+
+  .right-menus {
+    @extend %flexbox;
+    @include flex-direction(row);
     @include align-self(center);
+    margin: 0 0 5px 0;
+    .menu-button {
+      margin: 0 8px;
+    }
+    .selected-editor {
+      font-weight: 700;
+    }
   }
 }

@@ -42,7 +42,6 @@ var SourceEditor = React.createClass({
                 lineNumbers: true,
                 lineWrapping: true,
                 mode: "python",
-                keyMap: "emacs",
                 autoCloseBrackets: true,
                 matchBrackets: true,
                 showCursorWhenSelecting: true,
@@ -51,6 +50,11 @@ var SourceEditor = React.createClass({
         );
         this.attachKeyMap(cdm);
         return cdm;
+    },
+    getCodeMirrorKeyMap: function(str) {
+        if (str == SKG_EDITOR_EMACS)
+            return CodeMirror.keyMap.emacs;
+        return null;
     },
     componentDidUpdate: function(prevProps, prevState) {
         var that = this;
@@ -76,16 +80,26 @@ var SourceEditor = React.createClass({
                 this.props.resize();
         }
 
-        if (this.props.height != prevProps.height
-            || (this.props.height && isNewCdm)) {
+        if (this.props.height != prevProps.height ||
+            (this.props.height && isNewCdm)) {
             cdm.setSize(650, Math.max(1, this.props.height));
             cdm.refresh();
         }
 
-        if (this.props.offsetY != prevProps.offsetY
-            || (this.props.offsetY && isNewCdm)) {
+        if (this.props.offsetY != prevProps.offsetY ||
+            (this.props.offsetY && isNewCdm)) {
             cdm.scrollTo(null, this.props.offsetY);
             cdm.refresh();
+        }
+
+        if (this.props.editorMode != prevProps.editorMode ||
+            (this.props.editorMode && isNewCdm)) {
+            var omap = this.getCodeMirrorKeyMap(prevProps.editorMode);
+            if (omap)
+                cdm.removeKeyMap(omap);
+            var nmap = this.getCodeMirrorKeyMap(this.props.editorMode);
+            if (nmap)
+                cdm.addKeyMap(nmap);
         }
 
         if (isNewCdm) {

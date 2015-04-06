@@ -1,6 +1,8 @@
 @import 'common';
 @import 'flexbox';
 
+$button-wrapper-padding: 5px;
+
 .button-wrapper {
   @extend .button;
   @extend %flexbox;
@@ -13,18 +15,42 @@
 
 .button-wrapper-large {
   @extend .button-wrapper;
-  max-height: $button-size-large + 10;
+  max-height: $button-size-large + 2 * $button-wrapper-padding;
 }
 
 .button-wrapper-mid {
   @extend .button-wrapper;
-  max-height: $button-size-mid + 10;
+  max-height: $button-size-mid + 2 * $button-wrapper-padding;
 }
 
 .button-wrapper-small {
   @extend .button-wrapper;
-  max-height: $button-size-small + 10;
+  max-height: $button-size-small + 2 * $button-wrapper-padding;
 }
+
+.button-img-only {
+  @extend .button;
+  padding: 5px;
+}
+
+.button-img-only-large {
+  @extend .button-img-only;
+  width: $button-size-large + 4;
+  height: $button-size-large + 4;
+}
+
+.button-img-only-mid {
+  @extend .button-img-only;
+  width: $button-size-mid + 4;
+  height: $button-size-mid + 4;
+}
+
+.button-img-only-small {
+  @extend .button-img-only;
+  width: $button-size-small + 4;
+  height: $button-size-small + 4;
+}
+
 
 $sbr: $std-border-radius;
 

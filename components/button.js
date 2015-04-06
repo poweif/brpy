@@ -1,27 +1,21 @@
 var Button =  React.createClass({
     render: function() {
         var that = this;
-        var imgCn = ""
-        var textCn = "button-text";
-        var wrapperCn = "button-wrapper";
+        var suffix = '';
 
         if (this.props.large) {
-            imgCn += " button-large";
-            textCn += " font-large";
-            wrapperCn += "-large";
+            suffix = '-large';
         } else if (this.props.mid) {
-            imgCn += " button-mid";
-            textCn += " font-mid";
-            wrapperCn += "-mid";
+            suffix = '-mid';
         } else {
-            imgCn += " button-small";
-            textCn += " font-small";
-            wrapperCn += "-small";
+            suffix = '-small';
         }
+        var wrapperCn= "button-wrapper" + suffix;
 
         var buttonText = !that.props.text ? null : function() {
             return (
-                <div className={textCn}>{that.props.text}</div>
+                <div className={"button-text font" + suffix}>{that.props.text}
+                </div>
             );
         }();
 
@@ -34,32 +28,32 @@ var Button =  React.createClass({
             };
         }
 
-        var img = !this.props.icon ? null : function() {
-            var imgSrc = "/img/" + that.props.icon + ".png";
-            var click = null;
-            var nclassName = imgCn;
-            if (!buttonText) {
-                click = outerClick
-                nclassName = "button" + nclassName;
-                if (that.props.selected)
-                    nclassName += " button-selected";
-                if (that.props.addClass)
-                    nclassName += " " + that.props.addClass;
-            }
+        if (!buttonText && this.props.icon) {
+            var imgSrc = "/img/" + this.props.icon + ".png";
+            var nclassName = "";
+            if (that.props.selected)
+                nclassName += " button-selected";
+            if (that.props.addClass)
+                nclassName += " " + that.props.addClass;
+            nclassName += " button-img-only" + suffix;
 
             return (
-                <img src={imgSrc} className={nclassName} onClick={click} />
+                <img src={imgSrc} className={nclassName} onClick={outerClick} />
             );
-        }();
-
-        if (img && !buttonText)
-            return img;
+        }
 
         if (this.props.selected)
             wrapperCn += " button-selected";
 
         if (this.props.addClass)
             wrapperCn += " " + that.props.addClass;
+
+        var img = !this.props.icon ? null : function() {
+            var imgSrc = "/img/" + that.props.icon + ".png";
+            return (
+                <img src={imgSrc} className={"button" + suffix} />
+            );
+        }();
 
         return (
             <div className={wrapperCn} onClick={outerClick}>
@@ -167,7 +161,8 @@ var ButtonMenu =  React.createClass({
                     mid={that.props.mid}
                     small={that.props.small}
                     addClass={that.state.hidden ?
-                              "main-button "  + (that.props.addClass ? that.props.addClass : '') :
+                              "main-button "  +
+                                 (that.props.addClass ? that.props.addClass : '') :
                               "main-button"}
                     click={that.onClickMain} text={that.props.text}
                     icon={that.props.icon} />
@@ -220,7 +215,8 @@ var ButtonMenu =  React.createClass({
                 return (
                     <span className="vspace">
                         <Button text={item.text} click={click} key={ind}
-                            icon={item.icon} link={item.link} />
+                            addClass={item.addClass} icon={item.icon}
+                            link={item.link} />
                     </span>
                 );
             });

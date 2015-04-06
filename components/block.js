@@ -212,7 +212,7 @@ var EditorPane = React.createClass({
             return (
                 <SourceEditor ref="editor" src={src}
                     offsetY={that.props.fileOffsetY}
-                    onOffsetY={onFileOffsetY}
+                    onOffsetY={onFileOffsetY} editorMode={that.props.editorMode}
                     height={realHeight} resize={that.props.resize}
                     onRun={run} onSave={save} />
             );
@@ -261,9 +261,7 @@ var DisplayBlock = React.createClass({
         }
     },
     render: function() {
-
         if (!this.props.contentDoms || this.props.contentDoms.length == 0) {
-            var separatorCn = 'separator';
             var minText = this.props.name;
             var minIcon = 'create3';
             if (!this.state.isMouseOver) {
@@ -273,7 +271,7 @@ var DisplayBlock = React.createClass({
             }
 
             return (
-                <div className={separatorCn} onMouseOver={this.mouseOver}
+                <div className="display-block" onMouseOver={this.mouseOver}
                     onMouseLeave={this.mouseLeave} >
                     <Button text={minText} icon={minIcon}
                         click={this.props.onBlockDisplay} />
@@ -522,6 +520,7 @@ var WorksheetBlock = React.createClass({
                         <div className="divide-line"></div>
                     </div>
                     <EditorPane ref="editorPane" resize={this.onContentUpdate}
+                        editorMode={this.props.editorMode}
                         height={this.state.editorHeight}
                         fileOffsetY={this.props.fileOffsetY}
                         highlightable={this.state.editorHighlightable}
