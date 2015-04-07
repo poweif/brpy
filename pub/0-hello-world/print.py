@@ -1,1 +1,1 @@
-print 'hello world'
+# print 'hello world' # uncomment to see output console

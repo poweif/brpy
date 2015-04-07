@@ -412,6 +412,5 @@ def main():
   glut.motionFunc(mouse_drag)
   glut.passiveMotionFunc(mouse_move)
   glut.reshapeFunc(reshape)
-  print "done hello!"
 
 main()

@@ -2,7 +2,7 @@ from md import *
 
 kd("""
 
-# Math Symbols # 
+### Math Symbols ###
 [KaTeX](https://github.com/Khan/KaTeX) was used to display math symbols. 
 Here are some examples
 - Inline math is possible $f(x)=x+1$ with this.
@@ -19,4 +19,4 @@ total = 1
 for i in range(1, 21):
   total = total * i
 
-kd("# For Fun #\n $21!=%i$" % total)
+kd("###For Fun###\n $21!=%i$" % total)
