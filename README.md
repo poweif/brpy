@@ -1,5 +1,7 @@
 # brpy #
-brpy (pronounced "burpy") is a browser-side interactive python client that stresses edit-as-you-go rapid-prototyping. The long term goal of the project is to provide a [Mathematica](http://www.wolfram.com/mathematica/)-like environment where applied math enthusiasts and engineers can express their ideas and collaborate on projects.
+brpy (pronounced "burpy") is a browser-side interactive python client that stresses edit-as-you-go rapid-prototyping. The long term goal of the project is to provide a [Mathematica](http://www.wolfram.com/mathematica/)-like environment where students, teachers, applied math enthusiasts and engineers can express their ideas and collaborate on projects.
+
+With this platform, it should be simple to create standalone lessons, learning modules, and algorithm walkthrough/demos. brpy currently provides markdown and latex-style output and glut-based WebGL hooks. (In the future, we might provide built-in d3 support and canvas2D support.)
 
 brpy is built on a fork/branch of [skulpt](https://github.com/skulpt/skulpt).
 

@@ -25,8 +25,6 @@ var ContentPane = React.createClass({
         this.mountContentDoms();
     },
     maxHeight: function() {
-        //        return SKG.util.fullElementHeight(this.refs.main.getDOMNode());
-        //        console.log(this.height);
         return this.height;
     },
     render: function() {
