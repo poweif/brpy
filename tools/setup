@@ -24,7 +24,7 @@ if [ ! -d ./nacl-libigl ]; then
 else
     cd ./nacl-libigl
     git pull
-    cd ..    
+    cd ..
 fi
 
 cd ./nacl-libigl
