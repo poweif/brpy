@@ -1107,7 +1107,6 @@ var Worksheet = React.createClass({
             var blockName = block.name;
             blocks.push(blockName);
             delete block['name'];
-            console.log(block);
             blockContent[blockName] = SKG.util.deepCopy(block);
         });
 
@@ -1162,6 +1161,7 @@ var Worksheet = React.createClass({
     },
     onLoadSolution: function(text) {
         var solution = JSON.parse(text);
+        this.closeDialog();
         if (!solution.editorMode)
             solution.editorMode = SKG_EDITOR_STANDARD;
         this.setState(
@@ -1172,6 +1172,7 @@ var Worksheet = React.createClass({
     },
     onInit: function(code) {
         if (code == SKG_INIT_LOAD_SOLUTION) {
+            this.openWorkingDialog();
             SKG.readSolution(this.onLoadSolution);
         } else if (code == SKG_INIT_IMPORT_PROJECT) {
             SKG.importProject(this.onProjectImport);
