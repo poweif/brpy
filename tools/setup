@@ -1,0 +1,32 @@
+#!/usr/bin/bash
+
+if [ ! -d ./skulpt ]; then
+    git clone https://github.com/poweif/skulpt.git
+else
+    cd ./skulpt
+    git pull
+    cd ..
+fi
+
+cd ./skulpt
+python ./tmp/watch.py ../js/ quit
+cd ..
+
+if [ ! $NACL_SDK_ROOT ]; then
+    echo "If you\'d like to build with NaCl features..."
+    echo 'Please install the NaCl SDK: https://github.com/poweif/nacl-libigl.git'
+    echo 'And make sure NACL_SDK_ROOT is set to the proper directory'
+    exit
+fi
+
+if [ ! -d ./nacl-libigl ]; then
+    git clone https://github.com/poweif/nacl-libigl.git
+else
+    cd ./nacl-libigl
+    git pull
+    cd ..    
+fi
+
+cd ./nacl-libigl
+./setup
+cd ../
