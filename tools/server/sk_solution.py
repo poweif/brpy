@@ -240,7 +240,6 @@ class SkSolution():
     @abstractmethod
     def _read_text_file_impl(self, file_id): pass
 
-
 def _build_drive_service(credentials):
     return build(
         serviceName = 'drive', version='v2',

@@ -53,23 +53,23 @@ SHOW_URI = HOME_URI + '/show'
 BRPY_SESSION_KEY = 'brpy-session-key'
 ERR_PARAM = -3498314
 INDEX_HTML = open(CURRENT_DIR + '/index.html').read()
-PUB_DIR = './pub'
+STARTER_DIR = './starter'
 
 g_session = {}
-_pub_solution = None
+g_starter_solution = None
 g_motor_client = motor.MotorClient()
 
 _io_loop = tornado.ioloop.IOLoop.instance()
 
 if len(sys.argv) >= 2 and os.access(sys.argv[1], os.F_OK):
-    _pub_solution = DevSkSolution(sys.argv[1])
+    g_starter_solution = DevSkSolution(sys.argv[1])
 else:
     g_motor_client.drop_database('test')
     read_only = True
-    dev = DevSkSolution(PUB_DIR, read_only=read_only)
+    dev = DevSkSolution(STARTER_DIR, read_only=read_only)
     mongo = MongoDBSkSolution(
         user='brpy_public', db=g_motor_client.test, read_only=read_only)
-    _pub_solution = HierarchicalSkSolution(io_loop=_io_loop, l1=mongo, l2=dev)
+    g_starter_solution = HierarchicalSkSolution(io_loop=_io_loop, l1=mongo, l2=dev)
 
 g_auth = EasyOAuth2(CLIENTSECRETS_LOCATION, SCOPES)
 
@@ -88,8 +88,8 @@ class AllHandler(tornado.web.RequestHandler):
         user = self.current_user
         if user is not None and not user in g_session:
             self.clear_cookie(BRPY_SESSION_KEY)
-            return _pub_solution
-        return _pub_solution if user is None\
+            return g_starter_solution
+        return g_starter_solution if user is None\
             else g_session[user][SESSION_SOLUTION]
 
 class ExportHandler(AllHandler):
@@ -172,6 +172,7 @@ class RunHandler(AllHandler):
            or not SESSION_IMPORT in g_session[user]:
             return None
         return g_session[user][SESSION_IMPORT]
+
     def _clear_import_data(self):
         user = self.current_user
         if user is None or not user in g_session\
@@ -181,9 +182,9 @@ class RunHandler(AllHandler):
 
     @gen.coroutine
     def get(self):
-        user = self.current_user
         solution = self._get_solution()
         if self.argshort('init', default=ERR_PARAM) != ERR_PARAM:
+            user = self.current_user
             if user is None or self._get_import_data() is None:
                 self.write(INIT_LOAD_SOLUTION)
             else:
@@ -287,9 +288,22 @@ class RunHandler(AllHandler):
         self.send_error()
         self.finish()
 
-class IndexHandler(tornado.web.RequestHandler):
+class StarterRunHandler(RunHandler):
+    def _get_solution(self):
+        return g_starter_solution
+
+class IndexHandler(AllHandler):
+    @gen.coroutine
+    def get(self):
+        self.write(INDEX_HTML)
+
+class RootIndexHandler(AllHandler):
     @gen.coroutine
     def get(self, v):
+        if self.current_user is None:
+            self.redirect('/starter/')
+            return
+
         self.write(INDEX_HTML)
 
 if __name__ == "__main__":
@@ -298,8 +312,12 @@ if __name__ == "__main__":
         (r"/login", LoginHandler),
         (r"/logout", LogoutHandler),
         (r"/run", RunHandler),
+        (r"/starter/run", StarterRunHandler),
+        (r"/public/run", StarterRunHandler),
         (r"/user", UserInfoHandler),
-        (r"/($)", IndexHandler),
+        (r"/starter/", IndexHandler),
+        (r"/public", IndexHandler),
+        (r"/($)", RootIndexHandler),
         (r"/(.*)", tornado.web.StaticFileHandler, {'path': './'})
     ], cookie_secret=get_random_state())
     app.listen(PORT)

@@ -143,59 +143,79 @@ var SKG = {
     readUserInfo: function(onLoad, onFailed) {
         this.util.xhrGet('/user', onLoad, onFailed);
     },
+    apiPrefix: function() {
+        var dirs = window.location.pathname.split('/');
+        if (dirs.length < 2)
+            return '';
+
+        if (dirs[1] == SKG_URL_PATH_STARTER)
+            return '/' + SKG_URL_PATH_STARTER;
+
+        return '';
+    },
     readSolution: function(onLoad, onFailed) {
-        this.util.xhrGet('/run?solution', onLoad, onFailed);
+        this.util.xhrGet(this.apiPrefix() + '/run?solution', onLoad, onFailed);
     },
     exportProject: function(proj, onLoad, onFailed) {
         var data = JSON.stringify(proj);
         this.util.xhrPost('/export', data, onLoad, onFailed);
     },
     importProject: function(onLoad, onFailed) {
-        this.util.xhrGet('/run?import-proj', onLoad, onFailed);
+        this.util.xhrGet(this.apiPrefix() + '/run?import-proj', onLoad, onFailed);
     },
     init: function(onLoad, onFailed) {
-        this.util.xhrGet('/run?init', onLoad, onFailed);
+        this.util.xhrGet(this.apiPrefix() + '/run?init', onLoad, onFailed);
     },
     updateSolution: function(solData, onLoad, onFailed) {
         var solDataStr = JSON.stringify(solData)
         this.util.xhrPost(
-            '/run?update-solution', solDataStr, onLoad, onFailed);
+            this.apiPrefix() + '/run?update-solution', solDataStr, onLoad,
+            onFailed);
     },
     readProject: function(proj, onLoad, onFailed) {
-        this.util.xhrGet('/run?read-proj=' + proj, onLoad, onFailed);
+        this.util.xhrGet(
+            this.apiPrefix() + '/run?read-proj=' + proj, onLoad, onFailed);
     },
     writeProject: function(proj, projData, onLoad, onFailed) {
         var projDataStr = JSON.stringify(projData);
         this.util.xhrPost(
-            '/run?write-proj=' + proj, projDataStr, onLoad, onFailed);
+            this.apiPrefix() + '/run?write-proj=' + proj, projDataStr, onLoad,
+            onFailed);
     },
     renameProject: function(oldName, newName, onLoad, onFailed) {
         this.util.xhrPost(
-            '/run?rename-proj=' + oldName + ',' + newName, null, onLoad,
-            onFailed);
+            this.apiPrefix() + '/run?rename-proj=' + oldName + ',' + newName,
+            null, onLoad, onFailed);
     },
     newProject: function(proj, onLoad, onFailed) {
-        this.util.xhrPost('/run?new-proj=' + proj, null, onLoad, onFailed);
+        this.util.xhrPost(
+            this.apiPrefix() + '/run?new-proj=' + proj, null, onLoad, onFailed);
     },
     deleteProject: function(proj, onLoad, onFailed) {
-        this.util.xhrPost('/run?delete-proj=' + proj, null, onLoad, onFailed);
+        this.util.xhrPost(
+            this.apiPrefix() + '/run?delete-proj=' + proj, null, onLoad,
+            onFailed);
     },
     renameSrcFile: function(proj, oldname, newname, onLoad, onFailed) {
         this.util.xhrPost(
-            '/run?rename=' + oldname + "," + newname + '&proj=' + proj, null,
-            onLoad, onFailed);
+            this.apiPrefix() + '/run?rename=' +
+                oldname + "," + newname + '&proj=' + proj,
+            null, onLoad, onFailed);
     },
     deleteSrcFile: function(proj, filename, onLoad, onFailed) {
-        this.util.xhrPost('/run?delete=' + filename + '&proj=' + proj, null,
-                         onLoad, onFailed);
+        this.util.xhrPost(
+            this.apiPrefix() + '/run?delete=' + filename + '&proj=' + proj,
+            null, onLoad, onFailed);
     },
     readSrcFile: function(proj, filename, onLoad, onFailed) {
-        this.util.xhrGet('/run?read=' + filename + '&proj=' + proj,
-                         onLoad, onFailed);
+        this.util.xhrGet(
+            this.apiPrefix() + '/run?read=' + filename + '&proj=' + proj,
+            onLoad, onFailed);
     },
     writeSrcFile: function(proj, filename, text, onLoad, onFailed) {
-        this.util.xhrPost('/run?write=' + filename + '&proj=' + proj,
-                          text, onLoad, onFailed);
+        this.util.xhrPost(
+            this.apiPrefix() + '/run?write=' + filename + '&proj=' + proj,
+            text, onLoad, onFailed);
     },
     openDialog: function(text, choices, prompt, onOK, onCancel) {
         this.closeDialog();
@@ -227,11 +247,40 @@ var SKG = {
             throw "File not found: '" + x + "'";
         }
         return Sk.builtinFiles["files"][x];
+    },
+    readProjectFromURL: function() {
+        var url = window.location.href;
+        if (url.lastIndexOf('#') < 0)
+            return null;
+
+        return url.substring(url.lastIndexOf('#') + 1)
+    },
+    updateURLWithProject: function(proj) {
+        var url = window.location.href;
+
+        var urlPre = (url.indexOf('#') >= 0) ?
+            url.substring(0, url.indexOf('#')) :
+            url;
+
+        url = urlPre + (urlPre[urlPre.length - 1] == '/' ? '#' : '/#') + proj;
+        window.history.replaceState(null, null, url);
+    },
+    updateTitleWithUserProject: function(user, proj) {
+        if (user) {
+            document.title = SKG_TITLE + ' :: ' + user + ' :: ' + proj;
+            return;
+        }
+        document.title = SKG_TITLE + ' :: ' + proj;
+    },
+    updateWithUserProject: function(user, proj) {
+        this.updateURLWithProject(proj);
+        this.updateTitleWithUserProject(user, proj);
     }
 };
 
 (function() {
     // Site-wide constants
+    SKG_TITLE = 'brpy';
     SKG_BLOCK_NAME = 'name';
     SKG_BLOCK_SRC = 'src';
     SKG_BLOCK_CURRENT_FILE = 'currentFile';
@@ -249,6 +298,7 @@ var SKG = {
     SKG_SOFT_COPY = SKG.util.softCopy;
     SKG_INIT_LOAD_SOLUTION = 'INIT_LOAD_SOLUTION';
     SKG_INIT_IMPORT_PROJECT = 'INIT_IMPORT_PROJECT';
+    SKG_URL_PATH_STARTER = 'starter';
 
     window.addEventListener("beforeunload", function (e) {
         var confirmation = "Did you save? Are you sure you'd like to quit?"

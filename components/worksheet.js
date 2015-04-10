@@ -93,7 +93,7 @@ var StdoutConsole =  React.createClass({
             verticalButtonCn += " vertical-button-hide";
         }
         return (
-           <div className={stdoutCn}>
+            <div className={stdoutCn}>
                 <div className="stdout-content">
                    <div className="stdout-content-buttons">
                        <Button icon="do10" click={this.onClear} text="clear" />
@@ -1160,15 +1160,32 @@ var Worksheet = React.createClass({
         this.setState({srcTexts: content});
     },
     onLoadSolution: function(text) {
+        var that = this;
         var solution = JSON.parse(text);
-        this.closeDialog();
         if (!solution.editorMode)
             solution.editorMode = SKG_EDITOR_STANDARD;
-        this.setState(
-            SKG.d(SKG_SOLUTION_PROJECTS, solution.projects)
-                .i(SKG_SOLUTION_CURRENT_PROJECT, solution.currentProject)
-                .i(SKG_SOLUTION_EDITOR_MODE, solution.editorMode)
-                .o());
+
+        var urlProj = SKG.readProjectFromURL();
+        var projInd = SKG.util.indexOf(solution.projects, urlProj);
+
+        if (projInd < 0) {
+            this.closeDialog();
+            this.setState(
+                SKG.d(SKG_SOLUTION_PROJECTS, solution.projects)
+                    .i(SKG_SOLUTION_CURRENT_PROJECT, solution.currentProject)
+                    .i(SKG_SOLUTION_EDITOR_MODE, solution.editorMode)
+                    .o());
+        } else {
+            this.setState(
+                SKG.d(SKG_SOLUTION_PROJECTS, solution.projects)
+                    .i(SKG_SOLUTION_EDITOR_MODE, solution.editorMode)
+                    .o());
+            // set a little timeout to ensure good state
+            setTimeout(function() {
+                that.updateSolution(
+                    SKG.d(SKG_SOLUTION_CURRENT_PROJECT, projInd).o());
+            }, 500);
+        }
     },
     onInit: function(code) {
         if (code == SKG_INIT_LOAD_SOLUTION) {
@@ -1193,6 +1210,7 @@ var Worksheet = React.createClass({
             });
             var loadProject = function(text) {
                 that.onLoadProject(project, text, that.closeDialog);
+                SKG.updateWithUserProject(that.state.user, project);
             };
             this.openWorkingDialog();
             SKG.readProject(project, loadProject);
@@ -1334,7 +1352,7 @@ var Worksheet = React.createClass({
                     onProjectRename={this.onProjectRename}
                     onImportBlock={importBlock} />
                 <StdoutConsole ref="stdoutConsole"
-                    isDialogOpen={this.state.isDialogOpen}/>
+                    isDialogOpen={this.state.isDialogOpen} />
                 {blocks}
                 <Footer />
            </div>
