@@ -53,23 +53,23 @@ SHOW_URI = HOME_URI + '/show'
 BRPY_SESSION_KEY = 'brpy-session-key'
 ERR_PARAM = -3498314
 INDEX_HTML = open(CURRENT_DIR + '/index.html').read()
-STARTER_DIR = './starter'
+START_DIR = './start'
 
 g_session = {}
-g_starter_solution = None
+g_start_solution = None
 g_motor_client = motor.MotorClient()
 
 _io_loop = tornado.ioloop.IOLoop.instance()
 
 if len(sys.argv) >= 2 and os.access(sys.argv[1], os.F_OK):
-    g_starter_solution = DevSkSolution(sys.argv[1])
+    g_start_solution = DevSkSolution(sys.argv[1])
 else:
     g_motor_client.drop_database('test')
     read_only = True
-    dev = DevSkSolution(STARTER_DIR, read_only=read_only)
+    dev = DevSkSolution(START_DIR, read_only=read_only)
     mongo = MongoDBSkSolution(
         user='brpy_public', db=g_motor_client.test, read_only=read_only)
-    g_starter_solution = HierarchicalSkSolution(io_loop=_io_loop, l1=mongo, l2=dev)
+    g_start_solution = HierarchicalSkSolution(io_loop=_io_loop, l1=mongo, l2=dev)
 
 g_auth = EasyOAuth2(CLIENTSECRETS_LOCATION, SCOPES)
 
@@ -88,8 +88,8 @@ class AllHandler(tornado.web.RequestHandler):
         user = self.current_user
         if user is not None and not user in g_session:
             self.clear_cookie(BRPY_SESSION_KEY)
-            return g_starter_solution
-        return g_starter_solution if user is None\
+            return g_start_solution
+        return g_start_solution if user is None\
             else g_session[user][SESSION_SOLUTION]
 
 class ExportHandler(AllHandler):
@@ -288,9 +288,9 @@ class RunHandler(AllHandler):
         self.send_error()
         self.finish()
 
-class StarterRunHandler(RunHandler):
+class StartRunHandler(RunHandler):
     def _get_solution(self):
-        return g_starter_solution
+        return g_start_solution
 
 class IndexHandler(AllHandler):
     @gen.coroutine
@@ -301,7 +301,7 @@ class RootIndexHandler(AllHandler):
     @gen.coroutine
     def get(self, v):
         if self.current_user is None:
-            self.redirect('/starter/')
+            self.redirect('/start/')
             return
 
         self.write(INDEX_HTML)
@@ -312,10 +312,10 @@ if __name__ == "__main__":
         (r"/login", LoginHandler),
         (r"/logout", LogoutHandler),
         (r"/run", RunHandler),
-        (r"/starter/run", StarterRunHandler),
-        (r"/public/run", StarterRunHandler),
+        (r"/start/run", StartRunHandler),
+        (r"/public/run", StartRunHandler),
         (r"/user", UserInfoHandler),
-        (r"/starter/", IndexHandler),
+        (r"/start/", IndexHandler),
         (r"/public", IndexHandler),
         (r"/($)", RootIndexHandler),
         (r"/(.*)", tornado.web.StaticFileHandler, {'path': './'})
