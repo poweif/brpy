@@ -129,7 +129,7 @@ class LoginHandler(AllHandler):
             tid = get_random_state()
 
         if error_val is not None or code_val is None or state_val is None:
-            new_url = _auth.get_authorization_url(POST_LOGIN_URI, tid)
+            new_url = _auth.get_authorization_url(POST_LOGIN_URI, state=tid)
             return self.redirect(new_url)
 
         cred = _auth.get_credentials(
@@ -140,13 +140,13 @@ class LoginHandler(AllHandler):
         gdrive = GdriveSkSolution(cred)
         solution = HierarchicalSkSolution(io_loop=_io_loop, l1=mongo, l2=gdrive)
         user_key = state_val
+        self.set_cookie(BRPY_SESSION_KEY, user_key)
 
         if not user_key in _session:
             _session[user_key] = {}
 
         _session[user_key][SESSION_INFO]= user_info
         _session[user_key][SESSION_SOLUTION]= solution
-        self.set_cookie(BRPY_SESSION_KEY, user_key)
         return self.redirect('/')
 
 class LogoutHandler(AllHandler):
@@ -232,11 +232,15 @@ class RunHandler(AllHandler):
             key = yield _publisher.begin(self.current_user)
             self.set_cookie(BRPY_PUBLISH_PROJECT_KEY, key)
             self.write(key)
+            self.finish()
+            return
 
         pub_key = self.argshort('done-publish')
         if pub_key is not None and self._publishable():
             yield _publisher.end(user=self.current_user, key=pub_key)
             self.clear_cookie(BRPY_PUBLISH_PROJECT_KEY)
+            self.finish()
+            return
 
         proj = self.argshort('read-proj')
         if proj is not None:

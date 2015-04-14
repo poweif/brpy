@@ -90,7 +90,7 @@ var EditorFileRow = React.createClass({
                 var right = {text: "move right", icon: "right244",
                              click: moveRight};
                 var rename = !isBlockLink ?
-                    {text: "rename", icon: "snake4", click: renameFunc} :
+                    {text: "rename", icon: "rotate11", click: renameFunc} :
                     null;
                 var del = {text: "delete", icon: "close47", click: delFunc};
 
@@ -463,7 +463,7 @@ var WorksheetBlock = React.createClass({
             items.push({text: "display mode", click: this.props.onBlockDisplay,
                         icon: 'blank32'});
             items.push({text: "rename", click: this.props.onBlockRename,
-                        icon: "snake4"});
+                        icon: "rotate11"});
             return (
                 <ButtonMenu right items={items} text={this.props.name} />
             );

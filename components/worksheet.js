@@ -152,7 +152,8 @@ var ProjectBar = React.createClass({
                 {text: "new", click: this.props.onProjectNew, icon: "add186"},
                 {text: "rename", click: rename, icon: "rotate11"},
                 {text: "delete", click: del, icon: "close47"},
-                {text: "publish project", click: null, icon: "screen47"}
+                {text: "publish project", click: this.props.onProjectPublish,
+                 icon: "screen47"}
             ]);
         }
 
@@ -255,6 +256,7 @@ var HeaderBar = React.createClass({
                         currentProject={this.props.currentProject}
                         onProjectDelete={this.props.onProjectDelete}
                         onProjectNew={this.props.onProjectNew}
+                        onProjectPublish={this.props.onProjectPublish}
                         onProjectClick={this.props.onProjectClick}
                         onProjectRename={this.props.onProjectRename}
                         onImportBlock={this.props.onImportBlock}
@@ -359,7 +361,20 @@ var Worksheet = React.createClass({
             this.state.projectName + "-1", "New project name?", ok);
     },
     onProjectPublish: function(proj) {
+        var that = this;
 
+        var ok = function() {
+            that.openWorkingDialog();
+            var allDone = function() {
+                that.closeDialog();
+            };
+            var getKey = function(key) {
+                setTimeout(
+                    SKG.donePublish(that.state.user, key, allDone, allDone));
+            };
+            SKG.requestPublish(that.state.user, getKey);
+        }
+        this.openBinaryDialog("Really publish project?", ok);
     },
     onProjectDelete: function(proj) {
         var that = this;
@@ -388,8 +403,7 @@ var Worksheet = React.createClass({
         };
         this.openBinaryDialog("Delete project?", ok);
     },
-    onProjectExport: function(proj) {
-        var that = this;
+    projectAsJson: function(proj, rand) {
         var blocks = this.state.blocks;
         var blockContent = this.state.blockContent;
         var srcTexts = this.state.srcTexts;
@@ -408,19 +422,25 @@ var Worksheet = React.createClass({
                 );
             });
         });
-        var proj = {
-            "name": proj + '-' + SKG.util.makeId(7).toLowerCase(),
+        var projName = proj;
+        if (rand)
+            projName += '-' + SKG.util.makeId(7).toLowerCase();
+
+        return {
+            "name": projName,
             "json": projData,
             "files": files
         };
+    },
+    onProjectExport: function(proj) {
+        var projJson = this.projectAsJson(proj, true);
         // Will redirect to login.
         var done = function(v) {
             window.location.href = "/login?tid=" + v;
         }
-        SKG.exportProject(proj, done);
+        SKG.exportProject(projJson, done);
     },
-    onProjectImport: function(text) {
-        this.openWorkingDialog();
+    writeProject: function(destUser, text, updateState, onOk, onFail) {
         var proj = JSON.parse(text);
         var projName = proj['name'];
         var projJson = proj['json'];
@@ -431,23 +451,29 @@ var Worksheet = React.createClass({
             var sol = JSON.parse(text);
             sol.projects.push(projName);
             sol.currentProject = sol.projects.length -1;
-            that.updateSolution(
+            var solData =
                 SKG.d(SKG_SOLUTION_CURRENT_PROJECT, sol.currentProject)
                     .i(SKG_SOLUTION_PROJECTS, sol.projects)
-                    .i(SKG_SOLUTION_EDITOR_MODE, sol.editorMode).o());
+                    .i(SKG_SOLUTION_EDITOR_MODE, sol.editorMode).o();
+
+            var outerOk = function() {
+                if (updateState) that.setState(solData);
+                if (onOk) onOk();
+            };
+            SKG.updateSolution(destUser, solData, outerOk, onFail);
         };
 
         var onWriteProjectDone = function() {
             var writeFile = function(i) {
                 if (i == files.length) {
-                    that.closeDialog();
-                    SKG.readSolution(that.state.user, onSolutionRead);
+                    SKG.readSolution(destUser, onSolutionRead, onFail);
                     return;
                 }
 
                 var next = writeFile.bind(that, i + 1);
-                SKG.writeSrcFile(that.state.user, projName, files[i].name,
-                                 files[i].text, next, next);
+                SKG.writeSrcFile(
+                    destUser, projName, files[i].name, files[i].text, next,
+                    next);
             };
             writeFile(0);
         };
@@ -455,11 +481,18 @@ var Worksheet = React.createClass({
             // TODO
             // There's a bug here because a new default source file is generated
             // on every new project.  It needs to be deleted.
-            SKG.writeProject(that.state.user, projName, projJson,
-                             onWriteProjectDone);
+            SKG.writeProject(
+                destUser, projName, projJson, onWriteProjectDone, onFail);
         };
-
-        SKG.newProject(that.state.user, projName, onNewProjectDone);
+        SKG.newProject(destUser, projName, onNewProjectDone, onFail);
+    },
+    onProjectImport: function(text) {
+        var that = this;
+        this.openWorkingDialog();
+        var onDone = function() {
+            //that.closeDialog();
+        }
+        this.writeProject(this.state.user, text, true, onDone, onDone);
     },
     onImportBlock: function(aProj, bProj) {
         var that = this;
@@ -1363,6 +1396,7 @@ var Worksheet = React.createClass({
                     currentProject={this.state.currentProject}
                     onProjectDelete={this.onProjectDelete}
                     onProjectNew={this.onProjectNew}
+                    onProjectPublish={this.onProjectPublish}
                     onProjectClick={this.onProjectClick}
                     onProjectRename={this.onProjectRename}
                     onImportBlock={importBlock} />

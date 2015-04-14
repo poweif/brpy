@@ -172,6 +172,15 @@ var SKG = {
         this.util.xhrGet(
             this.apiPrefix(user) + '/run?import-proj', onLoad, onFailed);
     },
+    requestPublish: function(user, onLoad, onFailed) {
+        this.util.xhrGet(
+            this.apiPrefix(user) + '/run?publish', onLoad, onFailed);
+    },
+    donePublish: function(user, key, onLoad, onFailed) {
+        this.util.xhrGet(
+            this.apiPrefix(user) + '/run?done-publish=' + key, onLoad,
+            onFailed);
+    },
     init: function(user, onLoad, onFailed) {
         this.util.xhrGet(this.apiPrefix(user) + '/run?init', onLoad, onFailed);
     },
