@@ -246,10 +246,16 @@ def _build_drive_service(credentials):
         http = credentials.authorize(httplib2.Http()))
 
 class GdriveSkSolution(SkSolution):
-    def __init__(self, cred, read_only=False):
+    def __init__(self, cred, read_only=False, app_dir=None):
         super(GdriveSkSolution, self).__init__(read_only=read_only)
         self.__cred = cred
         self.__drive = _build_drive_service(cred)
+        self.__default_app_dir = app_dir
+
+    def _app_dir(self):
+        if self.__default_app_dir is None:
+            return self._BRPY_APP_DIR
+        return self.__default_app_dir
 
     def _root_impl(self):
         self._files[self._ROOT_KEY] =\
@@ -259,11 +265,11 @@ class GdriveSkSolution(SkSolution):
     @gen.coroutine
     def _app_impl(self):
         iid = yield self._find_file_id_impl(
-            self._root(), self._BRPY_APP_DIR)
+            self._root(), self._app_dir())
 
         # Always create when not found
         if iid is None:
-            iid = yield self._create_folder(self._root(), self._BRPY_APP_DIR)
+            iid = yield self._create_folder(self._root(), self._app_dir())
 
         raise gen.Return(self._add_key(self._APP_KEY, iid))
 
@@ -435,17 +441,23 @@ class DevSkSolution(SkSolution):
             raise gen.Return(content)
 
 class MongoDBSkSolution(SkSolution):
-    def __init__(self, user, db, read_only=False):
+    def __init__(self, user, db, read_only=False, app_dir=None):
         super(MongoDBSkSolution, self).__init__(read_only=read_only)
         self.__user = user
         self.__db = db
+        self.__default_app_dir = app_dir
 
     def _root_impl(self):
         return self._add_key(self._ROOT_KEY, 'root')
 
+    def _app_dir(self):
+        if self.__default_app_dir is None:
+            return self._BRPY_APP_DIR
+        return self.__default_app_dir
+
     @gen.coroutine
     def _app_impl(self):
-        raise gen.Return(self._BRPY_APP_DIR)
+        raise gen.Return(self._app_dir())
 
     @gen.coroutine
     def _find_file_id_impl(self, parent_id, title):

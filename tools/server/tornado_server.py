@@ -9,14 +9,17 @@ import simplejson as json
 
 from apiclient.discovery import build
 
-from sk_solution import DevSkSolution, MongoDBSkSolution, GdriveSkSolution,\
-    HierarchicalSkSolution
-from easy_oauth2 import EasyOAuth2
+from oauth2client.client import GoogleCredentials
 
 import tornado.ioloop
 import tornado.web
 from tornado import gen
 import motor
+
+from sk_solution import DevSkSolution, MongoDBSkSolution, GdriveSkSolution,\
+    HierarchicalSkSolution
+from easy_oauth2 import EasyOAuth2
+from publisher import ProjectPublisher
 
 def get_user_info(credentials):
     user_info_service = build(
@@ -54,24 +57,33 @@ BRPY_SESSION_KEY = 'brpy-session-key'
 ERR_PARAM = -3498314
 INDEX_HTML = open(CURRENT_DIR + '/index.html').read()
 START_DIR = './start'
+BRPY_PUBLISH_PROJECT_KEY = 'brpy-publish-project-key'
 
-g_session = {}
-g_start_solution = None
-g_motor_client = motor.MotorClient()
-
+_session = {}
+_motor_client = motor.MotorClient()
+_motor_client.drop_database('test')
 _io_loop = tornado.ioloop.IOLoop.instance()
 
-if len(sys.argv) >= 2 and os.access(sys.argv[1], os.F_OK):
-    g_start_solution = DevSkSolution(sys.argv[1])
-else:
-    g_motor_client.drop_database('test')
-    read_only = True
+def build_start_solution(read_only=True):
     dev = DevSkSolution(START_DIR, read_only=read_only)
     mongo = MongoDBSkSolution(
-        user='brpy_public', db=g_motor_client.test, read_only=read_only)
-    g_start_solution = HierarchicalSkSolution(io_loop=_io_loop, l1=mongo, l2=dev)
+        user='brpy_public', db=_motor_client.test, read_only=read_only)
+    return HierarchicalSkSolution(io_loop=_io_loop, l1=mongo, l2=dev)
 
-g_auth = EasyOAuth2(CLIENTSECRETS_LOCATION, SCOPES)
+def build_published_solution(read_only=True):
+    gdrive = GdriveSkSolution(
+        GoogleCredentials.get_application_default(),
+        app_dir="BRPY_PUBLISHED_DATA")
+    mongo = MongoDBSkSolution(
+        user='brpy_public', db=_motor_client.test, read_only=read_only,
+        app_dir="BRPY_PUBLISHED_DATA")
+    return HierarchicalSkSolution(io_loop=_io_loop, l1=mongo, l2=gdrive)
+
+_start_solution = build_start_solution()
+_published_solution = build_published_solution()
+_publishing_solution = build_published_solution(read_only=False)
+_publisher = ProjectPublisher(db=_motor_client.test)
+_auth = EasyOAuth2(CLIENTSECRETS_LOCATION, SCOPES)
 
 SESSION_INFO = 'info'
 SESSION_SOLUTION = 'solution'
@@ -86,17 +98,17 @@ class AllHandler(tornado.web.RequestHandler):
 
     def _get_solution(self):
         user = self.current_user
-        if user is not None and not user in g_session:
+        if user is not None and not user in _session:
             self.clear_cookie(BRPY_SESSION_KEY)
-            return g_start_solution
-        return g_start_solution if user is None\
-            else g_session[user][SESSION_SOLUTION]
+            return _start_solution
+        return _start_solution if user is None\
+            else _session[user][SESSION_SOLUTION]
 
 class ExportHandler(AllHandler):
     @gen.coroutine
     def post(self):
         user_key = get_random_state()
-        g_session[user_key] = {
+        _session[user_key] = {
             SESSION_IMPORT: self.request.body
         }
         self.write(user_key)
@@ -117,24 +129,23 @@ class LoginHandler(AllHandler):
             tid = get_random_state()
 
         if error_val is not None or code_val is None or state_val is None:
-            new_url = g_auth.get_authorization_url(POST_LOGIN_URI, tid)
+            new_url = _auth.get_authorization_url(POST_LOGIN_URI, tid)
             return self.redirect(new_url)
 
-
-        cred = g_auth.get_credentials(
+        cred = _auth.get_credentials(
             code_val, state=None, redirect_uri=POST_LOGIN_URI)
         user_info = get_user_info(cred)
         email = user_info.get('email')
-        mongo = MongoDBSkSolution(user=email, db=g_motor_client.test)
+        mongo = MongoDBSkSolution(user=email, db=_motor_client.test)
         gdrive = GdriveSkSolution(cred)
         solution = HierarchicalSkSolution(io_loop=_io_loop, l1=mongo, l2=gdrive)
         user_key = state_val
 
-        if not user_key in g_session:
-            g_session[user_key] = {}
+        if not user_key in _session:
+            _session[user_key] = {}
 
-        g_session[user_key][SESSION_INFO]= user_info
-        g_session[user_key][SESSION_SOLUTION]= solution
+        _session[user_key][SESSION_INFO]= user_info
+        _session[user_key][SESSION_SOLUTION]= solution
         self.set_cookie(BRPY_SESSION_KEY, user_key)
         return self.redirect('/')
 
@@ -142,8 +153,8 @@ class LogoutHandler(AllHandler):
     @gen.coroutine
     def get(self):
         if self.current_user is not None:
-            if self.current_user in g_session:
-                g_session.pop(self.current_user, None)
+            if self.current_user in _session:
+                _session.pop(self.current_user, None)
         self.clear_cookie(BRPY_SESSION_KEY)
         return self.redirect('/')
 
@@ -151,13 +162,13 @@ class UserInfoHandler(AllHandler):
     @gen.coroutine
     def get(self):
         user = self.current_user
-        if not user in g_session:
+        if not user in _session:
             self.clear_cookie(BRPY_SESSION_KEY)
             self.finish()
             return
 
         if user is not None:
-            self.write(json.dumps(g_session[user][SESSION_INFO]))
+            self.write(json.dumps(_session[user][SESSION_INFO]))
             self.finish()
             return
         self.send_error()
@@ -168,21 +179,28 @@ INIT_IMPORT_PROJECT = 'INIT_IMPORT_PROJECT'
 class RunHandler(AllHandler):
     def _get_import_data(self):
         user = self.current_user
-        if user is None or not user in g_session\
-           or not SESSION_IMPORT in g_session[user]:
+        if user is None or not user in _session\
+           or not SESSION_IMPORT in _session[user]:
             return None
-        return g_session[user][SESSION_IMPORT]
+        return _session[user][SESSION_IMPORT]
 
     def _clear_import_data(self):
         user = self.current_user
-        if user is None or not user in g_session\
-           or not SESSION_IMPORT in g_session[user]:
+        if user is None or not user in _session\
+           or not SESSION_IMPORT in _session[user]:
             return None
-        del g_session[user][SESSION_IMPORT]
+        del _session[user][SESSION_IMPORT]
+
+    def _publishable(self):
+        return self.current_user is not None
 
     @gen.coroutine
     def get(self):
         solution = self._get_solution()
+        if solution is None:
+            self.send_error()
+            return
+
         if self.argshort('init', default=ERR_PARAM) != ERR_PARAM:
             user = self.current_user
             if user is None or self._get_import_data() is None:
@@ -201,11 +219,24 @@ class RunHandler(AllHandler):
                 return
 
         if self.argshort('import-proj', default=ERR_PARAM) != ERR_PARAM:
-            res = self._get_import_data()
-            self.write(res)
+            self.write(self._get_import_data())
             self._clear_import_data()
             self.finish()
             return
+
+        if self.argshort('publish', default=ERR_PARAM) != ERR_PARAM:
+            if not self._publishable():
+                self.clear_cookie(BRPY_PUBLISH_PROJECT_KEY)
+                self.send_error()
+                return
+            key = yield _publisher.begin(self.current_user)
+            self.set_cookie(BRPY_PUBLISH_PROJECT_KEY, key)
+            self.write(key)
+
+        pub_key = self.argshort('done-publish')
+        if pub_key is not None and self._publishable():
+            yield _publisher.end(user=self.current_user, key=pub_key)
+            self.clear_cookie(BRPY_PUBLISH_PROJECT_KEY)
 
         proj = self.argshort('read-proj')
         if proj is not None:
@@ -223,11 +254,16 @@ class RunHandler(AllHandler):
                 self.write(res)
                 self.finish()
                 return
+
         self.send_error()
 
     @gen.coroutine
     def post(self):
         solution = self._get_solution()
+        if solution is None:
+            self.send_error()
+            return
+
         if self.argshort('update-solution', default=ERR_PARAM) != ERR_PARAM:
             body = json.loads(self.request.body)
             if (yield solution.update_solution(body)) is not None:
@@ -290,7 +326,36 @@ class RunHandler(AllHandler):
 
 class StartRunHandler(RunHandler):
     def _get_solution(self):
-        return g_start_solution
+        return _start_solution
+    def _publishable(self):
+        return False
+
+class PublishedRunHandler(RunHandler):
+    def _get_solution(self):
+        return _published_solution
+    def _publishable(self):
+        return False
+
+class PublishingRunHandler(RunHandler):
+    def _get_solution(self):
+        return _publishing_solution
+
+    def _publishable(self):
+        return False
+
+    @gen.coroutine
+    def get(self):
+        publish_key = self.get_cookie(BRPY_PUBLISH_PROJECT_KEY)
+        if _publisher.validate(user=self.current_user, key=publish_key):
+            yield super(PublishingRunHandler, self).get()
+        self.send_error()
+
+    @gen.coroutine
+    def post(self):
+        publish_key = self.get_cookie(BRPY_PUBLISH_PROJECT_KEY)
+        if _publisher.validate(user=self.current_user, key=publish_key):
+            yield super(PublishingRunHandler, self).post()
+        self.send_error()
 
 class IndexHandler(AllHandler):
     @gen.coroutine
@@ -303,20 +368,30 @@ class RootIndexHandler(AllHandler):
         if self.current_user is None:
             self.redirect('/start/')
             return
-
         self.write(INDEX_HTML)
+
+class RestrictAccessHandler(AllHandler):
+    @gen.coroutine
+    def get(self, v):
+        self.send_error()
+
+    @gen.coroutine
+    def post(self, v):
+        self.send_error()
 
 if __name__ == "__main__":
     app = tornado.web.Application([
         (r"/export", ExportHandler),
+        (r"/user", UserInfoHandler),
         (r"/login", LoginHandler),
         (r"/logout", LogoutHandler),
         (r"/run", RunHandler),
         (r"/start/run", StartRunHandler),
-        (r"/public/run", StartRunHandler),
-        (r"/user", UserInfoHandler),
+        (r"/published/run", PublishedRunHandler),
+        (r"/publish/run", PublishingRunHandler),
         (r"/start/", IndexHandler),
-        (r"/public", IndexHandler),
+        (r"/published/", IndexHandler),
+        (r"/tools/(.*)", RestrictAccessHandler),
         (r"/($)", RootIndexHandler),
         (r"/(.*)", tornado.web.StaticFileHandler, {'path': './'})
     ], cookie_secret=get_random_state())

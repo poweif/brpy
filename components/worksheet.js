@@ -151,7 +151,8 @@ var ProjectBar = React.createClass({
                 {text: "project options", hr: true},
                 {text: "new", click: this.props.onProjectNew, icon: "add186"},
                 {text: "rename", click: rename, icon: "rotate11"},
-                {text: "delete", click: del, icon: "close47"}
+                {text: "delete", click: del, icon: "close47"},
+                {text: "publish project", click: null, icon: "screen47"}
             ]);
         }
 
@@ -203,22 +204,24 @@ var HeaderBar = React.createClass({
         var button = null;
         if (this.props.user) {
             var text = this.trim(this.props.user);
+            var items = [
+                {text: "log out", link: "/logout", icon: "back57"}
+            ];
             button = function() {
                 return (
-                    <Button mid text={text} link="/logout"
-                        icon={that.state.userIcon} addClass="login-button"/>
+                    <ButtonMenu mid right text={text} icon={that.state.userIcon}
+                        items={items} addClass="login-button"/>
                 );
             }();
         } else {
-            var text = "login";
             var items = [
-                {text: "just login", link: "/login", icon: "person325"},
+                {text: "just log in", link: "/login", icon: "forward18"},
                 {text: "copy to user", click: that.props.onProjectExport,
                  icon: "upload119"}
             ];
             button = function() {
                 return (
-                    <ButtonMenu mid right text="login" items={items}
+                    <ButtonMenu mid right text="log in" items={items}
                         icon={that.state.userIcon} />
                 );
             }();
@@ -290,7 +293,7 @@ var Worksheet = React.createClass({
             that.setState(solData);
             if (onOk) onOk();
         };
-        SKG.updateSolution(solData, outerOk, onFail);
+        SKG.updateSolution(this.state.user, solData, outerOk, onFail);
     },
     onEditorModeChange: function(mode) {
         this.updateSolution(
@@ -304,6 +307,7 @@ var Worksheet = React.createClass({
         var ok = function(text) {
             that.openWorkingDialog();
             SKG.renameProject(
+                that.state.user,
                 oldProj,
                 text,
                 function() {
@@ -336,6 +340,7 @@ var Worksheet = React.createClass({
         var ok = function(text) {
             that.openWorkingDialog();
             SKG.newProject(
+                that.state.user,
                 text,
                 function(project) {
                     that.closeDialog();
@@ -353,6 +358,9 @@ var Worksheet = React.createClass({
         this.openTextDialog(
             this.state.projectName + "-1", "New project name?", ok);
     },
+    onProjectPublish: function(proj) {
+
+    },
     onProjectDelete: function(proj) {
         var that = this;
         var fail = function() {
@@ -361,6 +369,7 @@ var Worksheet = React.createClass({
         var ok = function() {
             that.openWorkingDialog();
             SKG.deleteProject(
+                that.state.user,
                 proj,
                 function() {
                     that.closeDialog();
@@ -432,13 +441,13 @@ var Worksheet = React.createClass({
             var writeFile = function(i) {
                 if (i == files.length) {
                     that.closeDialog();
-                    SKG.readSolution(onSolutionRead);
+                    SKG.readSolution(that.state.user, onSolutionRead);
                     return;
                 }
 
                 var next = writeFile.bind(that, i + 1);
-                SKG.writeSrcFile(projName, files[i].name, files[i].text,
-                                 next, next);
+                SKG.writeSrcFile(that.state.user, projName, files[i].name,
+                                 files[i].text, next, next);
             };
             writeFile(0);
         };
@@ -446,10 +455,11 @@ var Worksheet = React.createClass({
             // TODO
             // There's a bug here because a new default source file is generated
             // on every new project.  It needs to be deleted.
-            SKG.writeProject(projName, projJson, onWriteProjectDone);
+            SKG.writeProject(that.state.user, projName, projJson,
+                             onWriteProjectDone);
         };
 
-        SKG.newProject(projName, onNewProjectDone);
+        SKG.newProject(that.state.user, projName, onNewProjectDone);
     },
     onImportBlock: function(aProj, bProj) {
         var that = this;
@@ -510,11 +520,12 @@ var Worksheet = React.createClass({
                         var aFileName = genFileName(bFileNameExt);
                         aSrcTexts[aFileName] = text;
                         SKG.writeSrcFile(
-                            aProj, aFileName, text,
+                            that.state.user, aProj, aFileName, text,
                             function() { readFile(i + 1); });
                     };
                     if (fileExt != 'bk')
-                        SKG.readSrcFile(bProj, bFileNameExt, next);
+                        SKG.readSrcFile(
+                            that.state.user, bProj, bFileNameExt, next);
                     else
                         next();
                 };
@@ -528,7 +539,7 @@ var Worksheet = React.createClass({
             that.openChoicesDialog(bBlockNames, 'Choose a block to import:', onOk);
         };
 
-        SKG.readProject(bProj, onLoadProject);
+        SKG.readProject(that.state.user, bProj, onLoadProject);
     },
     updateProject: function(projName, blocks, blockContent, onOk, onFail,
                             holdWrite) {
@@ -552,7 +563,8 @@ var Worksheet = React.createClass({
             return bc;
         });
         if (!holdWrite) {
-            SKG.writeProject(projName, projData, outerOk, onFail);
+            SKG.writeProject(that.state.user, projName, projData, outerOk,
+                             onFail);
         } else {
             outerOk();
         }
@@ -638,7 +650,8 @@ var Worksheet = React.createClass({
             };
 
             SKG.renameSrcFile(
-                proj, oldFileExt, newFileExt, successFile, failed);
+                that.state.user, proj, oldFileExt, newFileExt, successFile,
+                failed);
         };
         this.openTextDialog(file, "New file name?", ok);
     },
@@ -692,7 +705,8 @@ var Worksheet = React.createClass({
                     function() { that.setState({srcTexts: srcTexts}); },
                     failed);
             };
-            SKG.writeSrcFile(proj, fnameExt, fileSrc, successFile, failed);
+            SKG.writeSrcFile(
+                that.state.user, proj, fnameExt, fileSrc, successFile, failed);
         };
         this.openTextDialog("new", "New file?", ok);
     },
@@ -784,7 +798,8 @@ var Worksheet = React.createClass({
                 };
             }
 
-            SKG.deleteSrcFile(proj, fname, successFile, failed);
+            SKG.deleteSrcFile(
+                that.state.user, proj, fname, successFile, failed);
         };
         this.openBinaryDialog(
             "Are you sure you'd like to delete " + (fname) + "?", ok);
@@ -1092,7 +1107,7 @@ var Worksheet = React.createClass({
 
         this.clientSideSave(proj, block, file, code);
         SKG.writeSrcFile(
-            proj, file, code,
+            that.state.user, proj, file, code,
             function() { console.log("Successfully wrote " + file); },
             function() { console.log("Failed to write " + file); }
         );
@@ -1122,8 +1137,7 @@ var Worksheet = React.createClass({
         var readFile = function(file, onDoneFile) {
             if (SKG.util.getFileExt(file) == 'bk') return onDoneFile();
             SKG.readSrcFile(
-                projectName,
-                file,
+                that.state.user, projectName, file,
                 function(text) {
                     that.onLoadSource(file, text);
                     onDoneFile();},
@@ -1165,8 +1179,8 @@ var Worksheet = React.createClass({
         if (!solution.editorMode)
             solution.editorMode = SKG_EDITOR_STANDARD;
 
-        var urlProj = SKG.readProjectFromURL();
-        var projInd = SKG.util.indexOf(solution.projects, urlProj);
+        var projInd = SKG.util.indexOf(
+            solution.projects, SKG.readProjectFromURL());
 
         if (projInd < 0) {
             this.closeDialog();
@@ -1190,9 +1204,9 @@ var Worksheet = React.createClass({
     onInit: function(code) {
         if (code == SKG_INIT_LOAD_SOLUTION) {
             this.openWorkingDialog();
-            SKG.readSolution(this.onLoadSolution);
+            SKG.readSolution(this.state.user, this.onLoadSolution);
         } else if (code == SKG_INIT_IMPORT_PROJECT) {
-            SKG.importProject(this.onProjectImport);
+            SKG.importProject(this.state.user, this.onProjectImport);
         }
     },
     componentDidUpdate: function(prevProps, prevState) {
@@ -1213,17 +1227,18 @@ var Worksheet = React.createClass({
                 SKG.updateWithUserProject(that.state.user, project);
             };
             this.openWorkingDialog();
-            SKG.readProject(project, loadProject);
+            SKG.readProject(that.state.user, project, loadProject);
         }
     },
     componentDidMount: function() {
-        SKG.init(this.onInit);
-
         var that = this;
         var onLoad = function(userInfo) {
-            if (!userInfo) return;
-            var info = JSON.parse(userInfo);
-            that.setState({user: info['email']});
+            var user = null;
+            if (userInfo) {
+                user = SKG.determineUser(JSON.parse(userInfo)['email']);
+            }
+            that.setState({user: user});
+            SKG.init(user, that.onInit);
         };
         SKG.readUserInfo(onLoad, null);
     },

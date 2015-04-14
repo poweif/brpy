@@ -143,78 +143,89 @@ var SKG = {
     readUserInfo: function(onLoad, onFailed) {
         this.util.xhrGet('/user', onLoad, onFailed);
     },
-    apiPrefix: function() {
+    determineUser: function(userName) {
         var dirs = window.location.pathname.split('/');
         if (dirs.length < 2)
-            return '';
-
-        if (dirs[1] == SKG_URL_PATH_STARTER)
-            return '/' + SKG_URL_PATH_STARTER;
-
+            return userName;
+        if (dirs[1] == SKG_URL_PATH_START)
+            return null;
+        if (dirs[1] == SKG_URL_PATH_PUBLISHED)
+            return 'published';
+        return userName;
+    },
+    apiPrefix: function(user) {
+        if (!user || user == SKG_USER_START)
+            return '/' + SKG_URL_PATH_START;
+        if (user == SKG_USER_PUBLISHED)
+            return '/' + SKG_URL_PATH_PUBLISHED;
         return '';
     },
-    readSolution: function(onLoad, onFailed) {
-        this.util.xhrGet(this.apiPrefix() + '/run?solution', onLoad, onFailed);
+    readSolution: function(user, onLoad, onFailed) {
+        this.util.xhrGet(
+            this.apiPrefix(user) + '/run?solution', onLoad, onFailed);
     },
     exportProject: function(proj, onLoad, onFailed) {
         var data = JSON.stringify(proj);
         this.util.xhrPost('/export', data, onLoad, onFailed);
     },
-    importProject: function(onLoad, onFailed) {
-        this.util.xhrGet(this.apiPrefix() + '/run?import-proj', onLoad, onFailed);
+    importProject: function(user, onLoad, onFailed) {
+        this.util.xhrGet(
+            this.apiPrefix(user) + '/run?import-proj', onLoad, onFailed);
     },
-    init: function(onLoad, onFailed) {
-        this.util.xhrGet(this.apiPrefix() + '/run?init', onLoad, onFailed);
+    init: function(user, onLoad, onFailed) {
+        this.util.xhrGet(this.apiPrefix(user) + '/run?init', onLoad, onFailed);
     },
-    updateSolution: function(solData, onLoad, onFailed) {
+    updateSolution: function(user, solData, onLoad, onFailed) {
         var solDataStr = JSON.stringify(solData)
         this.util.xhrPost(
-            this.apiPrefix() + '/run?update-solution', solDataStr, onLoad,
+            this.apiPrefix(user) + '/run?update-solution', solDataStr, onLoad,
             onFailed);
     },
-    readProject: function(proj, onLoad, onFailed) {
+    readProject: function(user, proj, onLoad, onFailed) {
         this.util.xhrGet(
-            this.apiPrefix() + '/run?read-proj=' + proj, onLoad, onFailed);
+            this.apiPrefix(user) + '/run?read-proj=' + proj, onLoad, onFailed);
     },
-    writeProject: function(proj, projData, onLoad, onFailed) {
+    writeProject: function(user, proj, projData, onLoad, onFailed) {
         var projDataStr = JSON.stringify(projData);
         this.util.xhrPost(
-            this.apiPrefix() + '/run?write-proj=' + proj, projDataStr, onLoad,
-            onFailed);
+            this.apiPrefix(user) + '/run?write-proj=' + proj, projDataStr,
+            onLoad, onFailed);
     },
-    renameProject: function(oldName, newName, onLoad, onFailed) {
+    renameProject: function(user, oldName, newName, onLoad, onFailed) {
         this.util.xhrPost(
-            this.apiPrefix() + '/run?rename-proj=' + oldName + ',' + newName,
+            this.apiPrefix(user) + '/run?rename-proj=' + oldName + ','
+                + newName,
             null, onLoad, onFailed);
     },
-    newProject: function(proj, onLoad, onFailed) {
+    newProject: function(user, proj, onLoad, onFailed) {
         this.util.xhrPost(
-            this.apiPrefix() + '/run?new-proj=' + proj, null, onLoad, onFailed);
-    },
-    deleteProject: function(proj, onLoad, onFailed) {
-        this.util.xhrPost(
-            this.apiPrefix() + '/run?delete-proj=' + proj, null, onLoad,
+            this.apiPrefix(user) + '/run?new-proj=' + proj, null, onLoad,
             onFailed);
     },
-    renameSrcFile: function(proj, oldname, newname, onLoad, onFailed) {
+    deleteProject: function(user, proj, onLoad, onFailed) {
         this.util.xhrPost(
-            this.apiPrefix() + '/run?rename=' +
+            this.apiPrefix(user) + '/run?delete-proj=' + proj, null, onLoad,
+            onFailed);
+    },
+    renameSrcFile: function(user, proj, oldname, newname, onLoad, onFailed) {
+        this.util.xhrPost(
+            this.apiPrefix(user) + '/run?rename=' +
                 oldname + "," + newname + '&proj=' + proj,
             null, onLoad, onFailed);
     },
-    deleteSrcFile: function(proj, filename, onLoad, onFailed) {
+    deleteSrcFile: function(user, proj, filename, onLoad, onFailed) {
         this.util.xhrPost(
-            this.apiPrefix() + '/run?delete=' + filename + '&proj=' + proj,
+            this.apiPrefix(user) + '/run?delete=' + filename + '&proj=' + proj,
             null, onLoad, onFailed);
     },
-    readSrcFile: function(proj, filename, onLoad, onFailed) {
+    readSrcFile: function(user, proj, filename, onLoad, onFailed) {
         this.util.xhrGet(
-            this.apiPrefix() + '/run?read=' + filename + '&proj=' + proj,
+            this.apiPrefix(user) + '/run?read=' + filename + '&proj=' + proj,
             onLoad, onFailed);
     },
-    writeSrcFile: function(proj, filename, text, onLoad, onFailed) {
+    writeSrcFile: function(user, proj, filename, text, onLoad, onFailed) {
         this.util.xhrPost(
-            this.apiPrefix() + '/run?write=' + filename + '&proj=' + proj,
+            this.apiPrefix(user) + '/run?write=' + filename + '&proj=' + proj,
             text, onLoad, onFailed);
     },
     openDialog: function(text, choices, prompt, onOK, onCancel) {
@@ -298,7 +309,10 @@ var SKG = {
     SKG_SOFT_COPY = SKG.util.softCopy;
     SKG_INIT_LOAD_SOLUTION = 'INIT_LOAD_SOLUTION';
     SKG_INIT_IMPORT_PROJECT = 'INIT_IMPORT_PROJECT';
-    SKG_URL_PATH_STARTER = 'starter';
+    SKG_URL_PATH_START = 'start';
+    SKG_URL_PATH_PUBLISHED = 'published';
+    SKG_USER_START = 'start';
+    SKG_USER_PUBLISHED = 'published';
 
     window.addEventListener("beforeunload", function (e) {
         var confirmation = "Did you save? Are you sure you'd like to quit?"
