@@ -117,25 +117,16 @@ var ProjectBar = React.createClass({
         var isPublished =
             SKG.determineUser(this.props.user) == SKG_USER_PUBLISHED;
 
-        var cleanTitle = !isPublished ?
-            function(s) { return s; } :
-            function(s) {
-                if (!s) return s;
-                var i = s.indexOf('$');
-                if (i < 0) return s;
-                return s.substring(i + 1);
-            };
-
         var that = this;
-        var current =
-            cleanTitle(this.props.projects[this.props.currentProject]);
+        var projId = this.props.projects[this.props.currentProject];
+        var current = isPublished ? this.props.projectMeta.alias : projId;
 
         var buttons = [];
         if (this.props.projects && this.props.projects.length > 1) {
             buttons = [{text: "other projects", hr: true}];
             buttons = buttons.concat(
                 this.props.projects.map(function(proj) {
-                    if (proj == current)
+                    if (proj == projId)
                         return null;
                     var projectClick = function() {
                         if (that.refs.menu)
@@ -154,13 +145,16 @@ var ProjectBar = React.createClass({
                       {text: 'import block', icon: 'download164',
                        click: importBlock}
                     ];
-                    return {text: cleanTitle(proj), items: items};
+                    return {text: proj, items: items};
                 })
             );
         }
-        var rename = function() { return that.props.onProjectRename(current); };
-        var del = function() { return that.props.onProjectDelete(current); };
-        var publish = function() { return that.props.onProjectPublish(current); }
+        var rename = function() {
+            return that.props.onProjectRename(projId); };
+        var del = function() {
+            return that.props.onProjectDelete(projId); };
+        var publish = function() {
+            return that.props.onProjectPublish(projId); }
         if (this.props.user && this.props.user != SKG_USER_PUBLISHED) {
             buttons = buttons.concat([
                 {text: "project options", hr: true},
@@ -262,6 +256,20 @@ var HeaderBar = React.createClass({
             );
         }();
 
+        var isPublished =
+            SKG.determineUser(this.props.user) == SKG_USER_PUBLISHED;
+
+        var date = null;
+        var publisher = null;
+        if (isPublished) {
+            var that = this;
+            date = function() {
+                return <span>{that.props.projectMeta.publishedTime}</span>;
+            }();
+            publisher = function() {
+                return <span>{that.props.projectMeta.publisher}</span>;
+            }();
+        }
         return (
             <div className="header-bar">
                 <Button mid text="brpy" addClass="title" icon="brpy"/>
@@ -274,7 +282,10 @@ var HeaderBar = React.createClass({
                         onProjectClick={this.props.onProjectClick}
                         onProjectRename={this.props.onProjectRename}
                         onImportBlock={this.props.onImportBlock}
+                        projectMeta={this.props.projectMeta}
                         user={this.props.user} />
+                    {date}
+                    {publisher}
                 </span>
                 {rightMost}
             </div>
@@ -292,7 +303,7 @@ var Worksheet = React.createClass({
     })],
     getInitialState: function() {
         return {
-            // project data            
+            // project data
             blocks: [],
             blockContent: {},
             srcTexts: {},
@@ -391,7 +402,6 @@ var Worksheet = React.createClass({
                 var donePublish = function() {
                     SKG.donePublish(that.state.user, key, doneAll, doneAll);
                 };
-                var useAliasName = false;
                 var updateState = false;
                 var projPackage = that.packageProject(projName, key);
                 that.writeProjectFromPackage(
@@ -433,12 +443,22 @@ var Worksheet = React.createClass({
         var blocks = this.state.blocks;
         var blockContent = this.state.blockContent;
         var srcTexts = this.state.srcTexts;
-        var projData = SKG.util.softCopy(projMeta);        
+        var projData = SKG.util.softCopy(this.state.projectMeta);
         projData['blocks'] = blocks.map(function(block) {
             var bc = SKG.util.softCopy(blockContent[block]);
             bc["name"] = block;
             return bc;
         });
+        if (id) {
+            projData['alias'] = projName;
+            if (this.state.user)
+                projData['publisher'] = this.state.user;
+            var date = new Date();
+            projData['publishedTime'] =
+                '' + date.getFullYear() + '-' + date.getMonth() + '-' +
+                date.getDate() + '@' + date.getHours() + ':' +
+                date.getMinutes();
+        }
         var files = [];
         blocks.forEach(function(block) {
             blockContent[block][SKG_BLOCK_SRC].forEach(function(file) {
@@ -456,11 +476,7 @@ var Worksheet = React.createClass({
         if (!id)
             newProjName += '-' + SKG.util.makeId(7).toLowerCase();
         else {
-            // This is a hack to allow the projName also be the id for the
-            // project.  This is not a good way to do it.  Proper would be
-            // to implement both project name and id.
-            // Only needed for published projects.
-            newProjName = id + '$' + projName;
+            newProjName = id;
         }
 
         var ret = {
@@ -490,7 +506,7 @@ var Worksheet = React.createClass({
         var onSolutionRead = function(text) {
             var sol = JSON.parse(text);
             sol.projects.push(projName);
-            sol.currentProject = sol.projects.length -1;
+            sol.currentProject = sol.projects.length - 1;
             var solData =
                 SKG.d(SKG_SOLUTION_CURRENT_PROJECT, sol.currentProject)
                     .i(SKG_SOLUTION_PROJECTS, sol.projects)
@@ -616,15 +632,15 @@ var Worksheet = React.createClass({
 
         SKG.readProject(that.state.user, bProj, onLoadProject);
     },
-    updateProject: function(projName, blocks, blockContent, projMeta, onOk,
+    updateProject: function(projName, blocks, blockContent, projectMeta, onOk,
                             onFail, holdWrite) {
         var that = this;
         if (!blocks)
             blocks = this.state.blocks;
         if (!blockContent)
             blockContent = this.state.blockContent;
-        if (!projMeta)
-            projMeta = this.state.projectMeta;
+        if (!projectMeta)
+            projectMeta = this.state.projectMeta;
 
         var outerOk = function() {
             that.setState(
@@ -634,13 +650,12 @@ var Worksheet = React.createClass({
                 onOk();
             }
         };
-        var projData = SKG.util.softCopy(projMeta);
+        var projData = SKG.util.softCopy(projectMeta);
         projData['blocks'] = blocks.map(function(block) {
             var bc = SKG.util.softCopy(blockContent[block]);
             bc["name"] = block;
             return bc;
         });
-        var 
         if (!holdWrite) {
             SKG.writeProject(that.state.user, projName, projData, outerOk,
                              onFail);
@@ -1199,8 +1214,11 @@ var Worksheet = React.createClass({
         // To distinguish between old style and new style.
         var blob = JSON.parse(text);
         var projectBlocks = null;
+        var projectMeta = {};
         if (blob.length == undefined) {
             projectBlocks = blob['blocks'];
+            delete blob['blocks'];
+            projectMeta = blob;
         } else {
             projectBlocks = JSON.parse(text);
         }
@@ -1256,7 +1274,8 @@ var Worksheet = React.createClass({
         that.setState({
             projectName: projectName,
             blocks: blocks,
-            blockContent: blockContent
+            blockContent: blockContent,
+            projectMeta: projectMeta
         });
     },
     onLoadSource: function(file, text) {
@@ -1453,6 +1472,7 @@ var Worksheet = React.createClass({
                     selectedEditorMode={this.state.editorMode}
                     onProjectExport={projExport}
                     projects={this.state.projects}
+                    projectMeta={this.state.projectMeta}
                     currentProject={this.state.currentProject}
                     onProjectDelete={this.onProjectDelete}
                     onProjectNew={this.onProjectNew}

@@ -155,6 +155,12 @@ $console-button-size: $button-size-large;
 
   .project-title {
     margin-left: 60px;
+    @extend %flexbox;
+    @include flex-direction(column);
+    @include align-items(center);
+    span {
+      margin: 5px 0;
+    }
   }
 
   .right-menus {

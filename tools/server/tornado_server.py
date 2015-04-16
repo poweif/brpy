@@ -88,6 +88,13 @@ def clear_published(drive, app_dir):
     gdrive = GdriveSkSolution(drive=drive, app_dir=app_dir, read_only=False)
     print _io_loop.run_sync(gdrive.read_solution)
 
+    @gen.coroutine
+    def delete_default_proj():
+        raise gen.Return((yield gdrive.delete_project('example')))
+
+    _io_loop.run_sync(delete_default_proj)
+
+
 def build_published_solution(read_only=True):
     app_dir = "brpy_published_data"
     cred = GoogleCredentials.get_application_default()
