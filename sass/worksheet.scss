@@ -159,7 +159,12 @@ $console-button-size: $button-size-large;
     @include flex-direction(column);
     @include align-items(center);
     span {
+      @extend .font-small;
       margin: 5px 0;
+      .highlight {
+        margin: 0 5px;
+        font-weight: 700;
+      }
     }
   }
 

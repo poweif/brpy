@@ -259,15 +259,21 @@ var HeaderBar = React.createClass({
         var isPublished =
             SKG.determineUser(this.props.user) == SKG_USER_PUBLISHED;
 
-        var date = null;
-        var publisher = null;
+        var datePublisher = null;
         if (isPublished) {
             var that = this;
-            date = function() {
-                return <span>{that.props.projectMeta.publishedTime}</span>;
-            }();
-            publisher = function() {
-                return <span>{that.props.projectMeta.publisher}</span>;
+            datePublisher = function() {
+                return (
+                    <span>Published by
+                        <span className="highlight">
+                            {that.props.projectMeta.publisher}
+                        </span>
+                        on
+                        <span className="highlight">
+                            {that.props.projectMeta.publishedTime}
+                        </span>
+                    </span>
+                );
             }();
         }
         return (
@@ -284,8 +290,7 @@ var HeaderBar = React.createClass({
                         onImportBlock={this.props.onImportBlock}
                         projectMeta={this.props.projectMeta}
                         user={this.props.user} />
-                    {date}
-                    {publisher}
+                    {datePublisher}
                 </span>
                 {rightMost}
             </div>
