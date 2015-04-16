@@ -4,6 +4,7 @@ import os
 import random
 import string
 import sys
+import time
 
 import simplejson as json
 
@@ -20,11 +21,17 @@ from sk_solution import DevSkSolution, MongoDBSkSolution, GdriveSkSolution,\
     HierarchicalSkSolution
 from easy_oauth2 import EasyOAuth2
 from publisher import ProjectPublisher
+from googleapiclient.discovery import build
 
-def get_user_info(credentials):
-    user_info_service = build(
-        serviceName='oauth2', version='v2',
-        http=credentials.authorize(httplib2.Http()))
+def get_user_info(cred=None, true_cred=None):
+    if true_cred is None:
+        user_info_service = build(
+            serviceName='oauth2', version='v2',
+            http=cred.authorize(httplib2.Http()))
+    else:
+        user_info_service = build(
+            serviceName='oauth2', version='v2',
+            credentials=true_cred)
     user_info = None
     try:
         user_info = user_info_service.userinfo().get().execute()
@@ -37,7 +44,7 @@ def get_user_info(credentials):
 
 def get_random_state():
     return ''.join(random.choice(string.ascii_uppercase + string.digits)
-                   for x in xrange(32))
+                   for x in xrange(19))
 
 CURRENT_DIR = os.getcwd()
 CLIENTSECRETS_LOCATION = './tools/files/client_secret.json'
@@ -57,6 +64,7 @@ BRPY_SESSION_KEY = 'brpy-session-key'
 ERR_PARAM = -3498314
 INDEX_HTML = open(CURRENT_DIR + '/index.html').read()
 START_DIR = './start'
+PUBLISHED_DIR = './published'
 BRPY_PUBLISH_PROJECT_KEY = 'brpy-publish-project-key'
 
 _session = {}
@@ -70,13 +78,29 @@ def build_start_solution(read_only=True):
         user='brpy_public', db=_motor_client.test, read_only=read_only)
     return HierarchicalSkSolution(io_loop=_io_loop, l1=mongo, l2=dev)
 
+def clear_published(drive, app_dir):
+    root = drive.about().get().execute()['rootFolderId']
+    param = {"q": "title = '%s' and trashed = false" % app_dir}
+    items = drive.children().list(folderId=root, **param).execute()['items']
+    if len(items) > 0:
+        iid = items[0]['id']
+        drive.files().trash(fileId=iid).execute()
+    gdrive = GdriveSkSolution(drive=drive, app_dir=app_dir, read_only=False)
+    print _io_loop.run_sync(gdrive.read_solution)
+
 def build_published_solution(read_only=True):
-    gdrive = GdriveSkSolution(
-        GoogleCredentials.get_application_default(),
-        app_dir="BRPY_PUBLISHED_DATA")
+    app_dir = "brpy_published_data"
+    cred = GoogleCredentials.get_application_default()
+
+    drive = build('drive', 'v2', credentials=cred)
+    if not read_only:
+        clear_published(drive=drive, app_dir=app_dir)
+        pass
+
+    gdrive = GdriveSkSolution(drive=drive, app_dir=app_dir, read_only=read_only)
     mongo = MongoDBSkSolution(
         user='brpy_public', db=_motor_client.test, read_only=read_only,
-        app_dir="BRPY_PUBLISHED_DATA")
+        app_dir=app_dir)
     return HierarchicalSkSolution(io_loop=_io_loop, l1=mongo, l2=gdrive)
 
 _start_solution = build_start_solution()
@@ -84,6 +108,8 @@ _published_solution = build_published_solution()
 _publishing_solution = build_published_solution(read_only=False)
 _publisher = ProjectPublisher(db=_motor_client.test)
 _auth = EasyOAuth2(CLIENTSECRETS_LOCATION, SCOPES)
+
+print 'server ready to go'
 
 SESSION_INFO = 'info'
 SESSION_SOLUTION = 'solution'
@@ -107,10 +133,14 @@ class AllHandler(tornado.web.RequestHandler):
 class ExportHandler(AllHandler):
     @gen.coroutine
     def post(self):
-        user_key = get_random_state()
-        _session[user_key] = {
-            SESSION_IMPORT: self.request.body
-        }
+        if self.current_user is not None:
+            user_key = self.current_user
+        else:
+            user_key = get_random_state()
+
+        if not user_key in _session:
+            _session[user_key] = {}
+        _session[user_key][SESSION_IMPORT] = self.request.body
         self.write(user_key)
         return
 
@@ -137,7 +167,7 @@ class LoginHandler(AllHandler):
         user_info = get_user_info(cred)
         email = user_info.get('email')
         mongo = MongoDBSkSolution(user=email, db=_motor_client.test)
-        gdrive = GdriveSkSolution(cred)
+        gdrive = GdriveSkSolution(cred=cred)
         solution = HierarchicalSkSolution(io_loop=_io_loop, l1=mongo, l2=gdrive)
         user_key = state_val
         self.set_cookie(BRPY_SESSION_KEY, user_key)
@@ -352,6 +382,7 @@ class PublishingRunHandler(RunHandler):
         publish_key = self.get_cookie(BRPY_PUBLISH_PROJECT_KEY)
         if _publisher.validate(user=self.current_user, key=publish_key):
             yield super(PublishingRunHandler, self).get()
+            return
         self.send_error()
 
     @gen.coroutine
@@ -359,6 +390,7 @@ class PublishingRunHandler(RunHandler):
         publish_key = self.get_cookie(BRPY_PUBLISH_PROJECT_KEY)
         if _publisher.validate(user=self.current_user, key=publish_key):
             yield super(PublishingRunHandler, self).post()
+            return
         self.send_error()
 
 class IndexHandler(AllHandler):

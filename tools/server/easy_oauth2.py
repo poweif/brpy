@@ -42,7 +42,7 @@ class EasyOAuth2():
             self._CLIENT_SECRET_LOC,
             scope=' '.join(self._SCOPES),
             redirect_uri=redirect)
-        flow.params['access_type'] = 'offline'
+#        flow.params['access_type'] = 'offline'
         flow.params['approval_prompt'] = 'auto'
         flow.params['state'] = state
         return flow.step1_get_authorize_url()

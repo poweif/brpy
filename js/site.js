@@ -150,7 +150,7 @@ var SKG = {
         if (dirs[1] == SKG_URL_PATH_START)
             return null;
         if (dirs[1] == SKG_URL_PATH_PUBLISHED)
-            return 'published';
+            return SKG_USER_PUBLISHED;
         return userName;
     },
     apiPrefix: function(user) {
@@ -158,6 +158,8 @@ var SKG = {
             return '/' + SKG_URL_PATH_START;
         if (user == SKG_USER_PUBLISHED)
             return '/' + SKG_URL_PATH_PUBLISHED;
+        if (user == SKG_USER_PUBLISHER)
+            return '/' + SKG_URL_PATH_PUBLISHER;
         return '';
     },
     readSolution: function(user, onLoad, onFailed) {
@@ -320,8 +322,10 @@ var SKG = {
     SKG_INIT_IMPORT_PROJECT = 'INIT_IMPORT_PROJECT';
     SKG_URL_PATH_START = 'start';
     SKG_URL_PATH_PUBLISHED = 'published';
+    SKG_URL_PATH_PUBLISHER = 'publish';
     SKG_USER_START = 'start';
     SKG_USER_PUBLISHED = 'published';
+    SKG_USER_PUBLISHER = 'publisher';
 
     window.addEventListener("beforeunload", function (e) {
         var confirmation = "Did you save? Are you sure you'd like to quit?"

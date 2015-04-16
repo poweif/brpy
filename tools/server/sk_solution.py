@@ -65,6 +65,7 @@ class SkSolution():
 
         key = self._key(parent_id, folder_name)
         res = yield self._create_folder_impl(parent_id, folder_name)
+
         self._add_key(key, res)
         raise gen.Return(res)
 
@@ -246,10 +247,12 @@ def _build_drive_service(credentials):
         http = credentials.authorize(httplib2.Http()))
 
 class GdriveSkSolution(SkSolution):
-    def __init__(self, cred, read_only=False, app_dir=None):
+    def __init__(self, cred=None, read_only=False, app_dir=None, drive=None):
         super(GdriveSkSolution, self).__init__(read_only=read_only)
-        self.__cred = cred
-        self.__drive = _build_drive_service(cred)
+        if drive is None:
+            self.__drive = _build_drive_service(cred)
+        else:
+            self.__drive = drive
         self.__default_app_dir = app_dir
 
     def _app_dir(self):
@@ -343,14 +346,12 @@ class GdriveSkSolution(SkSolution):
         tfile = self.__drive.files().get(fileId=file_id).execute()
         download_url = tfile['downloadUrl']
         if download_url is None:
-            print "Cannot download " + tfile['title']
             raise gen.Return(None)
 
         resp, content = self.__drive._http.request(download_url)
         if resp.status == 200:
             raise gen.Return(content)
 
-        print 'An error occurred: %s' % resp
         raise gen.Return(None)
 
 class DevSkSolution(SkSolution):

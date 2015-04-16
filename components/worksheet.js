@@ -114,8 +114,22 @@ var ProjectBar = React.createClass({
         if (!this.props.projects)
             return null;
 
+        var isPublished =
+            SKG.determineUser(this.props.user) == SKG_USER_PUBLISHED;
+
+        var cleanTitle = !isPublished ?
+            function(s) { return s; } :
+            function(s) {
+                if (!s) return s;
+                var i = s.indexOf('$');
+                if (i < 0) return s;
+                return s.substring(i + 1);
+            };
+
         var that = this;
-        var current = this.props.projects[this.props.currentProject];
+        var current =
+            cleanTitle(this.props.projects[this.props.currentProject]);
+
         var buttons = [];
         if (this.props.projects && this.props.projects.length > 1) {
             buttons = [{text: "other projects", hr: true}];
@@ -140,20 +154,20 @@ var ProjectBar = React.createClass({
                       {text: 'import block', icon: 'download164',
                        click: importBlock}
                     ];
-                    return {text: proj, items: items};
+                    return {text: cleanTitle(proj), items: items};
                 })
             );
         }
         var rename = function() { return that.props.onProjectRename(current); };
         var del = function() { return that.props.onProjectDelete(current); };
-        if (this.props.user) {
+        var publish = function() { return that.props.onProjectPublish(current); }
+        if (this.props.user && this.props.user != SKG_USER_PUBLISHED) {
             buttons = buttons.concat([
                 {text: "project options", hr: true},
                 {text: "new", click: this.props.onProjectNew, icon: "add186"},
                 {text: "rename", click: rename, icon: "rotate11"},
                 {text: "delete", click: del, icon: "close47"},
-                {text: "publish project", click: this.props.onProjectPublish,
-                 icon: "screen47"}
+                {text: "publish project", click: publish, icon: "screen47"}
             ]);
         }
 
@@ -203,7 +217,7 @@ var HeaderBar = React.createClass({
     render: function() {
         var that = this;
         var button = null;
-        if (this.props.user) {
+        if (this.props.user && this.props.user != SKG_USER_PUBLISHED) {
             var text = this.trim(this.props.user);
             var items = [
                 {text: "log out", link: "/logout", icon: "back57"}
@@ -278,13 +292,17 @@ var Worksheet = React.createClass({
     })],
     getInitialState: function() {
         return {
+            // project data            
             blocks: [],
             blockContent: {},
             srcTexts: {},
             contentPaneDoms: {},
+            projectMeta: {},
+            // solution data
             projects: [],
             currentProject: -1,
             editorMode: SKG_EDITOR_STANDARD,
+            // other meta
             isDialogOpen: false,
             user: null
         };
@@ -360,19 +378,27 @@ var Worksheet = React.createClass({
         this.openTextDialog(
             this.state.projectName + "-1", "New project name?", ok);
     },
-    onProjectPublish: function(proj) {
+    onProjectPublish: function(projName) {
         var that = this;
 
         var ok = function() {
             that.openWorkingDialog();
-            var allDone = function() {
+            var doneAll = function() {
                 that.closeDialog();
             };
-            var getKey = function(key) {
-                setTimeout(
-                    SKG.donePublish(that.state.user, key, allDone, allDone));
+
+            var onReceivedKey = function(key) {
+                var donePublish = function() {
+                    SKG.donePublish(that.state.user, key, doneAll, doneAll);
+                };
+                var useAliasName = false;
+                var updateState = false;
+                var projPackage = that.packageProject(projName, key);
+                that.writeProjectFromPackage(
+                    SKG_USER_PUBLISHER, projPackage, updateState, donePublish,
+                    doneAll);
             };
-            SKG.requestPublish(that.state.user, getKey);
+            SKG.requestPublish(that.state.user, onReceivedKey);
         }
         this.openBinaryDialog("Really publish project?", ok);
     },
@@ -403,11 +429,12 @@ var Worksheet = React.createClass({
         };
         this.openBinaryDialog("Delete project?", ok);
     },
-    projectAsJson: function(proj, rand) {
+    packageProject: function(projName, id) {
         var blocks = this.state.blocks;
         var blockContent = this.state.blockContent;
         var srcTexts = this.state.srcTexts;
-        var projData = blocks.map(function(block) {
+        var projData = SKG.util.softCopy(projMeta);        
+        projData['blocks'] = blocks.map(function(block) {
             var bc = SKG.util.softCopy(blockContent[block]);
             bc["name"] = block;
             return bc;
@@ -422,26 +449,39 @@ var Worksheet = React.createClass({
                 );
             });
         });
-        var projName = proj;
-        if (rand)
-            projName += '-' + SKG.util.makeId(7).toLowerCase();
 
-        return {
-            "name": projName,
+        // if id is true. The name of the project is the given id,
+        // and the alias is the human-readable title.
+        var newProjName = projName;
+        if (!id)
+            newProjName += '-' + SKG.util.makeId(7).toLowerCase();
+        else {
+            // This is a hack to allow the projName also be the id for the
+            // project.  This is not a good way to do it.  Proper would be
+            // to implement both project name and id.
+            // Only needed for published projects.
+            newProjName = id + '$' + projName;
+        }
+
+        var ret = {
+            "name": newProjName,
             "json": projData,
             "files": files
         };
+
+        return ret;
     },
-    onProjectExport: function(proj) {
-        var projJson = this.projectAsJson(proj, true);
+    onProjectExport: function(projName) {
+        var projPackage = this.packageProject(projName);
         // Will redirect to login.
         var done = function(v) {
             window.location.href = "/login?tid=" + v;
         }
-        SKG.exportProject(projJson, done);
+        SKG.exportProject(projPackage, done);
     },
-    writeProject: function(destUser, text, updateState, onOk, onFail) {
-        var proj = JSON.parse(text);
+    writeProjectFromPackage: function(
+        destUser, proj, updateState, onOk, onFail) {
+        // Unpackaging
         var projName = proj['name'];
         var projJson = proj['json'];
         var files = proj['files'];
@@ -492,7 +532,9 @@ var Worksheet = React.createClass({
         var onDone = function() {
             //that.closeDialog();
         }
-        this.writeProject(this.state.user, text, true, onDone, onDone);
+        var projPackage = JSON.parse(text);
+        this.writeProjectFromPackage(
+            this.state.user, projPackage, true, onDone, onDone);
     },
     onImportBlock: function(aProj, bProj) {
         var that = this;
@@ -536,7 +578,7 @@ var Worksheet = React.createClass({
                 var readFile = function(i) {
                     if (i == bFiles.length) {
                         that.updateProject(
-                            aProj, aBlocks, aBlockContent,
+                            aProj, aBlocks, aBlockContent, null,
                             function () {
                                 that.closeDialog();
                                 that.setState({srcTexts: aSrcTexts});
@@ -574,13 +616,15 @@ var Worksheet = React.createClass({
 
         SKG.readProject(that.state.user, bProj, onLoadProject);
     },
-    updateProject: function(projName, blocks, blockContent, onOk, onFail,
-                            holdWrite) {
+    updateProject: function(projName, blocks, blockContent, projMeta, onOk,
+                            onFail, holdWrite) {
         var that = this;
         if (!blocks)
             blocks = this.state.blocks;
         if (!blockContent)
             blockContent = this.state.blockContent;
+        if (!projMeta)
+            projMeta = this.state.projectMeta;
 
         var outerOk = function() {
             that.setState(
@@ -590,11 +634,13 @@ var Worksheet = React.createClass({
                 onOk();
             }
         };
-        var projData = blocks.map(function(block) {
+        var projData = SKG.util.softCopy(projMeta);
+        projData['blocks'] = blocks.map(function(block) {
             var bc = SKG.util.softCopy(blockContent[block]);
             bc["name"] = block;
             return bc;
         });
+        var 
         if (!holdWrite) {
             SKG.writeProject(that.state.user, projName, projData, outerOk,
                              onFail);
@@ -676,7 +722,7 @@ var Worksheet = React.createClass({
                         SKG.d(SKG_FILE_NAME, newFileExt).o());
 
                 that.updateProject(
-                    proj, null, blockContent,
+                    proj, null, blockContent, null,
                     function() { that.setState({srcTexts: srcTexts}); },
                     failed
                 );
@@ -703,7 +749,7 @@ var Worksheet = React.createClass({
         if (currentFile != ind) {
             var blockContent = this.replaceInBlock(
                 block, SKG.d(SKG_BLOCK_CURRENT_FILE, ind).o());
-            this.updateProject(proj, null, blockContent);
+            this.updateProject(proj, null, blockContent, null);
         }
     },
     onFileAdd: function(proj, block) {
@@ -734,7 +780,7 @@ var Worksheet = React.createClass({
                         .i(SKG_BLOCK_CURRENT_FILE, nfiles.length - 1).o());
 
                 that.updateProject(
-                    proj, null, blockContent,
+                    proj, null, blockContent, null,
                     function() { that.setState({srcTexts: srcTexts}); },
                     failed);
             };
@@ -784,7 +830,7 @@ var Worksheet = React.createClass({
             if (onOk) onOk();
         };
 
-        this.updateProject(proj, blocks, blockContent, onOkInner, onFail);
+        this.updateProject(proj, blocks, blockContent, null, onOkInner, onFail);
     },
     onFileDelete: function(proj, block, fname) {
         var that = this;
@@ -818,7 +864,7 @@ var Worksheet = React.createClass({
                     block, SKG.d(SKG_BLOCK_SRC, nfiles)
                         .i(SKG_BLOCK_CURRENT_FILE, 0).o());
                 that.updateProject(
-                    proj, null, blockContent, successProj, failed);
+                    proj, null, blockContent, null, successProj, failed);
 
                 var texts = SKG.util.softCopy(that.state.srcTexts);
                 delete texts[fname];
@@ -855,7 +901,7 @@ var Worksheet = React.createClass({
             SKG.d(SKG_BLOCK_SRC, nfiles)
                 .i(SKG_BLOCK_CURRENT_FILE, target).o());
         this.updateProject(
-            proj, null, blockContent,
+            proj, null, blockContent, null,
             null,
             function(){
                 that.openPromptDialog("Failed to change file order"); });
@@ -885,7 +931,7 @@ var Worksheet = React.createClass({
             that.setState({contentPaneDoms: doms});
 
             that.updateProject(
-                proj, blocks, blockContent,
+                proj, blocks, blockContent, null,
                 function() {
                     that.onFileMoveToBlock(proj, oldBlock, newBlock, fileExt)},
                 function() {
@@ -936,7 +982,8 @@ var Worksheet = React.createClass({
                 that.runProg(oldBlock);
         };
         this.updateProject(
-            proj, blocks, blockContent, onOk,
+            proj, blocks, blockContent, null,
+            onOk,
             function() { that.openPromptDialog("Failed to move block"); });
     },
     onFileSetHeight: function(proj, block, file, height, update) {
@@ -946,7 +993,7 @@ var Worksheet = React.createClass({
 
         var blockContent = this.replaceInFile(
             block, file, SKG.d(SKG_FILE_HEIGHT, height).o());
-        this.updateProject(proj, null, blockContent, null, null, !update);
+        this.updateProject(proj, null, blockContent, null, null, null, !update);
     },
     onFileOffsetY: function(proj, block, file, offsetY) {
         var oldOffsetY = this.getInFile(block, file, SKG_FILE_OFFSET_Y);
@@ -954,7 +1001,7 @@ var Worksheet = React.createClass({
             var blockContent =
                 this.replaceInFile(
                     block, file, SKG.d(SKG_FILE_OFFSET_Y, offsetY).o());
-            this.updateProject(proj, null, blockContent);
+            this.updateProject(proj, null, blockContent, null);
         }
     },
     onBlockCollapse: function(proj, block, collapsed) {
@@ -962,7 +1009,7 @@ var Worksheet = React.createClass({
         if (oldCollapsed != collapsed) {
             var blockContent = this.replaceInBlock(
                 block, SKG.d(SKG_BLOCK_COLLAPSED, collapsed).o());
-            this.updateProject(proj, null, blockContent, null, null);
+            this.updateProject(proj, null, blockContent, null);
         }
     },
     onBlockDisplay: function(proj, block, display) {
@@ -970,7 +1017,7 @@ var Worksheet = React.createClass({
         if (oldDisplay != display) {
             var blockContent = this.replaceInBlock(
                 block, SKG.d(SKG_BLOCK_DISPLAY, display).o());
-            this.updateProject(proj, null, blockContent, null, null);
+            this.updateProject(proj, null, blockContent, null);
         }
     },
     checkCircularBlockLinks: function(block, blockContent, checked) {
@@ -1010,7 +1057,7 @@ var Worksheet = React.createClass({
                 .i(SKG_BLOCK_SRC, nfiles).o());
 
         this.updateProject(
-            proj, null, blockContent,
+            proj, null, blockContent, null,
             this.runProg.bind(this, block),
             function() { that.openPromptDialog("Failed to add block link"); });
     },
@@ -1056,7 +1103,8 @@ var Worksheet = React.createClass({
                 that.closeDialog();
             };
             that.updateProject(
-                proj, blocks, blockContent, blockOk,
+                proj, blocks, blockContent, null,
+                blockOk,
                 function() {
                     that.openPromptDialog("Failed to rename block."); });
         };
@@ -1070,6 +1118,7 @@ var Worksheet = React.createClass({
         blocks[target] = blockName;
         this.updateProject(
             proj, blocks, null, null,
+            null,
             function() { that.openPromptDialog("Failed to move block.");});
     },
     collectSrc: function(block) {
@@ -1138,6 +1187,7 @@ var Worksheet = React.createClass({
         if (!file)
             return;
 
+        var that = this;
         this.clientSideSave(proj, block, file, code);
         SKG.writeSrcFile(
             that.state.user, proj, file, code,
@@ -1146,7 +1196,15 @@ var Worksheet = React.createClass({
         );
     },
     onLoadProject: function(projectName, text, onAllDone) {
-        var projectBlocks = JSON.parse(text);
+        // To distinguish between old style and new style.
+        var blob = JSON.parse(text);
+        var projectBlocks = null;
+        if (blob.length == undefined) {
+            projectBlocks = blob['blocks'];
+        } else {
+            projectBlocks = JSON.parse(text);
+        }
+
         var blocks = [];
         var blockContent = {};
         var that = this;
@@ -1269,6 +1327,8 @@ var Worksheet = React.createClass({
             var user = null;
             if (userInfo) {
                 user = SKG.determineUser(JSON.parse(userInfo)['email']);
+            } else {
+                user = SKG.determineUser(null);
             }
             that.setState({user: user});
             SKG.init(user, that.onInit);
