@@ -158,37 +158,88 @@ var LoadingDialog = React.createClass({
     }
 });
 
-var DialogMixins = function(setDialogOpen) {
-    return {
-        openTextDialog: function(text, prompt, onOK) {
-            SKG.openDialog(text, null, prompt, onOK, this.closeDialog);
-            if (setDialogOpen)
-                setDialogOpen.bind(this)(true);
-        },
-        openPromptDialog: function(prompt) {
-            SKG.openDialog(null, null, prompt, this.closeDialog, null);
-            if (setDialogOpen)
-                setDialogOpen.bind(this)(true);
-        },
-        openBinaryDialog: function(prompt, onOK) {
-            SKG.openDialog(null, null, prompt, onOK, this.closeDialog);
-            if (setDialogOpen)
-                setDialogOpen.bind(this)(true);
-        },
-        openChoicesDialog: function(choices, prompt, onOK) {
-            SKG.openDialog(null, choices, prompt, onOK, this.closeDialog);
-            if (setDialogOpen)
-                setDialogOpen.bind(this)(true);
-        },
-        openWorkingDialog: function() {
-            SKG.loadingDialog();
-            if (setDialogOpen)
-                setDialogOpen.bind(this)(true);
-        },
-        closeDialog: function() {
-            SKG.closeDialog();
-            if (setDialogOpen)
-                setDialogOpen.bind(this)(false);
-        }
+var TextInputDialog = React.createClass({
+    render: function() {
+        return (
+            <div className={dialogWrapperCn}>
+                <div className="dialog-bg" onClick={defaultAction}></div>
+                <div className="dialog">
+                    <textarea ref="textarea"></textarea>
+                    <div className="prompt">{this.props.prompt}</div>
+                    {input}
+                    {choiceInput}
+                    <div className="bottom">
+                        {okButton}
+                        {cancelButton}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+});
+
+var DialogMixins = function() {
+    var openedDialog = null;
+    var closeDialog = function() {
+        if (!openedDialog)
+            return;
+        var onfinish = function() {
+            React.unmountComponentAtNode(document.getElementById('dialog0'));
+            openedDialog = null;
+        };
+        openedDialog.close(onfinish);
     };
-};
+    var openDialog = function(text, choices, prompt, onOK, onCancel) {
+        closeDialog();
+        openedDialog = React.render(
+            <InputDialog text={text} choices={choices} prompt={prompt}
+                onOK={onOK} onCancel={onCancel} />,
+            document.getElementById('dialog0'));
+    };
+    var loadingDialog = function() {
+        if (openedDialog && openedDialog.reopen) {
+            openedDialog.reopen();
+            return;
+        }
+        openedDialog = React.render(
+            <LoadingDialog />, document.getElementById('dialog0'));
+    };
+
+    return function(setDialogOpen) {
+        return {
+            openTextDialog: function(text, prompt, onOK) {
+                openDialog(text, null, prompt, onOK, closeDialog);
+                if (setDialogOpen)
+                    setDialogOpen.bind(this)(true);
+            },
+            openPromptDialog: function(prompt) {
+                openDialog(null, null, prompt, closeDialog, null);
+                if (setDialogOpen)
+                    setDialogOpen.bind(this)(true);
+            },
+            openBinaryDialog: function(prompt, onOK) {
+                openDialog(null, null, prompt, onOK, closeDialog);
+                if (setDialogOpen)
+                    setDialogOpen.bind(this)(true);
+            },
+            openChoicesDialog: function(choices, prompt, onOK) {
+                openDialog(null, choices, prompt, onOK, closeDialog);
+                if (setDialogOpen)
+                    setDialogOpen.bind(this)(true);
+            },
+            openWorkingDialog: function() {
+                loadingDialog();
+                if (setDialogOpen)
+                    setDialogOpen.bind(this)(true);
+            },
+            closeDialog: function() {
+                closeDialog();
+                if (setDialogOpen)
+                    setDialogOpen.bind(this)(false);
+            },
+            openTextInputDialog: function() {
+
+            }
+        };
+    };
+}();

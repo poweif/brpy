@@ -23,6 +23,7 @@
     <script type="text/jsx" src="/components/footer.js"></script>
     <script type="text/jsx" src="/components/block.js"></script>
     <script type="text/jsx" src="/components/worksheet.js"></script>
+    <script type="text/jsx" src="/components/pages.js"></script>
 
     <link rel="stylesheet" type="text/css" href="/css/all.css">
     <link rel="stylesheet" type="text/css" href="/css/button.css">
@@ -31,6 +32,7 @@
     <link rel="stylesheet" type="text/css" href="/css/footer.css">
     <link rel="stylesheet" type="text/css" href="/css/block.css">
     <link rel="stylesheet" type="text/css" href="/css/worksheet.css">
+    <link rel="stylesheet" type="text/css" href="/css/pages.css">
 
     <link rel="stylesheet" type="text/css" href="/css/codemirror.css">
     <link rel="stylesheet" type="text/css" href="/css/monokai-mod.css">
@@ -40,10 +42,9 @@
   </head>
   <body ondragstart="return false;" ondrop="return false;">
     <div id="dialog0"></div>
-    <div id="worksheet"></div>
+    <div id="hub"></div>
     <script type="text/jsx">
-       React.render(<Worksheet />,
-           document.getElementById('worksheet'));
+       React.render(<TheHub />, document.getElementById('hub'));
     </script>
   </body>
 </html>

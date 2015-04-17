@@ -148,13 +148,23 @@ var SKG = {
         if (dirs.length < 2)
             return userName;
         if (dirs[1] == SKG_URL_PATH_START)
-            return null;
+            return SKG_USER_START;
         if (dirs[1] == SKG_URL_PATH_PUBLISHED)
             return SKG_USER_PUBLISHED;
         return userName;
     },
+    determinePage: function() {
+        var dirs = window.location.pathname.split('/');
+        if (dirs.length < 2)
+            return SKG_PAGE_DEFAULT;
+        if (dirs[1] == SKG_URL_PATH_START)
+            return SKG_PAGE_START;
+        if (dirs[1] == SKG_URL_PATH_PUBLISHED)
+            return SKG_PAGE_PUBLISHED;
+        return SKG_PAGE_DEFAULT;
+    },
     apiPrefix: function(user) {
-        if (!user || user == SKG_USER_START)
+        if (user == SKG_USER_START)
             return '/' + SKG_URL_PATH_START;
         if (user == SKG_USER_PUBLISHED)
             return '/' + SKG_URL_PATH_PUBLISHED;
@@ -239,30 +249,6 @@ var SKG = {
             this.apiPrefix(user) + '/run?write=' + filename + '&proj=' + proj,
             text, onLoad, onFailed);
     },
-    openDialog: function(text, choices, prompt, onOK, onCancel) {
-        this.closeDialog();
-        SKG.openedDialog = React.render(
-            <InputDialog text={text} choices={choices} prompt={prompt}
-                onOK={onOK} onCancel={onCancel} />,
-            document.getElementById('dialog0'));
-    },
-    loadingDialog: function() {
-        if (SKG.openedDialog && SKG.openedDialog.reopen) {
-            SKG.openedDialog.reopen();
-            return;
-        }
-        SKG.openedDialog = React.render(
-            <LoadingDialog />, document.getElementById('dialog0'));
-    },
-    closeDialog: function() {
-        if (!SKG.openedDialog)
-            return;
-        var onfinish = function() {
-            React.unmountComponentAtNode(document.getElementById('dialog0'));
-            SKG.openedDialog = null;
-        };
-        SKG.openedDialog.close(onfinish);
-    },
     builtinRead: function(x) {
         if (Sk.builtinFiles === undefined ||
             Sk.builtinFiles["files"][x] === undefined) {
@@ -279,11 +265,9 @@ var SKG = {
     },
     updateURLWithProject: function(proj) {
         var url = window.location.href;
-
         var urlPre = (url.indexOf('#') >= 0) ?
             url.substring(0, url.indexOf('#')) :
             url;
-
         url = urlPre + (urlPre[urlPre.length - 1] == '/' ? '#' : '/#') + proj;
         window.history.replaceState(null, null, url);
     },
@@ -311,6 +295,10 @@ var SKG = {
     SKG_FILE_NAME = "file";
     SKG_FILE_HEIGHT = "height";
     SKG_FILE_OFFSET_Y = "offsetY";
+
+    SKG_FILE_EXT_BK = 'bk';
+    SKG_FILE_EXT_PY = 'py';
+
     SKG_SOLUTION_PROJECTS = 'projects';
     SKG_SOLUTION_CURRENT_PROJECT = 'currentProject';
     SKG_SOLUTION_EDITOR_MODE = 'editorMode';
@@ -326,14 +314,16 @@ var SKG = {
     SKG_USER_START = 'start';
     SKG_USER_PUBLISHED = 'published';
     SKG_USER_PUBLISHER = 'publisher';
+    SKG_EDITORS= [
+        SKG_EDITOR_STANDARD,
+        SKG_EDITOR_EMACS
+    ];
 
     window.addEventListener("beforeunload", function (e) {
         var confirmation = "Did you save? Are you sure you'd like to quit?"
         (e || window.event).returnValue = confirmation;
         return confirmation;
     });
-
-    SKG.openedDialog = null;
 
     SKG.fun = ['albatross', 'amago', 'anis', 'antelope1', 'avocet', 'bandicoot', 'bear13', 'beaver', 'beaver1', 'bird46', 'bird47', 'bird48', 'bird50', 'bird51', 'bird52', 'bird53', 'bird54', 'bird55', 'bird56', 'bird57', 'bird58', 'bird61', 'buffalo1', 'bull8', 'camel1', 'camel2', 'centrosaurus', 'chameleon1', 'cheetah1', 'chinchilla1', 'cow9', 'crocodile1', 'deer2', 'deer3', 'deer4', 'deer5', 'dinosaur13', 'dinosaur4', 'dinosaur8', 'dog58', 'dogfish', 'dolphin', 'domestic', 'elephant6', 'eromangasaurus', 'falcon', 'fish25', 'fish29', 'fish31', 'fish32', 'fish33', 'fish36', 'fish40', 'fish42', 'flamingo3', 'flying14', 'fox1', 'frigatebird', 'frog5', 'gazelle', 'gecko2', 'giraffatitan', 'giraffe3', 'gorgosaurus', 'gull', 'hammerhead', 'hawk', 'hippo2', 'horse176', 'horse177', 'hummingbird', 'humpback', 'hyena', 'iguana', 'kangaroo', 'koala', 'lamb', 'lemur', 'magyarosaurus', 'mamenchisaurus', 'mammal5', 'mammal6', 'mammal7', 'mammut', 'manatee', 'manta', 'monkey2', 'monkey3', 'monoclonius', 'moose2', 'mouse37', 'mouse38', 'opah', 'opossum', 'orca', 'owl13', 'oystercatcher', 'panther', 'parrot', 'pelican', 'pig4', 'pigeon', 'porcupine2', 'prairie', 'pterodactyl', 'puma', 'quail', 'rabbit5', 'racoon1', 'rat2', 'rhino', 'right102', 'running28', 'running29', 'sandpiper', 'sea11', 'seahorse1', 'shark1', 'sheep3', 'snail1', 'squirrel3', 'swallow', 'swift', 'tapir', 'tiger3', 'tropical2', 'turkey6', 'turtle', 'turtle1', 'tyrannosaurus1', 'tyrannosaurus2', 'velociraptor', 'vulture', 'wallaby', 'whale1', 'wild4', 'wombat', 'yellowtail'];
 })();

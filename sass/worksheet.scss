@@ -137,8 +137,6 @@ $console-button-size: $button-size-large;
   @extend %flexbox;
   @include flex-direction(column);
   @include align-items(center);
-  padding: 5px 10px;
-
 }
 
 .header-bar {

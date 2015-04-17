@@ -9,7 +9,6 @@ import time
 import simplejson as json
 
 from apiclient.discovery import build
-
 from oauth2client.client import GoogleCredentials
 
 import tornado.ioloop
@@ -92,7 +91,7 @@ def clear_published(drive, app_dir):
     def delete_default_proj():
         raise gen.Return((yield gdrive.delete_project('example')))
 
-    _io_loop.run_sync(delete_default_proj)
+#    _io_loop.run_sync(delete_default_proj)
 
 
 def build_published_solution(read_only=True):
@@ -374,6 +373,7 @@ class StartRunHandler(RunHandler):
 class PublishedRunHandler(RunHandler):
     def _get_solution(self):
         return _published_solution
+
     def _publishable(self):
         return False
 
