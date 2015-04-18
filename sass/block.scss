@@ -118,7 +118,7 @@ $line-width: 2px;
   @extend .general-block;
   @include flex-direction(column);
   @include align-items(stretch);
-  max-width: 750px;
+  max-width: $display-width;
   margin: 10px 0;
 
   .display-separator-line-wrapper {

@@ -1,15 +1,26 @@
 var ProjectListing = React.createClass({
+    goToProject: function() {
+        window.location.href = window.location.href + '#' +
+            this.props.id;
+    },
     render: function() {
+        var link = "/published/#" + this.props.id;
         return (
             <div className="project-listing">
                 <div className="top">
                     <div className="block">
-                        <div>{this.props.alias}</div>
+                        <a onClick={this.goToProject}>
+                            {this.props.alias}</a>
                         <div className="id">{this.props.id}</div>
                     </div>
                     <div className="block">
-                        <div>{this.props.publisher}</div>
-                        <div>{this.props.time}</div>
+                        <div className="time-stamp">
+                            {this.props.stamp}
+                        </div>
+                    </div>
+                    <div className="block">
+                        <div className="publisher">
+                            {this.props.publisher}</div>
                     </div>
                 </div>
                 <div className="desc"></div>
@@ -41,11 +52,13 @@ var ProjectsList = React.createClass({
                     return;
                 var onDone = function(text) {
                     var pdata = JSON.parse(text);
+                    var publisherName =
+                        SKG.util.trimUserName(pdata.publisher);
                     that.state.projects.push(function() {
                         return (
                             <ProjectListing alias={pdata.alias}
-                                id={ps[ind]} time={pdata.publishedTime}
-                                publisher={pdata.publisher} />
+                                id={ps[ind]} stamp={pdata.publishedTime}
+                                publisher={publisherName} />
                         );
                     }());
                     that.setState({ projects: that.state.projects });
@@ -69,7 +82,7 @@ var ProjectsList = React.createClass({
             }
         );
         return (
-           <div className="main-panel">
+           <div className="projects-list">
                <span dangerouslySetInnerHTML={{__html: this.state.content}} />
                {projectsList}
            </div>
@@ -82,6 +95,10 @@ var TheHub = React.createClass({
         return {
             user: null
         };
+    },
+    hashChanged: function() {
+        React.unmountComponentAtNode(document.getElementById('hub'));
+        React.render(<TheHub />, document.getElementById('hub'));
     },
     componentDidMount: function() {
         var that = this;
@@ -98,6 +115,11 @@ var TheHub = React.createClass({
             console.log('failed to read user info');
         };
         SKG.readUserInfo(onLoad, null);
+
+        window.addEventListener("hashchange", this.hashChanged, false);
+    },
+    componentWillUnmount: function() {
+        window.removeEventListener("hashchange", this.hashChanged);
     },
     render: function() {
         var that = this;

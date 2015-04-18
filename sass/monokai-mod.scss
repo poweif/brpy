@@ -1,10 +1,6 @@
 @import 'common';
 /* Based on Sublime Text's Monokai theme */
 
-@function interp($a, $b, $t) {
-  @return ($a * $t) + ($b * (1 - $t));
-}
-
 $high-color: interp($prime-inv-color, $prime-color, .8);
 $low-color: interp($prime-color, $prime-inv-color, .7);
 $lowest-color: interp($prime-color, $prime-inv-color, .95);

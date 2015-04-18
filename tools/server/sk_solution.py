@@ -38,6 +38,9 @@ class SkSolution():
         self._read_only = read_only
         self._files = {}
 
+    def read_only(self):
+        return self._read_only
+
     def _key(self, parent_id, file_name):
         return parent_id + '_' +  file_name
 
@@ -534,6 +537,10 @@ class HierarchicalSkSolution(SkSolution):
 
     @gen.coroutine
     def create_project(self, proj_name):
+        def run():
+            self._l2.create_project(proj_name)
+        if not self._l1.read_only():
+            self._io_loop.call_later(self._DELAY, run)
         raise gen.Return((yield self._l1.create_project(proj_name)))
 
     @gen.coroutine
@@ -550,21 +557,24 @@ class HierarchicalSkSolution(SkSolution):
     def update_solution(self, new_sol):
         def run():
             self._l2.update_solution(new_sol)
-        self._io_loop.call_later(self._DELAY, run)
+        if not self._l1.read_only():
+            self._io_loop.call_later(self._DELAY, run)
         raise gen.Return((yield self._l1.update_solution(new_sol)))
 
     @gen.coroutine
     def rename_project(self, old_name, new_name):
         def run():
             self._l2.rename_project(old_name, new_name)
-        self._io_loop.call_later(self._DELAY, run)
+        if not self._l1.read_only():
+            self._io_loop.call_later(self._DELAY, run)
         raise gen.Return((yield self._l1.rename_project(old_name, new_name)))
 
     @gen.coroutine
     def delete_project(self, proj):
         def run():
             self._l2.delete_project(proj)
-        self._io_loop.call_later(self._DELAY, run)
+        if not self._l1.read_only():
+            self._io_loop.call_later(self._DELAY, run)
         raise gen.Return((yield self._l1.delete_project(proj)))
 
     @gen.coroutine
@@ -581,14 +591,16 @@ class HierarchicalSkSolution(SkSolution):
     def write_file(self, proj, fname, text):
         def run():
             self._l2.write_file(proj, fname, text)
-        self._io_loop.call_later(self._DELAY, run)
+        if not self._l1.read_only():
+            self._io_loop.call_later(self._DELAY, run)
         raise gen.Return((yield self._l1.write_file(proj, fname, text)))
 
     @gen.coroutine
     def rename_file(self, proj, old_name, new_name):
         def run():
             self._l2.rename_file(proj, old_name, new_name)
-        self._io_loop.call_later(self._DELAY, run)
+        if not self._l1.read_only():
+            self._io_loop.call_later(self._DELAY, run)
         raise gen.Return(
             (yield self._l1.rename_file(proj, old_name, new_name)))
 
@@ -596,14 +608,16 @@ class HierarchicalSkSolution(SkSolution):
     def delete_file(self, proj, fname):
         def run():
             self._l2.delete_file(proj, fname)
-        self._io_loop.call_later(self._DELAY, run)
+        if not self._l1.read_only():
+            self._io_loop.call_later(self._DELAY, run)
         raise gen.Return((yield self._l1.delete_file(proj, fname)))
 
     @gen.coroutine
     def update_project(self, proj, proj_data):
         def run():
             self._l2.update_project(proj, proj_data)
-        self._io_loop.call_later(self._DELAY, run)
+        if not self._l1.read_only():
+            self._io_loop.call_later(self._DELAY, run)
         raise gen.Return((yield self._l1.update_project(proj, proj_data)))
 
     @gen.coroutine

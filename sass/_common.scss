@@ -22,6 +22,8 @@ $std-border-radius: 5px;
 $std-duration: .3s;
 $std-fast-duration: .2s;
 
+$display-width: 720px;
+
 .unselectable {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
@@ -167,4 +169,8 @@ $button-font-large: $button-size-large + 2;
 
 .product {
   font-family: GrandHotel;
+}
+
+@function interp($a, $b, $t) {
+  @return ($a * $t) + ($b * (1 - $t));
 }

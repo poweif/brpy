@@ -200,11 +200,6 @@ var HeaderBar = React.createClass({
         total = (total * timevar) % SKG.fun.length;
         this.setState({userIcon: 'fun/' + SKG.fun[total]});
     },
-    trim: function(str) {
-        if (str.indexOf('@') >=0)
-            return str.substring(0, str.indexOf('@'));
-        return str;
-    },
     componentDidUpdate: function(prevProps) {
         if (this.props.user != prevProps.user) {
             this.setFunUserIcon();
@@ -218,7 +213,7 @@ var HeaderBar = React.createClass({
         var button = null;
         if (this.props.user && this.props.user != SKG_USER_START &&
             this.props.user != SKG_USER_PUBLISHED) {
-            var text = this.trim(this.props.user);
+            var text = SKG.util.trimUserName(this.props.user);
             var items = [
                 {text: "log out", link: "/logout", icon: "back57"}
             ];
@@ -551,10 +546,8 @@ var Worksheet = React.createClass({
     onProjectImport: function(text) {
         var that = this;
         this.openWorkingDialog();
-        var onDone = function() {
-            //that.closeDialog();
-        }
         var projPackage = JSON.parse(text);
+        var onDone = function() {}
         this.writeProjectFromPackage(
             this.props.user, projPackage, true, onDone, onDone);
     },

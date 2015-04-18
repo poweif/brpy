@@ -133,6 +133,12 @@ var SKG = {
             for (var k in obj)
                 ret[k] = obj[k];
             return ret;
+        },
+        trimUserName: function(str) {
+            if (!str) return str;
+            if (str.indexOf('@') >=0)
+                return str.substring(0, str.indexOf('@'));
+            return str;
         }
     },
     d: function(key, val) {

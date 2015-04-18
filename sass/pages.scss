@@ -5,13 +5,26 @@
   @extend %flexbox;
   @include flex-direction(column);
   @include align-items(center);
-  padding: 5px 10px;  
+  padding: 5px 10px;
 }
+
+.projects-list {
+  @extend %flexbox;
+  @include flex-direction(column);
+  @include align-items(stretch);
+  width: $display-width;
+}
+
+$mid-color: interp($prime-inv-color, $prime-color, .5);
 
 .project-listing {
   @extend %flexbox;
   @include flex-direction(column);
   @include align-items(stretch);
+  border-style: solid none none none;
+  border-color: $mid-color;
+  border-width: 1px 0 0 0;
+  padding: 4px 0;
   .top {
     @extend %flexbox;
     @include flex-direction(row);
@@ -22,9 +35,15 @@
       @include flex-direction(column);
       .id {
         @extend .font-tiny;
+        color: $mid-color;
       }
       font-size: $button-font-mid;
-     
+      .time-stamp {
+        @extend .font-small;
+      }
+      .publisher {
+        @extend .font-small;
+      }
     }
   }
   .desc {

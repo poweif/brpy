@@ -97,17 +97,28 @@ def clear_published(drive, app_dir):
 def build_published_solution(read_only=True):
     app_dir = "brpy_published_data"
     cred = GoogleCredentials.get_application_default()
-
     drive = build('drive', 'v2', credentials=cred)
     if not read_only:
-        clear_published(drive=drive, app_dir=app_dir)
+#       clear_published(drive=drive, app_dir=app_dir)
         pass
-
-    gdrive = GdriveSkSolution(drive=drive, app_dir=app_dir, read_only=read_only)
+    dev = GdriveSkSolution(drive=drive, app_dir=app_dir, read_only=read_only)
+#    dev = DevSkSolution(PUBLISHED_DIR, read_only=read_only)
     mongo = MongoDBSkSolution(
         user='brpy_public', db=_motor_client.test, read_only=read_only,
         app_dir=app_dir)
-    return HierarchicalSkSolution(io_loop=_io_loop, l1=mongo, l2=gdrive)
+    mongo2 = None
+    if read_only:
+        mongo2 = MongoDBSkSolution(
+        user='brpy_public', db=_motor_client.test, read_only=False,
+        app_dir=app_dir)
+        return HierarchicalSkSolution(
+            io_loop=_io_loop,
+            l1=mongo,
+            l2=HierarchicalSkSolution(
+                io_loop=_io_loop,
+                l1=mongo2,
+                l2=dev))
+    return HierarchicalSkSolution(io_loop=_io_loop, l1=mongo, l2=dev)
 
 _start_solution = build_start_solution()
 _published_solution = build_published_solution()
