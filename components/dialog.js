@@ -123,6 +123,25 @@ var InputDialog = React.createClass({
     }
 });
 
+var Loader = React.createClass({
+    componentDidMount: function() {
+        if (this.props.size) {
+            this.getDOMNode().style.width = this.getDOMNode().style.height =
+                this.props.size + 'px';
+            this.getDOMNode().style.borderWidth =
+                Math.max(1, (this.props.size / 10)) + "px";
+        }
+        if (this.props.color) {
+            this.getDOMNode().style.borderTopColor = this.props.color;
+        }
+    },
+    render: function() {
+        return (
+            <div className="loader"></div>
+        );
+    }
+});
+
 var LoadingDialog = React.createClass({
     onFinish: null,
     getInitialState: function() {
@@ -151,7 +170,7 @@ var LoadingDialog = React.createClass({
             <div className={dialogWrapperCn}>
                 <div className="dialog-bg"></div>
                 <div className="loader-wrapper">
-                    <div className="loader"></div>
+                    <Loader size="100" color="#eeeeee"/>
                 </div>
             </div>
         );

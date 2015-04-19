@@ -109,16 +109,26 @@ var StdoutConsole =  React.createClass({
     }
 });
 
-var ProjectBar = React.createClass({
+var ProjectButton = React.createClass({
     render: function(){
         if (!this.props.projects)
             return null;
 
         var isPublished = this.props.user == SKG_USER_PUBLISHED;
-
         var that = this;
         var projId = this.props.projects[this.props.currentProject];
         var current = isPublished ? this.props.projectMeta.alias : projId;
+
+        if (isPublished) {
+            var buttons = [
+                {'text': 'back to published', link: '/published/',
+                 icon: 'back57'}
+            ];
+            return (
+                <ButtonMenu ref="menu" center large text={current}
+                    items={buttons}/>
+            );
+        }
 
         var buttons = [];
         if (this.props.projects && this.props.projects.length > 1) {
@@ -281,7 +291,7 @@ var HeaderBar = React.createClass({
             <div className="header-bar">
                 <Button mid text="brpy" addClass="title" icon="brpy"/>
                 <span className="project-title">
-                    <ProjectBar projects={this.props.projects}
+                    <ProjectButton projects={this.props.projects}
                         currentProject={this.props.currentProject}
                         onProjectDelete={this.props.onProjectDelete}
                         onProjectNew={this.props.onProjectNew}
@@ -455,10 +465,14 @@ var Worksheet = React.createClass({
             if (this.props.user)
                 projData['publisher'] = this.props.user;
             var date = new Date();
+            var hour = date.getHours() < 10 ? "0" + date.getHours() :
+                "" + date.getHours();
+            var min = date.getMinutes() < 10 ? "0" + date.getMinutes() :
+                "" + date.getMinutes();
+
             projData['publishedTime'] =
                 '' + date.getFullYear() + '-' + date.getMonth() + '-' +
-                date.getDate() + '@' + date.getHours() + ':' +
-                date.getMinutes();
+                date.getDate() + '@' + hour + ':' + min;
         }
         var files = [];
         blocks.forEach(function(block) {
@@ -1304,9 +1318,6 @@ var Worksheet = React.createClass({
                 SKG.d(SKG_SOLUTION_PROJECTS, solution.projects)
                     .i(SKG_SOLUTION_EDITOR_MODE, solution.editorMode)
                     .o());
-
-            console.log(this.props.user, solution.projects, projInd);
-            console.log(this.props.user, SKG.readProjectFromURL());
 
             // set a little timeout to ensure good state
             setTimeout(function() {

@@ -1,18 +1,38 @@
 @import 'common';
 @import 'flexbox';
 
+@include keyframes(color-swap) {
+  from { color: $prime-inv-color; }
+  to { color: $prime-color; }
+}
+
 #hub {
   @extend %flexbox;
   @include flex-direction(column);
-  @include align-items(center);
+  @include align-items(stretch);
   padding: 5px 10px;
+}
+
+.projects-list-wrapper {
+  @extend %flexbox;
+  @include flex-direction(column);
+  @include align-items(center);
 }
 
 .projects-list {
   @extend %flexbox;
   @include flex-direction(column);
+  @include align-self(center);
   @include align-items(stretch);
   width: $display-width;
+  .loader-wrapper {
+      @extend %flexbox;
+      @include flex-direction(column);
+      @include align-items(center);
+  }
+  .delete-button {
+   margin: 0 10px;
+  }
 }
 
 $mid-color: interp($prime-inv-color, $prime-color, .5);
@@ -21,6 +41,7 @@ $mid-color: interp($prime-inv-color, $prime-color, .5);
   @extend %flexbox;
   @include flex-direction(column);
   @include align-items(stretch);
+  @include animation('fade-in ' + $std-duration * 2);
   border-style: solid none none none;
   border-color: $mid-color;
   border-width: 1px 0 0 0;
@@ -33,11 +54,17 @@ $mid-color: interp($prime-inv-color, $prime-color, .5);
     .block {
       @extend %flexbox;
       @include flex-direction(column);
+      font-size: $button-font-mid;
+
+      .title {
+        @extend %flexbox;
+        @include flex-direction(row);
+        @include align-items(center);
+      }
       .id {
         @extend .font-tiny;
         color: $mid-color;
       }
-      font-size: $button-font-mid;
       .time-stamp {
         @extend .font-small;
       }
@@ -50,4 +77,20 @@ $mid-color: interp($prime-inv-color, $prime-color, .5);
     margin: 5px;
   }
   margin: 5px;
+}
+
+.footer {
+  @extend .font-tiny;
+  @extend %flexbox;
+  @include flex-direction(column);
+  @include align-items(center);
+  position: relative;
+  width: 100%;
+  margin: 10px 0;
+  opacity: .5;
+
+  .product {
+    font-size: $button-font-tiny + 4;
+  }
+  z-index: -1;
 }

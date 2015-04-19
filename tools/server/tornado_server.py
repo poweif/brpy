@@ -90,19 +90,16 @@ def clear_published(drive, app_dir):
     @gen.coroutine
     def delete_default_proj():
         raise gen.Return((yield gdrive.delete_project('example')))
-
-#    _io_loop.run_sync(delete_default_proj)
-
+    _io_loop.run_sync(delete_default_proj)
 
 def build_published_solution(read_only=True):
     app_dir = "brpy_published_data"
     cred = GoogleCredentials.get_application_default()
     drive = build('drive', 'v2', credentials=cred)
     if not read_only:
-#       clear_published(drive=drive, app_dir=app_dir)
+#        clear_published(drive=drive, app_dir=app_dir)
         pass
     dev = GdriveSkSolution(drive=drive, app_dir=app_dir, read_only=read_only)
-#    dev = DevSkSolution(PUBLISHED_DIR, read_only=read_only)
     mongo = MongoDBSkSolution(
         user='brpy_public', db=_motor_client.test, read_only=read_only,
         app_dir=app_dir)
@@ -405,6 +402,16 @@ class PublishingRunHandler(RunHandler):
 
     @gen.coroutine
     def post(self):
+        proj = self.argshort('publisher-delete-proj')
+        if proj is not None:
+            project = yield solution.read_project(proj)
+            if project['publisher'] == self.current_user:
+                body = json.loads(self.request.body)
+                if (yield solution.update_solution(body)) is not None and\
+                   (yield solution.delete_project(proj)) is not None:
+                    self.finish()
+                    return
+
         publish_key = self.get_cookie(BRPY_PUBLISH_PROJECT_KEY)
         if _publisher.validate(user=self.current_user, key=publish_key):
             yield super(PublishingRunHandler, self).post()

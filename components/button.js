@@ -198,23 +198,23 @@ var ButtonMenu =  React.createClass({
 
                 if (item.hr) {
                     return (
-                        <span className="vspace">
+                        <span key={ind} className="vspace">
                             <MenuHr text={item.text} key={ind}/>
                         </span>
                     );
                 }
                 if (item.items) {
                     return (
-                        <span className="vspace">
+                        <span key={ind} className="vspace">
                             <ButtonMenu text={item.text} items={item.items}
-                                icon={item.icon} key={ind} />
+                                icon={item.icon} />
                         </span>
                     );
                 }
                 var click = onClickWrapper(item.click);
                 return (
-                    <span className="vspace">
-                        <Button text={item.text} click={click} key={ind}
+                    <span key={ind} className="vspace">
+                        <Button text={item.text} click={click}
                             addClass={item.addClass} icon={item.icon}
                             link={item.link} />
                     </span>

@@ -234,6 +234,12 @@ var SKG = {
             this.apiPrefix(user) + '/run?delete-proj=' + proj, null, onLoad,
             onFailed);
     },
+    publisherDeleteProject: function(user, proj, solData, onLoad, onFailed) {
+        var solDataStr = JSON.stringify(solData)
+        this.util.xhrPost(
+            this.apiPrefix(user) + '/run?publisher-delete-proj=' + proj,
+            solDataStr, onLoad, onFailed);
+    },
     renameSrcFile: function(user, proj, oldname, newname, onLoad, onFailed) {
         this.util.xhrPost(
             this.apiPrefix(user) + '/run?rename=' +
