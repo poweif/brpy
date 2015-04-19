@@ -182,6 +182,23 @@ var ProjectButton = React.createClass({
     }
 });
 
+var LogoMenu =  React.createClass({
+    render: function() {
+        var items = [
+            {text: "published", link: "/published/", icon: 'show5',
+             addClass: "logo-item"},
+            {text: "samples", link: "/start/", icon: 'graduate32',
+             addClass: "logo-item"},
+            {text: "github", link: "https://github.com/poweif/brpy",
+             icon: "github17", addClass: "logo-item"}
+        ];
+        return (
+            <ButtonMenu large text="brpy" addClass="logo-menu"
+                items={items} icon="brpy"/>
+        );
+    }
+});
+
 var HeaderBar = React.createClass({
     getInitialState: function() {
         return {
@@ -289,7 +306,7 @@ var HeaderBar = React.createClass({
         }
         return (
             <div className="header-bar">
-                <Button mid text="brpy" addClass="title" icon="brpy"/>
+                <LogoMenu />
                 <span className="project-title">
                     <ProjectButton projects={this.props.projects}
                         currentProject={this.props.currentProject}

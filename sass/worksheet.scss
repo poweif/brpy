@@ -139,17 +139,20 @@ $console-button-size: $button-size-large;
   @include align-items(center);
 }
 
+.logo-menu {
+  @extend .product;
+  font-size: $button-font-mid + 10;
+  .logo-item {
+    font-family: $std-font-family;
+  }
+}
+
 .header-bar {
   @extend %flexbox;
   @include flex-direction(row);
   @include justify-content(space-between);
   @include align-self(stretch);
   @include align-items(center);
-
-  .title {
-    @extend .product;
-    font-size: $button-font-mid + 10;
-  }
 
   .project-title {
     margin-left: 60px;
