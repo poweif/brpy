@@ -164,6 +164,9 @@ var ProjectButton = React.createClass({
             return that.props.onProjectDelete(projId); };
         var publish = function() {
             return that.props.onProjectPublish(projId); }
+        var desc = function() {
+            return that.props.onProjectChangeDescription(projId); }
+
         if (this.props.user && this.props.user != SKG_USER_START &&
             this.props.user != SKG_USER_PUBLISHED) {
             buttons = buttons.concat([
@@ -171,13 +174,14 @@ var ProjectButton = React.createClass({
                 {text: "new", click: this.props.onProjectNew, icon: "add186"},
                 {text: "rename", click: rename, icon: "rotate11"},
                 {text: "delete", click: del, icon: "close47"},
+                {text: 'change description', click: desc, icon: 'bubble8'},
                 {text: "publish project", click: publish, icon: "screen47"}
             ]);
         }
 
         return (
             <ButtonMenu ref="menu" center large text={current}
-                items={buttons}/>
+                addClass="project-button" items={buttons}/>
         );
     }
 });
@@ -187,13 +191,11 @@ var LogoMenu =  React.createClass({
         var items = [
             {text: "published", link: "/published/", icon: 'show5',
              addClass: "logo-item"},
-            {text: "samples", link: "/start/", icon: 'graduate32',
-             addClass: "logo-item"},
             {text: "github", link: "https://github.com/poweif/brpy",
              icon: "github17", addClass: "logo-item"}
         ];
         return (
-            <ButtonMenu large text="brpy" addClass="logo-menu"
+            <ButtonMenu mid text="brpy" addClass="logo-menu"
                 items={items} icon="brpy"/>
         );
     }
@@ -231,6 +233,17 @@ var HeaderBar = React.createClass({
         if (this.props.user != prevProps.user) {
             this.setFunUserIcon();
         }
+        if (this.props.isDialogOpen) {
+            if (this.refs.rightMenu)
+                this.refs.rightMenu.getDOMNode().style.zIndex = "-1";
+            if (this.refs.logo)
+                this.refs.logo.getDOMNode().style.zIndex = "-1";
+        } else {
+            if (this.refs.rightMenu)
+                this.refs.rightMenu.getDOMNode().style.zIndex = "0";
+            if (this.refs.logo)
+                this.refs.logo.getDOMNode().style.zIndex = "0";
+        }
     },
     componentDidMount: function() {
         this.setFunUserIcon();
@@ -238,88 +251,92 @@ var HeaderBar = React.createClass({
     render: function() {
         var that = this;
         var button = null;
-        if (this.props.user && this.props.user != SKG_USER_START &&
-            this.props.user != SKG_USER_PUBLISHED) {
+        var determinedUser = SKG.determineUser(this.props.user);
+        if (this.props.user && determinedUser != SKG_USER_START &&
+            determinedUser != SKG_USER_PUBLISHED) {
             var text = SKG.util.trimUserName(this.props.user);
             var items = [
                 {text: "log out", link: "/logout", icon: "back57"}
             ];
+            if (determinedUser != this.props.user) {
+                items.unshift(
+                    {text: "go to workspace", link: "/", icon: "forward18"}
+                );
+            }
+
             button = function() {
                 return (
-                    <ButtonMenu mid right text={text} icon={that.state.userIcon}
+                    <ButtonMenu mid right text={text}
+                        icon={that.state.userIcon}
                         items={items} addClass="login-button"/>
                 );
             }();
         } else {
-            var items = [
-                {text: "just log in", link: "/login", icon: "forward18"},
-                {text: "copy to user", click: that.props.onProjectExport,
-                 icon: "upload119"}
-            ];
-            button = function() {
-                return (
-                    <ButtonMenu mid right text="log in" items={items}
-                        icon={that.state.userIcon} />
-                );
-            }();
+            if (that.props.onProjectExport) {
+                var items = [
+                    {text: "copy to user", click: this.props.onProjectExport,
+                     icon: "upload119"}
+                ];
+                var userText = "log in";
+                if (this.props.user != SKG_USER_START &&
+                    this.props.user != SKG_USER_PUBLISHED) {
+                    items.unshift(
+                        {text: "go to workspace", link: "/", icon: "forward18"}
+                    );
+                    userText = SKG.util.trimUserName(this.props.user);
+                } else {
+                    items.unshift(
+                        {text: "just log in", link: "/login", icon: "forward18"}
+                    );
+                }
+
+                button = function() {
+                    return (
+                        <ButtonMenu mid right text={userText} items={items}
+                            icon={that.state.userIcon} />
+                    );
+                }();
+            } else {
+                button = function() {
+                    return (
+                        <Button mid text="log in" icon={that.state.userIcon}
+                            link="/login" />
+                    );
+                }();
+            }
         }
         var rightMost = function() {
-            var editorItems = that.props.editorModes.map(function(editor) {
-                var selected = that.props.selectedEditorMode;
-                var addClass = selected == editor ? 'selected-editor' : null;
-                var icon = selected == editor ? 'filled13' : 'circle107';
-                var click = function() {
-                    that.props.onEditorModeChange(editor);
-                };
-                return {text: editor, addClass: addClass, click: click,
-                    icon: icon};
-            });
-            editorItems.unshift({hr: true, text: 'input modes'});
+            var solutionOptions = null;
+            if (that.props.onEditorModeChange) {
+                var editorItems = SKG_EDITORS.map(function(editor) {
+                    var selected = that.props.selectedEditorMode;
+                    var addClass = selected == editor ? 'selected-editor' : null;
+                    var icon = selected == editor ? 'filled13' : 'circle107';
+                    var click = function() {
+                        that.props.onEditorModeChange(editor);
+                    };
+                    return {text: editor, addClass: addClass, click: click,
+                            icon: icon};
+                });
+                editorItems.unshift({hr: true, text: 'input modes'});
+                solutionOptions = function() {
+                    return (
+                        <ButtonMenu mid right addClass="menu-button"
+                            items={editorItems} icon="menu55" />
+                    );
+                }();
+            }
             return (
-                <div className="right-menus">
-                    <ButtonMenu mid right addClass="menu-button"
-                        items={editorItems} icon="menu55" />
+                <div ref="rightMenu" className="right-menus">
+                    {solutionOptions}
                     {button}
                 </div>
             );
         }();
 
-        var isPublished = this.props.user == SKG_USER_PUBLISHED;
-
-        var datePublisher = null;
-        if (isPublished && this.props.projectMeta.publisher &&
-            this.props.projectMeta.publishedTime) {
-            var that = this;
-            datePublisher = function() {
-                return (
-                    <span>Published by
-                        <span className="highlight">
-                            {that.props.projectMeta.publisher}
-                        </span>
-                        on
-                        <span className="highlight">
-                            {that.props.projectMeta.publishedTime}
-                        </span>
-                    </span>
-                );
-            }();
-        }
         return (
             <div className="header-bar">
-                <LogoMenu />
-                <span className="project-title">
-                    <ProjectButton projects={this.props.projects}
-                        currentProject={this.props.currentProject}
-                        onProjectDelete={this.props.onProjectDelete}
-                        onProjectNew={this.props.onProjectNew}
-                        onProjectPublish={this.props.onProjectPublish}
-                        onProjectClick={this.props.onProjectClick}
-                        onProjectRename={this.props.onProjectRename}
-                        onImportBlock={this.props.onImportBlock}
-                        projectMeta={this.props.projectMeta}
-                        user={this.props.user} />
-                    {datePublisher}
-                </span>
+                <LogoMenu ref="logo" />
                 {rightMost}
             </div>
         );
@@ -381,7 +398,7 @@ var Worksheet = React.createClass({
                 fail
             );
         };
-        this.openTextDialog(oldProj, "Rename project?", ok);
+        this.openTextDialog(oldProj, "Rename project?", null, ok);
     },
     onProjectClick: function(project) {
         // working dialog will be closed when project has finished loading
@@ -415,7 +432,7 @@ var Worksheet = React.createClass({
                 fail
             );
         };
-        this.openTextDialog("new-project", "New project name?", ok);
+        this.openTextDialog("new-project", "New project name?", null, ok);
     },
     onProjectPublish: function(projName) {
         var that = this;
@@ -439,6 +456,26 @@ var Worksheet = React.createClass({
             SKG.requestPublish(that.props.user, onReceivedKey);
         }
         this.openBinaryDialog("Really publish project?", ok);
+    },
+    onProjectChangeDescription: function(projName) {
+        var desc = this.state.projectMeta['desc'];
+        var that = this;
+        if (!desc) desc = 'enter a description';
+        var options = {
+            'multiline': true,
+            'maxLength': 139,
+            'allowAll': true
+        };
+        var onDone = function() {
+            that.closeDialog();
+        };
+        var ok = function(text) {
+            var projectMeta = that.state.projectMeta;
+            projectMeta['desc'] = text;
+
+            that.updateProject(projName, null, null, projectMeta, onDone);
+        };
+        this.openTextDialog(desc, "Change Project Description?", options, ok);
     },
     onProjectDelete: function(proj) {
         var that = this;
@@ -777,7 +814,7 @@ var Worksheet = React.createClass({
                 that.props.user, proj, oldFileExt, newFileExt, successFile,
                 failed);
         };
-        this.openTextDialog(file, "New file name?", ok);
+        this.openTextDialog(file, "New file name?", null, ok);
     },
     onFileClick: function(proj, block, infile) {
         var ind = -1;
@@ -832,7 +869,7 @@ var Worksheet = React.createClass({
             SKG.writeSrcFile(
                 that.props.user, proj, fnameExt, fileSrc, successFile, failed);
         };
-        this.openTextDialog("new", "New file?", ok);
+        this.openTextDialog("new", "New file?", null, ok);
     },
     deleteBlock: function(proj, block, onOk, onFail) {
         var ind = SKG.util.indexOf(this.state.blocks, block);
@@ -982,7 +1019,7 @@ var Worksheet = React.createClass({
                 function() {
                     that.openPromptDialog("Failed to add new block")});
         };
-        this.openTextDialog(file, "New Block?", ok);
+        this.openTextDialog(file, "New Block?", null, ok);
     },
     onFileMoveToBlock: function(proj, oldBlock, newBlock, file) {
         var that = this;
@@ -1153,7 +1190,7 @@ var Worksheet = React.createClass({
                 function() {
                     that.openPromptDialog("Failed to rename block."); });
         };
-        this.openTextDialog(oldBlock, "Rename block?", ok);
+        this.openTextDialog(oldBlock, "Rename block?", null, ok);
     },
     onBlockMove: function(proj, origin, target) {
         var that = this;
@@ -1465,7 +1502,7 @@ var Worksheet = React.createClass({
             }
 
             return (
-                <WorksheetBlock key={block} files={files} name={block}
+                <WorksheetBlock key={index} files={files} name={block}
                     height={blockHeight} collapsed={blockCollapsedVal}
                     display={blockDisplayVal} editorMode={this.state.editorMode}
                     fileOffsetY={offsetYVal}
@@ -1489,22 +1526,52 @@ var Worksheet = React.createClass({
         var projExport = this.onProjectExport.bind(this, proj);
         var importBlock = this.onImportBlock.bind(this, proj);
 
+        var isPublished = this.props.user == SKG_USER_PUBLISHED;
+        var datePublisher = null;
+        if (isPublished && this.state.projectMeta.publisher &&
+            this.state.projectMeta.publishedTime) {
+            var warning = "This is published project. Changes made here cannot be saved. Please copy to your own workspace if you'd like to continue the work here."
+            datePublisher = function() {
+                return (
+                    <div className="subtext">
+                        <span>Published by
+                            <span className="highlight">
+                                {that.state.projectMeta.publisher}
+                            </span>
+                            on
+                            <span className="highlight">
+                                {that.state.projectMeta.publishedTime}
+                            </span>
+                       </span>
+                       <span className="warning">{warning}</span>
+                    </div>
+                );
+            }();
+        }
+
         return (
            <div className="main-panel">
                 <HeaderBar user={this.props.user}
-                    editorModes={SKG_EDITORS}
-                    onEditorModeChange={this.onEditorModeChange}
-                    selectedEditorMode={this.state.editorMode}
                     onProjectExport={projExport}
-                    projects={this.state.projects}
-                    projectMeta={this.state.projectMeta}
-                    currentProject={this.state.currentProject}
-                    onProjectDelete={this.onProjectDelete}
-                    onProjectNew={this.onProjectNew}
-                    onProjectPublish={this.onProjectPublish}
-                    onProjectClick={this.onProjectClick}
-                    onProjectRename={this.onProjectRename}
-                    onImportBlock={importBlock} />
+                    isDialogOpen={this.state.isDialogOpen}
+                    onEditorModeChange={this.onEditorModeChange}
+                    selectedEditorMode={this.state.editorMode} />
+                <span className="project-title">
+                    <ProjectButton
+                        projects={this.state.projects}
+                        onProjectDelete={this.onProjectDelete}
+                        onProjectNew={this.onProjectNew}
+                        onProjectPublish={this.onProjectPublish}
+                        onProjectChangeDescription=
+                            {this.onProjectChangeDescription}
+                        onProjectClick={this.onProjectClick}
+                        onProjectRename={this.onProjectRename}
+                        currentProject={this.state.currentProject}
+                        onImportBlock={importBlock}
+                        projectMeta={this.state.projectMeta}
+                        user={this.props.user} />
+                    {datePublisher}
+                </span>
                 <StdoutConsole ref="stdoutConsole"
                     isDialogOpen={this.state.isDialogOpen} />
                 {blocks}

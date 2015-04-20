@@ -1,14 +1,32 @@
 var InputDialog = React.createClass({
+    // options: (can be sent through a map attribute)
+    //     'allowAll' => no restriction on input characters.
+    //     'multiline' => a number indicating the number of lines in the
+    //         text input.
+    //     'maxLength' => the max number of characters allowed in the text
+    //         input.
     getInitialState: function() {
         return {
             text: null,
-            currentChoice: null
+            currentChoice: null,
+            charactersLeft: null
         };
     },
     onTextChanged: function() {
         var newText = this.refs.input.getDOMNode().value;
-        if (newText.search(/[^a-z0-9\-\_]/ig) >= 0 || newText.length == 0)
+        if (!this.props.options.allowAll &&
+            newText.search(/[^a-z0-9\-\_]/ig) >= 0 || newText.length == 0)
             return;
+
+        if (this.props.options.maxLength &&
+            newText.length > this.props.options.maxLength) {
+            return;
+        } else {
+            this.setState({
+                charactersLeft: this.props.options.maxLength - newText.length
+            });
+        }
+
         this.setState({text: newText});
     },
     componentDidMount: function() {
@@ -20,6 +38,13 @@ var InputDialog = React.createClass({
         if (this.props.choices) {
             this.setState({
                 currentChoice: this.props.choices[0]
+            });
+        }
+        if (this.props.options && this.props.options.maxLength &&
+            this.props.text) {
+            this.setState({
+                charactersLeft: (this.props.options.maxLength -
+                                 this.props.text.length)
             });
         }
     },
@@ -41,6 +66,7 @@ var InputDialog = React.createClass({
             dialogWrapperCn += "-" + this.props.level;
 
         var input = null;
+        var charLeft = null;
         if (this.props.text) {
             input = function() {
                 return (
@@ -49,6 +75,22 @@ var InputDialog = React.createClass({
                         autofocus />
                 );
             }();
+            if (this.props.options.multiline) {
+                input = function() {
+                    return (
+                        <textarea ref="input" className="text-input-large"
+                            onChange={that.onTextChanged}
+                            value={that.state.text} autofocus />
+                    );
+                }();
+            }
+            if (this.state.charactersLeft != null) {
+                charLeft = function() {
+                    return (
+                        <div>{that.state.charactersLeft} characters left</div>
+                    );
+                }();
+            }
         }
         var choiceInput = null;
         if (this.props.choices) {
@@ -113,6 +155,7 @@ var InputDialog = React.createClass({
                     <div className="prompt">{this.props.prompt}</div>
                     {input}
                     {choiceInput}
+                    {charLeft}
                     <div className="bottom">
                         {okButton}
                         {cancelButton}
@@ -208,11 +251,18 @@ var DialogMixins = function() {
         };
         openedDialog.close(onfinish);
     };
-    var openDialog = function(text, choices, prompt, onOK, onCancel) {
+    var openTextDialog = function(text, prompt, options, onOK, onCancel) {
         closeDialog();
         openedDialog = React.render(
-            <InputDialog text={text} choices={choices} prompt={prompt}
-                onOK={onOK} onCancel={onCancel} />,
+            <InputDialog text={text} prompt={prompt} onOK={onOK}
+                onCancel={onCancel} options={options} />,
+            document.getElementById('dialog0'));
+    };
+    var openChoicesDialog = function(choices, prompt, options, onOK, onCancel) {
+        closeDialog();
+        openedDialog = React.render(
+            <InputDialog choices={choices} prompt={prompt}
+                onOK={onOK} onCancel={onCancel} options={options}/>,
             document.getElementById('dialog0'));
     };
     var loadingDialog = function() {
@@ -226,23 +276,24 @@ var DialogMixins = function() {
 
     return function(setDialogOpen) {
         return {
-            openTextDialog: function(text, prompt, onOK) {
-                openDialog(text, null, prompt, onOK, closeDialog);
+            openTextDialog: function(text, prompt, options, onOK) {
+                if (!options) options = {};
+                openTextDialog(text, prompt, options, onOK, closeDialog);
                 if (setDialogOpen)
                     setDialogOpen.bind(this)(true);
             },
             openPromptDialog: function(prompt) {
-                openDialog(null, null, prompt, closeDialog, null);
+                openTextDialog(null, prompt, {}, closeDialog, null);
                 if (setDialogOpen)
                     setDialogOpen.bind(this)(true);
             },
             openBinaryDialog: function(prompt, onOK) {
-                openDialog(null, null, prompt, onOK, closeDialog);
+                openTextDialog(null, prompt, {}, onOK, closeDialog);
                 if (setDialogOpen)
                     setDialogOpen.bind(this)(true);
             },
             openChoicesDialog: function(choices, prompt, onOK) {
-                openDialog(null, choices, prompt, onOK, closeDialog);
+                openChoicesDialog(choices, prompt, {}, onOK, closeDialog);
                 if (setDialogOpen)
                     setDialogOpen.bind(this)(true);
             },
@@ -255,9 +306,6 @@ var DialogMixins = function() {
                 closeDialog();
                 if (setDialogOpen)
                     setDialogOpen.bind(this)(false);
-            },
-            openTextInputDialog: function() {
-
             }
         };
     };

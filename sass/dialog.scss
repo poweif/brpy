@@ -41,6 +41,12 @@
     border-radius: $std-border-radius;
   }
 
+  .text-input-large {
+    @extend .text-input;
+    height: 22px * 4;
+    width: 300px;
+  }
+
   .choices-input {
     margin: 15px 0;
   }

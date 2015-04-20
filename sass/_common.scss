@@ -1,3 +1,7 @@
+@function interp($a, $b, $t) {
+  @return ($a * $t) + ($b * (1 - $t));
+}
+
 $color-fac: .75;
 $color-red: rgb(250, 145, 160) * $color-fac; // red
 $color-blue: rgb(145, 195, 250) * $color-fac; // blue
@@ -14,6 +18,8 @@ $prime-color: white;
 $prime-inv-color: black;
 $std-font-family: "source-sans-pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
 $alt-font-family: monospace;
+
+$mid-color: interp($prime-inv-color, $prime-color, .3);
 
 $highlight-color: $color-4;
 $picked-color: $highlight-color * .85;
@@ -84,6 +90,12 @@ $button-font-large: $button-size-large + 2;
 .button-small {
   width: $button-size-small;
   height: $button-size-small;
+  padding: 3px;
+}
+
+.button-tiny {
+  width: $button-size-tiny;
+  height: $button-size-tiny;
   padding: 3px;
 }
 
@@ -171,6 +183,3 @@ $button-font-large: $button-size-large + 2;
   font-family: GrandHotel;
 }
 
-@function interp($a, $b, $t) {
-  @return ($a * $t) + ($b * (1 - $t));
-}

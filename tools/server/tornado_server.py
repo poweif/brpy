@@ -427,7 +427,7 @@ class RootIndexHandler(AllHandler):
     @gen.coroutine
     def get(self, v):
         if self.current_user is None:
-            self.redirect('/start/')
+            self.redirect('/published/')
             return
         self.write(INDEX_HTML)
 

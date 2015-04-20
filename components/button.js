@@ -7,6 +7,8 @@ var Button =  React.createClass({
             suffix = '-large';
         } else if (this.props.mid) {
             suffix = '-mid';
+        } else if (this.props.tiny) {
+            suffix = '-tiny';
         } else {
             suffix = '-small';
         }

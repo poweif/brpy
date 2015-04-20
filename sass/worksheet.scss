@@ -139,46 +139,56 @@ $console-button-size: $button-size-large;
   @include align-items(center);
 }
 
+.project-title {
+  @extend %flexbox;
+  @include flex-direction(column);
+  @include align-items(center);
+
+  span {
+    @extend .font-small;
+    margin: 5px 0;
+    .highlight {
+      margin: 0 5px;
+      font-weight: 700;
+    }
+  }
+  .subtext {
+    @extend %flexbox;
+    @include flex-direction(column);
+    @include align-items(center);
+    margin: 5px 0;
+  }
+  .warning {
+    @extend .font-tiny;
+    width: 400px;
+    color: $mid-color;
+  }
+}
+
 .logo-menu {
   @extend .product;
   font-size: $button-font-mid + 10;
   .logo-item {
     font-family: $std-font-family;
   }
+  position: absolute;
+  left: 8px;
+  top: 5px;
 }
 
 .header-bar {
-  @extend %flexbox;
-  @include flex-direction(row);
-  @include justify-content(space-between);
-  @include align-self(stretch);
-  @include align-items(center);
-
-  .project-title {
-    margin-left: 60px;
-    @extend %flexbox;
-    @include flex-direction(column);
-    @include align-items(center);
-    span {
-      @extend .font-small;
-      margin: 5px 0;
-      .highlight {
-        margin: 0 5px;
-        font-weight: 700;
-      }
-    }
-  }
-
   .right-menus {
     @extend %flexbox;
     @include flex-direction(row);
     @include align-self(center);
-    margin: 0 0 5px 0;
     .menu-button {
-      margin: 0 8px;
+      margin: 0 12px;
     }
     .selected-editor {
       font-weight: 700;
     }
+    position: absolute;
+    right: 8px;
+    top: 5px;
   }
 }

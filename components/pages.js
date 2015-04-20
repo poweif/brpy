@@ -12,7 +12,7 @@ var ProjectListing = React.createClass({
             (this.props.publisher == this.props.loggedInUser) ?
             function() {
                 return (
-                    <Button addClass="delete-button" icon="clear5"
+                    <Button tiny addClass="delete-button" icon="clear5"
                         click={that.props.onDeleteProject} />
                 );
             }() : null;
@@ -38,7 +38,7 @@ var ProjectListing = React.createClass({
                             {publisherName}</div>
                     </div>
                 </div>
-                <div className="desc"></div>
+                <div className="desc">{this.props.desc}</div>
             </div>
         );
     }
@@ -53,7 +53,6 @@ var ProjectsList = React.createClass({
             content: "hey ma look no hands",
             projects: [],
             loading: true,
-            loggedInUser: null,
             isDialogOpen: false,
             solution: null
         };
@@ -93,7 +92,7 @@ var ProjectsList = React.createClass({
                 that.state.projects.push(function() {
                     return (
                         <ProjectListing alias={pdata.alias}
-                            onDeleteProject={del}
+                            onDeleteProject={del} desc={pdata.desc}
                             id={ps[ind]} stamp={pdata.publishedTime}
                             loggedInUser={that.props.loggedInUser}
                             publisher={pdata.publisher} />
@@ -146,6 +145,8 @@ var ProjectsList = React.createClass({
         }();
         return (
            <div className="projects-list-wrapper">
+               <HeaderBar isDialogOpen={this.state.isDialogOpen}
+                   user={this.props.loggedInUser} />
                <div className="projects-list">
                    <span dangerouslySetInnerHTML={{__html: this.state.content}} />
                    {projectsList}

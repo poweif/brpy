@@ -24,7 +24,7 @@
   @include flex-direction(column);
   @include align-self(center);
   @include align-items(stretch);
-  width: $display-width;
+  max-width: $display-width;
   .loader-wrapper {
       @extend %flexbox;
       @include flex-direction(column);
@@ -34,8 +34,6 @@
    margin: 0 10px;
   }
 }
-
-$mid-color: interp($prime-inv-color, $prime-color, .5);
 
 .project-listing {
   @extend %flexbox;
@@ -74,7 +72,8 @@ $mid-color: interp($prime-inv-color, $prime-color, .5);
     }
   }
   .desc {
-    margin: 5px;
+    @extend .font-small;
+    margin: 5px 0;
   }
   margin: 5px;
 }

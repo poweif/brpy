@@ -28,6 +28,11 @@ $button-wrapper-padding: 5px;
   max-height: $button-size-small + 2 * $button-wrapper-padding;
 }
 
+.button-wrapper-tiny {
+  @extend .button-wrapper;
+  max-height: $button-size-tiny + 2 * $button-wrapper-padding;
+}
+
 .button-img-only {
   @extend .button;
   padding: 5px;
@@ -51,6 +56,11 @@ $button-wrapper-padding: 5px;
   height: $button-size-small + 4;
 }
 
+.button-img-only-tiny {
+  @extend .button-img-only;
+  width: $button-size-tiny + 4;
+  height: $button-size-tiny + 4;
+}
 
 $sbr: $std-border-radius;
 
