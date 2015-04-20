@@ -159,16 +159,6 @@ var SKG = {
             return SKG_USER_PUBLISHED;
         return userName;
     },
-    determinePage: function() {
-        var dirs = window.location.pathname.split('/');
-        if (dirs.length < 2)
-            return SKG_PAGE_DEFAULT;
-        if (dirs[1] == SKG_URL_PATH_START)
-            return SKG_PAGE_START;
-        if (dirs[1] == SKG_URL_PATH_PUBLISHED)
-            return SKG_PAGE_PUBLISHED;
-        return SKG_PAGE_DEFAULT;
-    },
     apiPrefix: function(user) {
         if (user == SKG_USER_START)
             return '/' + SKG_URL_PATH_START;

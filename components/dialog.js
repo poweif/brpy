@@ -18,15 +18,15 @@ var InputDialog = React.createClass({
             newText.search(/[^a-z0-9\-\_]/ig) >= 0 || newText.length == 0)
             return;
 
-        if (this.props.options.maxLength &&
-            newText.length > this.props.options.maxLength) {
-            return;
-        } else {
-            this.setState({
-                charactersLeft: this.props.options.maxLength - newText.length
-            });
+        if (this.props.options.maxLength) {
+            if (newText.length > this.props.options.maxLength)
+                return;
+            else {
+                this.setState({
+                    charactersLeft: this.props.options.maxLength - newText.length
+                });
+            }
         }
-
         this.setState({text: newText});
     },
     componentDidMount: function() {

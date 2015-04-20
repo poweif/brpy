@@ -139,6 +139,15 @@ $console-button-size: $button-size-large;
   @include align-items(center);
 }
 
+@include keyframes(warning-color-swap) {
+  from {
+    color: $color-red;
+  }
+  to {
+    color: $mid-color;
+  }
+}
+
 .project-title {
   @extend %flexbox;
   @include flex-direction(column);
@@ -159,9 +168,11 @@ $console-button-size: $button-size-large;
     margin: 5px 0;
   }
   .warning {
-    @extend .font-tiny;
+    @extend .font-small;
     width: 400px;
     color: $mid-color;
+    @include animation('warning-color-swap '
+      + $std-duration * 2 + ' linear 0s 10 alternate');
   }
 }
 

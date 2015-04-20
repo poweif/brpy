@@ -58,7 +58,8 @@ var Button =  React.createClass({
         }();
 
         return (
-            <div className={wrapperCn} onClick={outerClick}>
+            <div title={this.props.title} className={wrapperCn}
+                onClick={outerClick}>
                 {this.props.rev ? buttonText : img}
                 {this.props.rev ? img : buttonText}
             </div>
@@ -167,6 +168,7 @@ var ButtonMenu =  React.createClass({
                                  (that.props.addClass ? that.props.addClass : '') :
                               "main-button"}
                     click={that.onClickMain} text={that.props.text}
+                    title={that.props.title}
                     icon={that.props.icon} />
             );
         }();

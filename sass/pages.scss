@@ -1,11 +1,6 @@
 @import 'common';
 @import 'flexbox';
 
-@include keyframes(color-swap) {
-  from { color: $prime-inv-color; }
-  to { color: $prime-color; }
-}
-
 #hub {
   @extend %flexbox;
   @include flex-direction(column);

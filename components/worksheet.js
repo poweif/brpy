@@ -118,6 +118,7 @@ var ProjectButton = React.createClass({
         var that = this;
         var projId = this.props.projects[this.props.currentProject];
         var current = isPublished ? this.props.projectMeta.alias : projId;
+        var descText = this.props.projectMeta.desc;
 
         if (isPublished) {
             var buttons = [
@@ -126,7 +127,7 @@ var ProjectButton = React.createClass({
             ];
             return (
                 <ButtonMenu ref="menu" center large text={current}
-                    items={buttons}/>
+                    title={descText} items={buttons}/>
             );
         }
 
@@ -180,7 +181,7 @@ var ProjectButton = React.createClass({
         }
 
         return (
-            <ButtonMenu ref="menu" center large text={current}
+            <ButtonMenu ref="menu" center large text={current} title={descText}
                 addClass="project-button" items={buttons}/>
         );
     }
@@ -208,19 +209,18 @@ var HeaderBar = React.createClass({
         };
     },
     setFunUserIcon: function() {
-        if (!this.props.user || this.props.user ==  SKG_USER_START) {
+        if (!this.props.loggedInUser) {
+            if (this.props.user == SKG_USER_PUBLISHED) {
+                this.setState({userIcon: 'emoticon117'});
+                return;
+            }
             this.setState({userIcon: 'user157'});
             return;
         }
-
-        if (this.props.user == SKG_USER_PUBLISHED) {
-            this.setState({userIcon: 'emoticon117'});
-            return;
-        }
-
         var total = 0;
-        for (var i = 0; i < this.props.user.length; i++) {
-            total += this.props.user.charCodeAt(i);
+        var user = this.props.loggedInUser;
+        for (var i = 0; i < user.length; i++) {
+            total += user.charCodeAt(i);
         }
         var date = new Date();
         var timevar = date.getYear() + date.getMonth() +
@@ -230,7 +230,8 @@ var HeaderBar = React.createClass({
         this.setState({userIcon: 'fun/' + SKG.fun[total]});
     },
     componentDidUpdate: function(prevProps) {
-        if (this.props.user != prevProps.user) {
+        if (this.props.loggedInUser != prevProps.loggedInUser ||
+            this.props.user != prevProps.user) {
             this.setFunUserIcon();
         }
         if (this.props.isDialogOpen) {
@@ -240,9 +241,9 @@ var HeaderBar = React.createClass({
                 this.refs.logo.getDOMNode().style.zIndex = "-1";
         } else {
             if (this.refs.rightMenu)
-                this.refs.rightMenu.getDOMNode().style.zIndex = "0";
+                this.refs.rightMenu.getDOMNode().style.zIndex = "8";
             if (this.refs.logo)
-                this.refs.logo.getDOMNode().style.zIndex = "0";
+                this.refs.logo.getDOMNode().style.zIndex = "8";
         }
     },
     componentDidMount: function() {
@@ -251,14 +252,20 @@ var HeaderBar = React.createClass({
     render: function() {
         var that = this;
         var button = null;
-        var determinedUser = SKG.determineUser(this.props.user);
-        if (this.props.user && determinedUser != SKG_USER_START &&
-            determinedUser != SKG_USER_PUBLISHED) {
-            var text = SKG.util.trimUserName(this.props.user);
+        console.log(this.props.loggedInUser);
+        if (this.props.loggedInUser) {
+            var text = SKG.util.trimUserName(this.props.loggedInUser);
             var items = [
                 {text: "log out", link: "/logout", icon: "back57"}
             ];
-            if (determinedUser != this.props.user) {
+            if (this.props.loggedInUser != this.props.user) {
+                if (that.props.onProjectExport) {
+                    items.unshift(
+                        {text: "copy to workspace", click: this.props.onProjectExport,
+                         icon: "upload119"}
+                    );
+                }
+
                 items.unshift(
                     {text: "go to workspace", link: "/", icon: "forward18"}
                 );
@@ -278,12 +285,11 @@ var HeaderBar = React.createClass({
                      icon: "upload119"}
                 ];
                 var userText = "log in";
-                if (this.props.user != SKG_USER_START &&
-                    this.props.user != SKG_USER_PUBLISHED) {
+                if (this.props.loggedInUser) {
                     items.unshift(
                         {text: "go to workspace", link: "/", icon: "forward18"}
                     );
-                    userText = SKG.util.trimUserName(this.props.user);
+                    userText = SKG.util.trimUserName(this.props.loggedInUser);
                 } else {
                     items.unshift(
                         {text: "just log in", link: "/login", icon: "forward18"}
@@ -381,19 +387,23 @@ var Worksheet = React.createClass({
         var fail = function() {
             that.openPromptDialog("Failed to change project name");
         };
-        var ok = function(text) {
+        var ok = function(newProj) {
             that.openWorkingDialog();
+            var onSolutionDone = function() {
+                SKG.updateWithUserProject(that.props.user, newProj);
+            };
             SKG.renameProject(
                 that.props.user,
                 oldProj,
-                text,
+                newProj,
                 function() {
                     that.closeDialog();
                     var projs = that.state.projects.map(function(p) {
-                        return p == oldProj ? text : p;
+                        return p == oldProj ? newProj : p;
                     });
                     that.updateSolution(
-                        SKG.d(SKG_SOLUTION_PROJECTS, projs).o(), null, fail);
+                        SKG.d(SKG_SOLUTION_PROJECTS, projs).o(),
+                        onSolutionDone, fail);
                 },
                 fail
             );
@@ -1549,9 +1559,12 @@ var Worksheet = React.createClass({
             }();
         }
 
+        console.log(this.props.loggedInUser);
+
         return (
            <div className="main-panel">
                 <HeaderBar user={this.props.user}
+                    loggedInUser={this.props.loggedInUser}
                     onProjectExport={projExport}
                     isDialogOpen={this.state.isDialogOpen}
                     onEditorModeChange={this.onEditorModeChange}
@@ -1569,6 +1582,7 @@ var Worksheet = React.createClass({
                         currentProject={this.state.currentProject}
                         onImportBlock={importBlock}
                         projectMeta={this.state.projectMeta}
+                        loggeInUser={this.props.loggedInUser}
                         user={this.props.user} />
                     {datePublisher}
                 </span>

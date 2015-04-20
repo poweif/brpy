@@ -89,15 +89,18 @@ var ProjectsList = React.createClass({
                 var del = function() {
                     that.onDeleteProject(ps[ind], pdata.alias);
                 };
-                that.state.projects.push(function() {
-                    return (
-                        <ProjectListing alias={pdata.alias}
-                            onDeleteProject={del} desc={pdata.desc}
-                            id={ps[ind]} stamp={pdata.publishedTime}
-                            loggedInUser={that.props.loggedInUser}
-                            publisher={pdata.publisher} />
-                    );
-                }());
+                // Skip the default 'example' place-holder project.
+                if (pdata.publisher) {
+                    that.state.projects.push(function() {
+                        return (
+                            <ProjectListing alias={pdata.alias}
+                                onDeleteProject={del} desc={pdata.desc}
+                                id={ps[ind]} stamp={pdata.publishedTime}
+                                loggedInUser={that.props.loggedInUser}
+                                publisher={pdata.publisher} />
+                        );
+                    }());
+                }
                 that.setState({ projects: that.state.projects });
                 readOneProject(ps, ind + 1);
             };
@@ -146,7 +149,8 @@ var ProjectsList = React.createClass({
         return (
            <div className="projects-list-wrapper">
                <HeaderBar isDialogOpen={this.state.isDialogOpen}
-                   user={this.props.loggedInUser} />
+                   loggedInUser={this.props.loggedInUser}
+                   user={this.props.user} />
                <div className="projects-list">
                    <span dangerouslySetInnerHTML={{__html: this.state.content}} />
                    {projectsList}
@@ -205,6 +209,7 @@ var TheHub = React.createClass({
     render: function() {
         var that = this;
         var content = null;
+        console.log(that.state.loggedInUser);
         if (this.state.user == SKG_USER_PUBLISHED &&
             !SKG.readProjectFromURL()) {
             content = function() {
@@ -216,7 +221,10 @@ var TheHub = React.createClass({
             }();
         } else {
             content = function() {
-                return <Worksheet user={that.state.user} />;
+                return (
+                    <Worksheet user={that.state.user}
+                        loggedInUser={that.state.loggedInUser} />
+                );
             }();
         }
 
