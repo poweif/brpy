@@ -169,10 +169,10 @@ $console-button-size: $button-size-large;
   }
   .warning {
     @extend .font-small;
-    width: 400px;
+    width: 450px;
     color: $mid-color;
     @include animation('warning-color-swap '
-      + $std-duration * 2 + ' linear 0s 10 alternate');
+      + $std-duration * 2 + ' ease 0s 11 alternate');
   }
 }
 
