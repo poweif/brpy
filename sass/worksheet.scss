@@ -169,7 +169,7 @@ $console-button-size: $button-size-large;
   }
   .warning {
     @extend .font-small;
-    width: 450px;
+    width: 500px;
     color: $mid-color;
     @include animation('warning-color-swap '
       + $std-duration * 2 + ' ease 0s 11 alternate');
@@ -191,7 +191,7 @@ $console-button-size: $button-size-large;
   .right-menus {
     @extend %flexbox;
     @include flex-direction(row);
-    @include align-self(center);
+    @include align-items(center);
     .menu-button {
       margin: 0 12px;
     }
@@ -202,4 +202,8 @@ $console-button-size: $button-size-large;
     right: 8px;
     top: 5px;
   }
+}
+
+.content-element {
+  @include flex(0 0 auto);
 }

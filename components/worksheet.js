@@ -252,7 +252,6 @@ var HeaderBar = React.createClass({
     render: function() {
         var that = this;
         var button = null;
-        console.log(this.props.loggedInUser);
         if (this.props.loggedInUser) {
             var text = SKG.util.trimUserName(this.props.loggedInUser);
             var items = [
@@ -634,7 +633,7 @@ var Worksheet = React.createClass({
         this.openWorkingDialog();
 
         var onLoadProject = function(text) {
-            var bBlocks = JSON.parse(text);
+            var bBlocks = JSON.parse(text)['blocks'];
 
             var rand = SKG.util.makeId(5).toLowerCase();
             var genFileName = function(fnameExt) {
@@ -1260,7 +1259,10 @@ var Worksheet = React.createClass({
             that.refs.stdoutConsole.error(block, e);
         }
 
-        var ndoms = Sk.progdomIds().map(function(elem) { return elem.dom; });
+        var ndoms = Sk.progdomIds().map(function(elem) {
+            elem.dom.classList.add('content-element');
+            return elem.dom;
+        });
         var contentPaneDoms = {};
         for (var i in this.state.contentPaneDoms)
             contentPaneDoms[i] = this.state.contentPaneDoms[i];
@@ -1540,8 +1542,18 @@ var Worksheet = React.createClass({
         var datePublisher = null;
         if (isPublished && this.state.projectMeta.publisher &&
             this.state.projectMeta.publishedTime) {
-            var warning = "This is published project. Changes made here cannot be saved. Please copy to your own workspace if you'd like to continue the work here."
+            var warning0 = "This is published project. Changes made here cannot be saved. Please ";
+            var warning1 = function() {
+                return (
+                    <span className="link" onClick={projExport}>
+                        copy to your own workspace
+                    </span>
+                );
+            }();
+            var warning2 = " if you would like to continue working on this project."
             datePublisher = function() {
+                var publisher =
+                    SKG.util.trimUserName(that.state.projectMeta.publisher);
                 return (
                     <div className="subtext">
                         <span>Published by
@@ -1552,14 +1564,16 @@ var Worksheet = React.createClass({
                             <span className="highlight">
                                 {that.state.projectMeta.publishedTime}
                             </span>
-                       </span>
-                       <span className="warning">{warning}</span>
+                        </span>
+                        <span className="warning">
+                            {warning0}
+                            {warning1}
+                            {warning2}
+                        </span>
                     </div>
                 );
             }();
         }
-
-        console.log(this.props.loggedInUser);
 
         return (
            <div className="main-panel">

@@ -15,7 +15,7 @@ var ContentPane = React.createClass({
             that.height += SKG.util.fullElementHeight(elem);
         });
         this.height += 20;
-        this.height += 30 * (this.props.contentDoms.length);
+        this.height += 10 * (this.props.contentDoms.length);
     },
     componentDidUpdate: function(prevProps, prevState) {
         if (prevProps.contentDoms !== this.props.contentDoms)
@@ -25,7 +25,7 @@ var ContentPane = React.createClass({
         this.mountContentDoms();
     },
     maxHeight: function() {
-        return this.height;
+        return this.height + 60;
     },
     render: function() {
         return (
