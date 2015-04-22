@@ -242,7 +242,7 @@ var TextInputDialog = React.createClass({
 
 var DialogMixins = function() {
     var openedDialog = null;
-    var closeDialog = function() {
+    var closeDialogPrime = function() {
         if (!openedDialog)
             return;
         var onfinish = function() {
@@ -252,14 +252,14 @@ var DialogMixins = function() {
         openedDialog.close(onfinish);
     };
     var openTextDialog = function(text, prompt, options, onOK, onCancel) {
-        closeDialog();
+        closeDialogPrime();
         openedDialog = React.render(
             <InputDialog text={text} prompt={prompt} onOK={onOK}
                 onCancel={onCancel} options={options} />,
             document.getElementById('dialog0'));
     };
     var openChoicesDialog = function(choices, prompt, options, onOK, onCancel) {
-        closeDialog();
+        closeDialogPrime();
         openedDialog = React.render(
             <InputDialog choices={choices} prompt={prompt}
                 onOK={onOK} onCancel={onCancel} options={options}/>,
@@ -278,7 +278,7 @@ var DialogMixins = function() {
         return {
             openTextDialog: function(text, prompt, options, onOK) {
                 if (!options) options = {};
-                openTextDialog(text, prompt, options, onOK, closeDialog);
+                openTextDialog(text, prompt, options, onOK, this.closeDialog);
                 if (setDialogOpen)
                     setDialogOpen.bind(this)(true);
             },
@@ -288,12 +288,12 @@ var DialogMixins = function() {
                     setDialogOpen.bind(this)(true);
             },
             openBinaryDialog: function(prompt, onOK) {
-                openTextDialog(null, prompt, {}, onOK, closeDialog);
+                openTextDialog(null, prompt, {}, onOK, this.closeDialog);
                 if (setDialogOpen)
                     setDialogOpen.bind(this)(true);
             },
             openChoicesDialog: function(choices, prompt, onOK) {
-                openChoicesDialog(choices, prompt, {}, onOK, closeDialog);
+                openChoicesDialog(choices, prompt, {}, onOK, this.closeDialog);
                 if (setDialogOpen)
                     setDialogOpen.bind(this)(true);
             },
@@ -303,7 +303,7 @@ var DialogMixins = function() {
                     setDialogOpen.bind(this)(true);
             },
             closeDialog: function() {
-                closeDialog();
+                closeDialogPrime();
                 if (setDialogOpen)
                     setDialogOpen.bind(this)(false);
             }

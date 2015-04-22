@@ -28,6 +28,19 @@
   .delete-button {
    margin: 0 10px;
   }
+  .custom-top {
+    @extend %flexbox;
+    @include flex-direction(row);
+    @include align-items(center);
+    padding: 5px;
+    img {
+      max-width: $button-size-large;
+      max-height: $button-size-large;
+    }
+    h1 {
+      margin: 15px;
+    }
+  }
 }
 
 .project-listing {

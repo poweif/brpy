@@ -139,6 +139,27 @@ var SKG = {
             if (str.indexOf('@') >=0)
                 return str.substring(0, str.indexOf('@'));
             return str;
+        },
+        getTimeString: function() {
+            var date = new Date();
+            var hour = date.getHours() < 10 ? "0" + date.getHours() :
+                "" + date.getHours();
+            var min = date.getMinutes() < 10 ? "0" + date.getMinutes() :
+                "" + date.getMinutes();
+            return '' + date.getFullYear() + '-' + date.getMonth() + '-' +
+                date.getDate() + '@' + hour + ':' + min;
+        },
+        getFunIcon: function(user) {
+            var total = 0;
+            for (var i = 0; i < user.length; i++) {
+                total += user.charCodeAt(i);
+            }
+            var date = new Date();
+            var timevar = date.getYear() + date.getMonth() +
+                date.getDate()  + date.getHours();
+            total = (total * 5798993) % 8879293;
+            total = (total * timevar) % SKG.fun.length;
+            return 'fun/' + SKG.fun[total];
         }
     },
     d: function(key, val) {
@@ -157,6 +178,8 @@ var SKG = {
             return SKG_USER_START;
         if (dirs[1] == SKG_URL_PATH_PUBLISHED)
             return SKG_USER_PUBLISHED;
+        if (dirs[1] == SKG_URL_PATH_U)
+            return SKG_USER_U;
         return userName;
     },
     apiPrefix: function(user) {
@@ -313,9 +336,11 @@ var SKG = {
     SKG_URL_PATH_START = 'start';
     SKG_URL_PATH_PUBLISHED = 'published';
     SKG_URL_PATH_PUBLISHER = 'publish';
+    SKG_URL_PATH_U = 'u';
     SKG_USER_START = 'start';
     SKG_USER_PUBLISHED = 'published';
     SKG_USER_PUBLISHER = 'publisher';
+    SKG_USER_U = 'u';
     SKG_EDITORS= [
         SKG_EDITOR_STANDARD,
         SKG_EDITOR_EMACS

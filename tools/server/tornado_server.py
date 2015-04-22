@@ -452,6 +452,7 @@ if __name__ == "__main__":
         (r"/publish/run", PublishingRunHandler),
         (r"/start[/]?", IndexHandler),
         (r"/published[/]?", IndexHandler),
+        (r"/u[/]?", IndexHandler),
         (r"/tools/(.*)", RestrictAccessHandler),
         (r"/($)", RootIndexHandler),
         (r"/(.*)", tornado.web.StaticFileHandler, {'path': './'})

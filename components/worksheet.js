@@ -170,6 +170,9 @@ var ProjectButton = React.createClass({
 
         if (this.props.user && this.props.user != SKG_USER_START &&
             this.props.user != SKG_USER_PUBLISHED) {
+            buttons.push (
+                {text: 'project list', link: '/u/',icon: 'show6'}
+            );
             buttons = buttons.concat([
                 {text: "project options", hr: true},
                 {text: "new", click: this.props.onProjectNew, icon: "add186"},
@@ -188,6 +191,13 @@ var ProjectButton = React.createClass({
 });
 
 var LogoMenu =  React.createClass({
+    componentDidUpdate: function(prevProps) {
+        if (this.props.isDialogOpen) {
+            this.getDOMNode().style.zIndex = "-1";
+        } else {
+            this.getDOMNode().style.zIndex = "8";
+        }
+    },
     render: function() {
         var items = [
             {text: "published", link: "/published/", icon: 'show5',
@@ -210,24 +220,11 @@ var HeaderBar = React.createClass({
     },
     setFunUserIcon: function() {
         if (!this.props.loggedInUser) {
-            if (this.props.user == SKG_USER_PUBLISHED) {
-                this.setState({userIcon: 'emoticon117'});
-                return;
-            }
             this.setState({userIcon: 'user157'});
             return;
         }
-        var total = 0;
         var user = this.props.loggedInUser;
-        for (var i = 0; i < user.length; i++) {
-            total += user.charCodeAt(i);
-        }
-        var date = new Date();
-        var timevar = date.getYear() + date.getMonth() +
-            date.getDate()  + date.getHours();
-        total = (total * 5798993) % 8879293;
-        total = (total * timevar) % SKG.fun.length;
-        this.setState({userIcon: 'fun/' + SKG.fun[total]});
+        this.setState({userIcon: SKG.util.getFunIcon(user)});
     },
     componentDidUpdate: function(prevProps) {
         if (this.props.loggedInUser != prevProps.loggedInUser ||
@@ -237,13 +234,9 @@ var HeaderBar = React.createClass({
         if (this.props.isDialogOpen) {
             if (this.refs.rightMenu)
                 this.refs.rightMenu.getDOMNode().style.zIndex = "-1";
-            if (this.refs.logo)
-                this.refs.logo.getDOMNode().style.zIndex = "-1";
         } else {
             if (this.refs.rightMenu)
                 this.refs.rightMenu.getDOMNode().style.zIndex = "8";
-            if (this.refs.logo)
-                this.refs.logo.getDOMNode().style.zIndex = "8";
         }
     },
     componentDidMount: function() {
@@ -255,7 +248,9 @@ var HeaderBar = React.createClass({
         if (this.props.loggedInUser) {
             var text = SKG.util.trimUserName(this.props.loggedInUser);
             var items = [
+                {text: 'project list', link: '/u/',icon: 'show6'},
                 {text: "log out", link: "/logout", icon: "back57"}
+
             ];
             if (this.props.loggedInUser != this.props.user) {
                 if (that.props.onProjectExport) {
@@ -266,7 +261,7 @@ var HeaderBar = React.createClass({
                 }
 
                 items.unshift(
-                    {text: "go to workspace", link: "/", icon: "forward18"}
+                    {text: "workspace", link: "/", icon: "forward18"}
                 );
             }
 
@@ -341,7 +336,7 @@ var HeaderBar = React.createClass({
 
         return (
             <div className="header-bar">
-                <LogoMenu ref="logo" />
+                <LogoMenu isDialogOpen={this.props.isDialogOpen} />
                 {rightMost}
             </div>
         );
@@ -527,15 +522,7 @@ var Worksheet = React.createClass({
             projData['alias'] = projName;
             if (this.props.user)
                 projData['publisher'] = this.props.user;
-            var date = new Date();
-            var hour = date.getHours() < 10 ? "0" + date.getHours() :
-                "" + date.getHours();
-            var min = date.getMinutes() < 10 ? "0" + date.getMinutes() :
-                "" + date.getMinutes();
-
-            projData['publishedTime'] =
-                '' + date.getFullYear() + '-' + date.getMonth() + '-' +
-                date.getDate() + '@' + hour + ':' + min;
+            projData['publishedTime'] = SKG.util.getTimeString();
         }
         var files = [];
         blocks.forEach(function(block) {
@@ -732,6 +719,7 @@ var Worksheet = React.createClass({
             bc["name"] = block;
             return bc;
         });
+        projData['stamp'] = SKG.util.getTimeString();
         if (!holdWrite) {
             SKG.writeProject(that.props.user, projName, projData, outerOk,
                              onFail);
@@ -1558,7 +1546,7 @@ var Worksheet = React.createClass({
                     <div className="subtext">
                         <span>Published by
                             <span className="highlight">
-                                {that.state.projectMeta.publisher}
+                                {publisher}
                             </span>
                             on
                             <span className="highlight">

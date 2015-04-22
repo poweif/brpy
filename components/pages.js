@@ -1,12 +1,7 @@
 var ProjectListing = React.createClass({
-    goToProject: function() {
-        window.location.href = window.location.href + '#' +
-            this.props.id;
-    },
     render: function() {
-        var link = "/published/#" + this.props.id;
-        var publisherName = SKG.util.trimUserName(this.props.publisher);
         var that = this;
+        var ignore = this.props.ignore ? this.props.ignore : {};
         var deleteButton =
             this.props.publisher &&
             (this.props.publisher == this.props.loggedInUser) ?
@@ -17,26 +12,35 @@ var ProjectListing = React.createClass({
                 );
             }() : null;
 
+        var publisher = ignore['publisher'] ? null : function() {
+            var publisherName = SKG.util.trimUserName(that.props.publisher);
+            return (
+                <div className="block">
+                    <div className="publisher">{publisherName}</div>
+                </div>
+            );
+        }();
+        var id = ignore['id'] ? null : function() {
+            return <div className="id">{that.props.id}</div>;
+        }();
+
         return (
             <div className="project-listing">
                 <div className="top">
                     <div className="block">
                         <div className="title">
-                            <a onClick={this.goToProject}>
-                                {this.props.alias}</a>
+                            <a onClick={this.props.onGoToProject}>
+                                {this.props.title}</a>
                             {deleteButton}
                         </div>
-                        <div className="id">{this.props.id}</div>
+                        {id}
                     </div>
                     <div className="block">
                         <div className="time-stamp">
                             {this.props.stamp}
                         </div>
-                    </div>
-                    <div className="block">
-                        <div className="publisher">
-                            {publisherName}</div>
-                    </div>
+                   </div>
+                   {publisher}
                 </div>
                 <div className="desc">{this.props.desc}</div>
             </div>
@@ -50,15 +54,26 @@ var ProjectsList = React.createClass({
     })],
     getInitialState: function() {
         return {
-            content: "hey ma look no hands",
+            content: null,
             projects: [],
             loading: true,
             isDialogOpen: false,
             solution: null
         };
     },
+    onGoToProject: function(id) {
+        var isPublished = this.props.user == SKG_USER_PUBLISHED;
+        if (isPublished) {
+            window.location.href = window.location.href + '#' + id;
+        } else {
+            window.location.href = 'http://' + window.location.host +
+                '/#' + id;
+        }
+    },
     onDeleteProject: function(proj, alias) {
         var that = this;
+        var writeUser = this.state.user == SKG_USER_PUBLISHED ?
+            SKG_USER_PUBLISHER : this.state.user;
         var updateSol = function() {
             var nprojs = [];
             var sol = that.state.solution;
@@ -67,12 +82,12 @@ var ProjectsList = React.createClass({
                     nprojs.push(p);
             });
             sol['projects'] = nprojs;
-            SKG.updateSolution(SKG_USER_PUBLISHER, sol, that.loadList);
+            SKG.updateSolution(writeUser, sol, that.loadList);
             that.closeDialog();
         };
         var ok = function() {
             that.setState({projects: [], loading: true});
-            SKG.deleteProject(SKG_USER_PUBLISHER, proj, updateSol);
+            SKG.deleteProject(writeUser, proj, updateSol);
         };
         this.openBinaryDialog(
             "Really delete project " + alias + "?", ok);
@@ -86,18 +101,43 @@ var ProjectsList = React.createClass({
             }
             var onDone = function(text) {
                 var pdata = JSON.parse(text);
+
                 var del = function() {
                     that.onDeleteProject(ps[ind], pdata.alias);
                 };
+                var title = pdata.alias;
+                var id = ps[ind];
+                var stamp = pdata.publishedTime;
+                var publisher = pdata.publisher;
+                var ignore = {};
+
+                var isPublished = that.props.user == SKG_USER_PUBLISHED;
+
+                if (!isPublished) {
+                    id = ps[ind];
+                    title = ps[ind];
+                    publisher = that.props.user;
+                    stamp = pdata.stamp;
+                    del = function() {
+                        that.onDeleteProject(title, title);
+                    };
+                    ignore = {'publisher': true, 'id': true};
+                }
+
+                var goTo = function() {
+                    that.onGoToProject(id);
+                };
+
                 // Skip the default 'example' place-holder project.
-                if (pdata.publisher) {
+                if ((isPublished && pdata.publisher) || !isPublished) {
                     that.state.projects.push(function() {
                         return (
-                            <ProjectListing alias={pdata.alias}
-                                onDeleteProject={del} desc={pdata.desc}
-                                id={ps[ind]} stamp={pdata.publishedTime}
+                            <ProjectListing title={title} id={id}
+                                onDeleteProject={del}
+                                onGoToProject={goTo}
+                                stamp={stamp} ignore={ignore} desc={pdata.desc}
                                 loggedInUser={that.props.loggedInUser}
-                                publisher={pdata.publisher} />
+                                publisher={publisher} />
                         );
                     }());
                 }
@@ -129,11 +169,10 @@ var ProjectsList = React.createClass({
             };
             SKG.util.xhrGet(this.props.contentUrl, onLoad, null);
         }
-        if (this.props.user == SKG_USER_PUBLISHED) {
-            this.loadList();
-        }
+        this.loadList();
     },
     render: function() {
+        var that = this;
         var projectsList = this.state.projects.map(
             function(project, ind) {
                 return <div key={ind}>{project}</div>;
@@ -146,16 +185,51 @@ var ProjectsList = React.createClass({
                 </div>
             );
         }();
+
+        var isPublished = this.props.user == SKG_USER_PUBLISHED;
+        var topInfo = null;
+        var headerBar = null;
+
+        if (isPublished) {
+            topInfo = function() {
+                return (
+                    <span dangerouslySetInnerHTML={{__html: that.state.content}} />
+                );
+            }();
+            headerBar = function() {
+                return (
+                    <HeaderBar isDialogOpen={that.state.isDialogOpen}
+                        loggedInUser={that.props.loggedInUser}
+                        user={that.props.user} />
+                );
+            }();
+        } else {
+            topInfo = function() {
+                var userName = SKG.util.trimUserName(that.props.user);
+                var str = userName + "'s projects";
+                var funIcon = '/img/' + SKG.util.getFunIcon(that.props.user)
+                    + '.png';
+                return (
+                    <div className="custom-top">
+                        <img src={funIcon} />
+                        <h1>{str}</h1>
+                        <Button mid link="/logout" icon="back57" />
+                    </div>
+                );
+            }();
+            headerBar = function() {
+                return <LogoMenu isDialogOpen={that.state.isDialogOpen} />;
+            }();
+        }
+
         return (
-           <div className="projects-list-wrapper">
-               <HeaderBar isDialogOpen={this.state.isDialogOpen}
-                   loggedInUser={this.props.loggedInUser}
-                   user={this.props.user} />
-               <div className="projects-list">
-                   <span dangerouslySetInnerHTML={{__html: this.state.content}} />
-                   {projectsList}
-                   {this.state.loading ? loader: null}
-               </div>
+            <div className="projects-list-wrapper">
+                {headerBar}
+                <div className="projects-list">
+                    {topInfo}
+                    {projectsList}
+                    {this.state.loading ? loader: null}
+                </div>
            </div>
         );
     }
@@ -209,7 +283,6 @@ var TheHub = React.createClass({
     render: function() {
         var that = this;
         var content = null;
-        console.log(that.state.loggedInUser);
         if (this.state.user == SKG_USER_PUBLISHED &&
             !SKG.readProjectFromURL()) {
             content = function() {
@@ -219,6 +292,17 @@ var TheHub = React.createClass({
                         contentUrl="/content/published.md" />
                 );
             }();
+        } else if (this.state.user == SKG_USER_U) {
+            if (that.state.loggedInUser) {
+                content = function() {
+                    return (
+                        <ProjectsList user={that.state.loggedInUser}
+                            loggedInUser={that.state.loggedInUser} />
+                    );
+                }();
+            } else {
+                window.location.href = '/' + SKG_URL_PATH_PUBLISHED;
+            }
         } else {
             content = function() {
                 return (
