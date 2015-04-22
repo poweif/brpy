@@ -293,15 +293,18 @@ var SKG = {
         var urlPre = (url.indexOf('#') >= 0) ?
             url.substring(0, url.indexOf('#')) :
             url;
-        url = urlPre + (urlPre[urlPre.length - 1] == '/' ? '#' : '/#') + proj;
+        url = urlPre;
+        if (proj)
+            url += (urlPre[urlPre.length - 1] == '/' ? '#' : '/#') + proj;
         window.history.replaceState(null, null, url);
     },
     updateTitleWithUserProject: function(user, proj) {
-        if (user) {
-            document.title = SKG_TITLE + ' :: ' + user + ' :: ' + proj;
-            return;
-        }
-        document.title = SKG_TITLE + ' :: ' + proj;
+        var res = SKG_TITLE;
+        if (user)
+            res += ' :: ' + user;
+        if (proj)
+            res += ' :: ' + proj;
+        document.title = res;
     },
     updateWithUserProject: function(user, proj) {
         this.updateURLWithProject(proj);

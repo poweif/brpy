@@ -72,8 +72,8 @@ var ProjectsList = React.createClass({
     },
     onDeleteProject: function(proj, alias) {
         var that = this;
-        var writeUser = this.state.user == SKG_USER_PUBLISHED ?
-            SKG_USER_PUBLISHER : this.state.user;
+        var writeUser = this.props.user == SKG_USER_PUBLISHED ?
+            SKG_USER_PUBLISHER : this.props.user;
         var updateSol = function() {
             var nprojs = [];
             var sol = that.state.solution;
@@ -170,6 +170,7 @@ var ProjectsList = React.createClass({
             SKG.util.xhrGet(this.props.contentUrl, onLoad, null);
         }
         this.loadList();
+        SKG.updateWithUserProject(this.props.user, null);
     },
     render: function() {
         var that = this;
