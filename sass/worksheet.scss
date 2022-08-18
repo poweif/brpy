@@ -64,13 +64,13 @@ $console-button-size: $button-size-large;
 
     .info {
       color: $color-red;
-      @include flex-grow(0);
       margin: 0 5px;
-      width: math.div($stdout-console-width,  4);
+      width: 20%;
     }
 
     .content {
-      width: math.div(3 * $stdout-console-width,  4);
+      width: 80%;
+      padding: 0 5px;	
       font-family:  "source-sans-pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
 
     }
