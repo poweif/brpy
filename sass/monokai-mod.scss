@@ -1,3 +1,5 @@
+@use "sass:color";
+
 @import 'common';
 /* Based on Sublime Text's Monokai theme */
 
@@ -6,12 +8,16 @@ $low-color: interp($prime-color, $prime-inv-color, .7);
 $lowest-color: interp($prime-color, $prime-inv-color, .95);
 $comment-color: interp($high-color, $color-0, .5);
 
+@debug $high-color;
+@debug $low-color;
+
 .cm-s-monokai {
   @extend .unselectable;
 }
 
-.cm-s-monokai.CodeMirror {background: $lowest-color; color: $high-color;}
-.cm-s-monokai div.CodeMirror-selected {background: $prime-color * .8 !important;}
+.cm-s-monokai.CodeMirror {background: $lowest-color;
+			  color: $high-color;}
+.cm-s-monokai div.CodeMirror-selected {background: color.scale($prime-color, $lightness:-20%) !important;}
 .cm-s-monokai .CodeMirror-gutters {background: $low-color; border-right: 0px;}
 .cm-s-monokai .CodeMirror-guttermarker { color: $high-color; }
 .cm-s-monokai .CodeMirror-guttermarker-subtle { color: $color-1; }

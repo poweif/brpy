@@ -1,3 +1,5 @@
+@use "sass:color";
+
 @import 'common';
 @import 'flexbox';
 
@@ -22,7 +24,7 @@
 
   .dialog-bg {
     position: fixed;
-    background-color: gray * .3;
+    background-color: color.scale(gray, $lightness:-70%);
     opacity: .85;
     min-height: 100%;
     min-width: 100%;

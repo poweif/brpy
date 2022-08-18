@@ -1,16 +1,23 @@
+@use "sass:color";
+@use "sass:math";
+
 @function interp($a, $b, $t) {
-  @return ($a * $t) + ($b * (1 - $t));
+    $test-color: color.change($a,
+			 $red: color.red($a) * $t + (color.red($b) * (1 - $t)),
+			 $green: color.green($a) * $t + (color.green($b) * (1 - $t)),
+			 $blue: color.blue($a) * $t + (color.blue($b) * (1 - $t)));
+    @return $test-color;
 }
 
 $color-fac: .75;
-$color-red: rgb(250, 145, 160) * $color-fac; // red
-$color-blue: rgb(145, 195, 250) * $color-fac; // blue
+$color-red: rgb(250 * $color-fac, 145 * $color-fac, 160 * $color-fac); // red
+$color-blue: rgb(145 * $color-fac, 195 * $color-fac, 250 * $color-fac); // blue
 
 $color-0: $color-blue;
-$color-1: rgb(135, 220, 165) * $color-fac; // green
-$color-2: rgb(240, 175, 240) * $color-fac; // purple
+$color-1: rgb(135 * $color-fac, 220 * $color-fac, 165 * $color-fac); // green
+$color-2: rgb(240 * $color-fac, 175 * $color-fac, 240 * $color-fac); // purple
 $color-3: $color-red;
-$color-4: #fec440 * $color-fac;  // yellow
+$color-4: color.scale(#fec440, $lightness: math.percentage(-(1-$color-fac)));  // yellow
 $color-5: #e010e0;  // purple
 $color-6: #5010e0;  // yellow
 
@@ -22,7 +29,7 @@ $alt-font-family: monospace;
 $mid-color: interp($prime-inv-color, $prime-color, .3);
 
 $highlight-color: $color-4;
-$picked-color: $highlight-color * .85;
+$picked-color: color.scale($highlight-color, $lightness: -15%);  // yellow
 
 $std-border-radius: 5px;
 $std-duration: .3s;
@@ -182,4 +189,3 @@ $button-font-large: $button-size-large + 2;
 .product {
   font-family: GrandHotel;
 }
-

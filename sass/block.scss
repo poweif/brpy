@@ -85,7 +85,7 @@ $line-width: 2px;
         @include align-self(center);
         @include flex-grow(0);
         @include flex-shrink(0);
-        border: 1px solid $mid-color * 1;
+        border: 1px solid $mid-color;
         margin: 10px;
       }
       font-size: $button-font-small;
