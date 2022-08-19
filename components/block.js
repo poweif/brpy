@@ -287,7 +287,6 @@ var DisplayBlock = React.createClass({
 		onMouseLeave={this.mouseLeave} >
 		<div className={separatorCn} >
 		    <div className="display-separator-line-wrapper">
-			<div className="separator-line"></div>
 		    </div>
 		    <span className="block-name">{this.props.name}</span>
 		    <Button icon="create3" click={this.props.onBlockDisplay} />
@@ -488,15 +487,22 @@ var WorksheetBlock = React.createClass({
 	    var mouseDown = function(e) {
 		this.separatorMouseDown(upper, e);
 	    }.bind(that);
+
+            let separatorWrapperCn = "separator-line-wrapper";
+            let separatorLineCn = "separator-line";
+            if (!upper) {
+                separatorWrapperCn = "lower-separator-line-wrapper";
+                separatorLineCn = "lower-separator-line";
+            }
 	    return (
-		<div ref="separator" className="separator">
-		    <div className="separator-line-wrapper"
-			onMouseDown={mouseDown}>
-			<div className="separator-line"></div>
+                <div ref="separator" className="separator">
+		    <div className={separatorWrapperCn}
+                         onMouseDown={mouseDown}>
+                    <div className={separatorLineCn}></div>
 		    </div>
 		    {upper ? blockMenu : null}
-		    <Button icon="rounded56" click={that.blockCollapse} />
-		    <Button icon="add182" click={that.blockExpand} />
+                    {upper ? <Button icon="show4" click={that.blockCollapse} /> : null }
+                    {upper ? <Button icon="show7" click={that.blockExpand} /> : null }
 		</div>
 	    );
 	};

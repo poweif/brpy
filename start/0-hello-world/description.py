@@ -37,19 +37,17 @@ You may wish to import sample projects into your own account for start. You can 
 
 ### Output ###
 
-The output of brpy can be one of several forms.
--
-~~~~
-print('hello world')
-~~~~
+The output of brpy can be one of two types
+- **Console output**: `print('hello world')`
 will write the string `'hello world'` into the *console*, which can be found at the
 bottom left-hand side. Try evaluating the *test* block below.
-- The space to the left of the editor is the *content* area. It contains special
+- **Content output**: The space to the left of the editor is the *content* area. It contains special
   output components created with python code. There are currently two components
-  available: *text* and *canvas*.  The *text* content created with the `md.kd(str)`
-  method where `str` is a [kramdown](http://kramdown.gettalong.org/)-style string.
-  It is also possible to use `md.kd` write TeX-style outputs. Please see the
-  **1-math-symbols** project (above) for more information.
-- The *canvas (WebGL)* content will be covered in the **3-kitten** project.
+  available: *text* and *canvas*.
+  - The *text* content created with the `md.kd(str)`
+    method where `str` is a [kramdown](http://kramdown.gettalong.org/)-style string.
+    It is also possible to use `md.kd` write TeX-style outputs. Please see the
+    **1-math-symbols** project (above) for more information.
+  - The *canvas (WebGL)* content will be covered in the **3-kitten** project.
 
 """)

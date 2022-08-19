@@ -5,7 +5,7 @@ kd("""
 ### Math Symbols ###
 [KaTeX](https://github.com/Khan/KaTeX) was used to display math symbols. 
 Here are some examples
-- Inline math is possible $f(x)=x+1$ with this.
+- Inline math is possible (e.g $f(x)=x+1$) with this tool
 - $\sum_{i}^{10}{i}$
 - $f(\pi) =\sin(\pi) + \cos(\pi)$
 - $\Pi(x) = x ( x + 2)$
@@ -16,7 +16,8 @@ symbols is available
 """) 
 
 total = 1
-for i in range(1, 21):
+fac_num = 25
+for i in range(1, fac_num):
   total = total * i
 
-kd("###For Fun###\n $21!=%i$" % total)
+kd("###For Fun###\n $%i!=%i$" % (fac_num, total))
