@@ -1,3 +1,4 @@
+@use "sass:math";
 @import 'common';
 @import 'flexbox';
 
@@ -6,14 +7,17 @@ $console-button-size: 50px;
 
 $line-width: 2px;
 
+$faded-opacity: .15;
+$full-opacity: 1;
+
 .general-block {
   .line-wrapper {
-    opacity: .15;
+    opacity: $faded-opacity;
     transition: opacity $std-duration;
     border-width: 1px;
   }
   .line-wrapper:hover {
-    opacity: 1;
+    opacity: $full-opacity;
     transition: opacity $std-duration;
   }
 
@@ -41,17 +45,42 @@ $line-width: 2px;
       border-color: $prime-inv-color;
       border-width: $line-width;
     }
+  }
+  .collapsed-separator {
+    @extend %flexbox;
+    @include flex-direction(row);
+    @include align-items(center);
+    @include flex-grow(0);
+    @include flex-shrink(0);
+    transition: opacity $std-duration;
+    margin: 5px 0;
+    cursor: pointer;
+    opacity: $faded-opacity;
+    transition: opacity $std-duration;
+
     .collapsed-line-wrapper {
-      @extend .separator-line-wrapper;
-      cursor: pointer;
+      @extend %flexbox;
+      @include flex(auto);
+      @include flex-direction(column);
+      @include align-items(stretch);
+      margin: 5px 10px;
     }
     .collapsed-line {
       @extend .separator-line;
-      border-style: solid none solid none;
-      height: 4px;
+      border-style: dotted none none none;
       border-width: $line-width;
+      margin: 0;
+    }
+    .collapsed-block-name {
+      font-size: $button-font-small;
+      margin: 0 5px;
     }
   }
+  .collapsed-separator:hover {
+    opacity: $full-opacity;
+    transition: opacity $std-duration;
+  }
+
   .block-content {
     @extend %flexbox;
     @include flex-direction(row);
@@ -130,6 +159,7 @@ $line-width: 2px;
   }
   .block-name {
     margin: 0 5px;
+    font-size: $button-font-small;
   }
 }
 

@@ -29,7 +29,7 @@ var StdoutConsole =  React.createClass({
         var infoStr = block + " [" +
             ((hours < 10) ? "0" + hours : hours) + ":" +
             ((mins < 10) ? "0" + mins : mins) + ":" +
-            ((secs < 10) ? "0" + secs : secs) + "] > ";
+            ((secs < 10) ? "0" + secs : secs) + "]";
         return infoStr;
     },
     error: function(block, e) {
